@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700&display=swap');
+
+:root {
+  /* Colors */
+  --surface: #f8f9fa;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f3f4f5;
+  --surface-container: #ebecee;
+  --surface-container-high: #e1e3e5;
+  --surface-container-highest: #d9d9de;
+
+  --on-surface: #191c1d;
+  --primary: #005bbf;
+  --primary-container: #1a73e8;
+  --on-primary: #ffffff;
+  --on-primary-fixed-variant: #004599;
+
+  --secondary-container: #d9e2ff;
+  --on-secondary-container: #001946;
+
+  --tertiary: #b02a66;
+  --tertiary-fixed: #ffd9e4;
+
+  --outline-variant: #c1c6d6;
+  --ghost-border: rgba(193, 198, 214, 0.15); /* outline-variant at 15% */
+
+  /* Shadows (Ambient) */
+  --shadow-ambient: 0px 12px 32px rgba(25, 28, 29, 0.06);
+
+  /* Radii */
+  --radius-sm: 0.25rem;
+  --radius-default: 8px;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+  
+  /* Fonts */
+  --font-editorial: 'Manrope', sans-serif;
+  --font-functional: 'Inter', sans-serif;
+}
+
+/* Base Restyle */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-functional);
+  color: var(--on-surface);
+  background-color: var(--surface);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Typography Scale */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-editorial);
+  color: var(--on-surface);
+  margin-bottom: 0.5rem;
+}
+
+.display-lg { font-size: 3.5rem; font-weight: 700; line-height: 1.2; }
+.headline-md { font-size: 2rem; font-weight: 600; line-height: 1.3; }
+.headline-sm { font-size: 1.5rem; font-weight: 600; line-height: 1.3; }
+.title-sm { font-family: var(--font-functional); font-size: 0.875rem; font-weight: 500; }
+.body-lg { font-size: 1.125rem; }
+.body-sm { font-size: 0.75rem; }
+
+/* Global Rule Overrides Based on UI Design constraints */
+/* No 1px solid borders */
+hr {
+  display: none;
+}
+
+/* Utilities */
+.glassmorphism {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(24px);
+}
