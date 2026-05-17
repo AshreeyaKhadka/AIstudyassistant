@@ -1,0 +1,218 @@
+.signup-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--surface);
+  font-family: var(--font-functional);
+}
+
+.signup-image-pane {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .signup-image-pane {
+    display: flex;
+    flex: 1.2;
+    position: relative;
+    overflow: hidden;
+    background-color: #000;
+  }
+  
+  .signup-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.9;
+    transition: transform 10s ease;
+  }
+  
+  .signup-image-pane:hover .signup-image {
+    transform: scale(1.05);
+  }
+
+  .signup-image-overlay {
+    position: absolute;
+    inset: 0;
+    /* Custom teal/emerald gradient overlay for sign up */
+    background: linear-gradient(135deg, rgba(0, 153, 153, 0.4) 0%, rgba(0, 91, 191, 0.4) 100%);
+    mix-blend-mode: overlay;
+  }
+  
+  .signup-quote {
+    position: absolute;
+    bottom: 4rem;
+    left: 4rem;
+    right: 4rem;
+    color: white;
+    z-index: 10;
+  }
+  
+  .signup-quote-text {
+    font-family: var(--font-editorial);
+    font-size: 2.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+  
+  .signup-quote-author {
+    font-size: 1.125rem;
+    font-weight: 500;
+    opacity: 0.9;
+  }
+}
+
+.signup-form-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  position: relative;
+}
+
+.signup-form-wrapper {
+  width: 100%;
+  max-width: 420px;
+}
+
+.signup-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.signup-title {
+  font-family: var(--font-editorial);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--on-surface);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.signup-subtitle {
+  color: var(--outline-variant);
+  font-size: 1.125rem;
+}
+
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+
+.input-field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--outline-variant);
+  pointer-events: none;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 3rem;
+  border: 1px solid var(--surface-container-highest);
+  border-radius: var(--radius-default);
+  background-color: var(--surface-container-lowest);
+  font-family: var(--font-functional);
+  font-size: 1rem;
+  color: var(--on-surface);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--secondary-container);
+}
+
+.input-field-wrapper:focus-within .input-icon,
+.input-field:not(:placeholder-shown) + .input-icon {
+  color: var(--primary);
+}
+
+.btn-primary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 1rem;
+  background-color: var(--primary);
+  color: var(--on-primary);
+  border: none;
+  border-radius: var(--radius-default);
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: var(--font-functional);
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  margin-top: 0.5rem;
+}
+
+.btn-primary:hover {
+  background-color: var(--on-primary-fixed-variant);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.signin-prompt {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--outline-variant);
+}
+
+.signin-link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 0.25rem;
+}
+
+.signin-link:hover {
+  text-decoration: underline;
+}
+
+.back-home {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--outline-variant);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.back-home:hover {
+  color: var(--on-surface);
+}

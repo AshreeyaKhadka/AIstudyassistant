@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BookOpen, Sparkles, BrainCircuit, Library, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -13,9 +14,10 @@ const GoogleIcon = () => (
 );
 
 const LandingPage = () => {
-  const handleGoogleLogin = () => {
-    // In production, navigate to backend oauth endpoint
-    window.location.href = 'http://localhost:5000/auth/login';
+  const navigate = useNavigate();
+
+  const handleSignIn = () => {
+    navigate('/signin');
   };
 
   const containerVariants = {
@@ -52,7 +54,7 @@ const LandingPage = () => {
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <a href="#" className="title-sm" style={{ color: 'var(--outline-variant)', textDecoration: 'none', transition: 'color 0.2s' }}>Features</a>
           <a href="#" className="title-sm" style={{ color: 'var(--outline-variant)', textDecoration: 'none', transition: 'color 0.2s' }}>Syllabus</a>
-          <Button variant="secondary" onClick={handleGoogleLogin}>
+          <Button variant="secondary" onClick={handleSignIn}>
             Sign In
           </Button>
         </div>
@@ -83,9 +85,8 @@ const LandingPage = () => {
             </motion.div>
             
             <motion.div variants={itemVariants} style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginTop: '1rem' }}>
-              <Button style={{ padding: '1rem 2.5rem', fontSize: '1.125rem', display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--surface-container-lowest)', color: 'var(--on-surface)', border: '1px solid var(--outline-variant)' }} onClick={handleGoogleLogin}>
-                <GoogleIcon />
-                Sign in with Google
+              <Button style={{ padding: '1rem 2.5rem', fontSize: '1.125rem', display: 'flex', gap: '0.75rem', alignItems: 'center', background: 'var(--surface-container-lowest)', color: 'var(--on-surface)', border: '1px solid var(--outline-variant)' }} onClick={handleSignIn}>
+                Sign in to your account
                 <ArrowRight size={20} color="var(--primary)" style={{ marginLeft: '0.5rem' }} />
               </Button>
             </motion.div>
