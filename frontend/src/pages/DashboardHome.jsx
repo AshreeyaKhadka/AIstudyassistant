@@ -1,4 +1,5 @@
 import React from 'react';
+import { useOutletContext } from 'react-router-dom';
 import WelcomeSection from '../components/dashboard/WelcomeSection';
 import StatCards from '../components/dashboard/StatCards';
 import RecentQueries from '../components/dashboard/RecentQueries';
@@ -9,6 +10,7 @@ import NotesPreview from '../components/dashboard/NotesPreview';
 import ProgressTracker from '../components/dashboard/ProgressTracker';
 import ExamTools from '../components/dashboard/ExamTools';
 import RecommendedMaterials from '../components/dashboard/RecommendedMaterials';
+import RevisionWidget from '../components/dashboard/RevisionWidget';
 
 import { 
   studentData, 
@@ -20,10 +22,12 @@ import {
 } from '../data/dummyDashboardData';
 
 const DashboardHome = () => {
+  const { user } = useOutletContext();
+
   return (
     <div className="flex flex-col gap-6 max-w-[1600px] mx-auto pb-10">
       {/* 1. Welcome Section */}
-      <WelcomeSection data={studentData} />
+      <WelcomeSection data={studentData} user={user} />
 
       {/* 2. Quick Stats */}
       <StatCards stats={studentData.stats} />
@@ -53,6 +57,9 @@ const DashboardHome = () => {
 
         {/* Right Column (Sidebar Content) - Takes up 1/3 width */}
         <div className="flex flex-col gap-6">
+          {/* Revision Planner Dashboard Widget */}
+          <RevisionWidget />
+
           {/* Progress Tracking */}
           <ProgressTracker />
 
@@ -62,6 +69,7 @@ const DashboardHome = () => {
           {/* Recommended Materials */}
           <RecommendedMaterials />
         </div>
+
         
       </div>
     </div>

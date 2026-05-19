@@ -7,7 +7,7 @@ const Navbar = ({ user, scrolled }) => {
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/dashboard') return 'Welcome back, Engineer \uD83D\uDC4B';
+    if (path === '/dashboard') return `Welcome ${user?.username || 'back'} 👋`;
     if (path.includes('/upload')) return 'Uploaded Materials';
     if (path.includes('/chat')) return 'AI Chat Assistant';
     if (path.includes('/notes')) return 'My Notes';

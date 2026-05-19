@@ -1,5 +1,34 @@
 from config import db
-from pgvector.sqlalchemy import Vector
+from sqlalchemy import TypeDecorator, Text
+import json
+from config import Config
+
+# Custom type fallback for SQLite which doesn't support pgvector's Vector type
+if Config.SQLALCHEMY_DATABASE_URI.startswith('sqlite'):
+    class SQLiteVector(TypeDecorator):
+        impl = Text
+        cache_ok = True
+
+        def __init__(self, dimensions=None):
+            super().__init__()
+            self.dimensions = dimensions
+
+        def process_bind_param(self, value, dialect):
+            if value is not None:
+                return json.dumps(value)
+            return value
+
+        def process_result_value(self, value, dialect):
+            if value is not None:
+                return json.loads(value)
+            return value
+
+        def load_dialect_impl(self, dialect):
+            return dialect.type_descriptor(Text())
+
+    Vector = SQLiteVector
+else:
+    from pgvector.sqlalchemy import Vector
 
 class DocEmbedding(db.Model):
     __tablename__ = 'doc_embeddings'

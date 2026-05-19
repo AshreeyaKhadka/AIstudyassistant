@@ -12,19 +12,29 @@ const DashboardLayout = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate authentication for now, as requested to use dummy data
-    setTimeout(() => {
-      // Mock user data
-      setUser({
-        name: 'Student Name',
-        username: 'Student',
-        role: 'student',
-        college: 'Pokhara University',
-        semester: 'Semester 8',
-        department: 'Computer Engineering'
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(res => {
+        if (!res.ok) throw new Error('Not logged in');
+        return res.json();
+      })
+      .then(data => {
+        if (!data.college || !data.semester) {
+          navigate('/onboard');
+        } else {
+          // Provide default username logic if needed, backend provides name
+          const userData = {
+            ...data,
+            username: data.name ? data.name.split(' ')[0] : 'User',
+            department: 'Computer Engineering' // Default for now until backend supports it
+          };
+          setUser(userData);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        console.error('Auth error:', err);
+        navigate('/signin');
       });
-      setLoading(false);
-    }, 500);
   }, [navigate]);
 
   useEffect(() => {

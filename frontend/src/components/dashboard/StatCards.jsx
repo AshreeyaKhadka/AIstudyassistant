@@ -1,14 +1,30 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { BookOpen, Layers, UploadCloud, Clock, Target, AlertCircle } from 'lucide-react';
 
-const StatCard = ({ title, value, icon: Icon, trend, type }) => {
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08
+    }
+  }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
+};
+
+const StatCard = ({ title, value, icon: Icon, type }) => {
   const getStyle = () => {
     switch(type) {
-      case 'primary': return 'from-blue-500 to-indigo-600 text-blue-600 bg-blue-50';
-      case 'success': return 'from-emerald-400 to-teal-500 text-emerald-600 bg-emerald-50';
-      case 'warning': return 'from-amber-400 to-orange-500 text-amber-600 bg-amber-50';
-      case 'danger': return 'from-rose-400 to-red-500 text-rose-600 bg-rose-50';
-      default: return 'from-slate-400 to-slate-500 text-slate-600 bg-slate-50';
+      case 'primary': return 'from-blue-500 to-indigo-600 text-blue-500 bg-blue-50/50 border-blue-100/50 glow-blue';
+      case 'success': return 'from-emerald-400 to-teal-500 text-emerald-500 bg-emerald-50/50 border-emerald-100/50 glow-emerald';
+      case 'warning': return 'from-amber-400 to-orange-500 text-amber-500 bg-amber-50/50 border-amber-100/50 glow-amber';
+      case 'danger': return 'from-rose-400 to-red-500 text-rose-500 bg-rose-50/50 border-rose-100/50 glow-rose';
+      default: return 'from-slate-400 to-slate-500 text-slate-500 bg-slate-50/50 border-slate-100/50 glow-slate';
     }
   };
 
@@ -16,28 +32,41 @@ const StatCard = ({ title, value, icon: Icon, trend, type }) => {
   const gradientClass = style.split(' ').slice(0, 2).join(' ');
   const textClass = style.split(' ')[2];
   const bgClass = style.split(' ')[3];
+  const borderClass = style.split(' ')[4];
 
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.1)] transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
-      {/* Decorative gradient blur in background */}
-      <div className={`absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br ${gradientClass} rounded-full blur-[40px] opacity-20 group-hover:opacity-40 transition-opacity duration-500`}></div>
+    <motion.div 
+      variants={cardVariants}
+      whileHover={{ y: -5, scale: 1.01 }}
+      className={`bg-white rounded-3xl p-5 border border-slate-100/80 shadow-[0_4px_16px_rgba(0,0,0,0.015)] hover:shadow-[0_20px_35px_rgba(0,0,0,0.04)] hover:border-slate-200/50 transition-all duration-300 group relative overflow-hidden`}
+    >
+      {/* Dynamic ambient hover glow in back */}
+      <div className={`absolute -right-4 -top-4 w-20 h-20 bg-gradient-to-br ${gradientClass} rounded-full blur-[30px] opacity-0 group-hover:opacity-20 transition-opacity duration-500`}></div>
       
-      <div className="flex justify-between items-start mb-4 relative z-10">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bgClass} ${textClass} group-hover:scale-110 transition-transform duration-300`}>
-          <Icon size={24} strokeWidth={2} />
+      <div className="flex justify-between items-start mb-3.5 relative z-10">
+        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${bgClass} ${textClass} border ${borderClass} group-hover:scale-105 transition-transform duration-300`}>
+          <Icon size={20} strokeWidth={2.2} />
         </div>
       </div>
+      
       <div className="relative z-10">
-        <h3 className="text-3xl font-extrabold text-slate-800 mb-1 tracking-tight">{value}</h3>
-        <p className="text-sm font-medium text-slate-500">{title}</p>
+        <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight group-hover:text-slate-900 transition-colors">
+          {value}
+        </h3>
+        <p className="text-xs font-semibold text-slate-400 tracking-wide mt-0.5">{title}</p>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
 const StatCards = ({ stats }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5"
+    >
       <StatCard 
         title="Total Notes" 
         value={stats.totalNotes} 
@@ -74,7 +103,7 @@ const StatCards = ({ stats }) => {
         icon={AlertCircle} 
         type="danger"
       />
-    </div>
+    </motion.div>
   );
 };
 

@@ -11,7 +11,7 @@ const Dashboard = () => {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:5000/auth/me', { credentials: 'include' })
+    fetch('/api/auth/me', { credentials: 'include' })
       .then(res => {
         if (!res.ok) throw new Error('Not logged in');
         return res.json();
@@ -46,7 +46,7 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:5000/auth/logout', { method: 'POST', credentials: 'include' });
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
       navigate('/');
     } catch (err) {
       console.error(err);
@@ -63,7 +63,7 @@ const Dashboard = () => {
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
       {/* Sidebar */}
-      <aside className="w-[280px] bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 relative z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+      <aside className="w-[280px] bg-white/60 backdrop-blur-2xl border-r border-slate-200/50 flex flex-col transition-all duration-300 relative z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
         {/* Logo Area */}
         <div 
           className="h-20 flex items-center gap-3 px-6 cursor-pointer mb-4 mt-2"
@@ -124,12 +124,12 @@ const Dashboard = () => {
         {/* Header */}
         <header 
           className={`flex justify-between items-center px-8 py-5 transition-all duration-300 relative z-10 ${
-            scrolled ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/50' : 'bg-transparent'
+            scrolled ? 'bg-white/70 backdrop-blur-xl shadow-sm border-b border-slate-200/40' : 'bg-transparent'
           }`}
         >
           <div>
             <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-              {location.pathname === '/dashboard' ? 'Welcome back, Engineer \uD83D\uDC4B' : 
+              {location.pathname === '/dashboard' ? `Welcome ${user?.username} 👋` : 
                location.pathname.includes('/upload') ? 'Study Materials' :
                location.pathname.includes('/chat') ? 'AI Assistant' :
                location.pathname.includes('/quizzes') ? 'Practice Area' : 'Dashboard'}
@@ -200,10 +200,10 @@ const NavItem = ({ icon, label, active, onClick }) => {
     <button 
       onClick={onClick} 
       className={`
-        w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative group
+        w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative group
         ${active 
-          ? 'text-blue-700 bg-blue-50/80 shadow-sm' 
-          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}
+          ? 'text-blue-700 bg-gradient-to-r from-blue-50/80 to-indigo-50/40 shadow-sm border border-blue-100/50' 
+          : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 border border-transparent'}
       `}
     >
       {active && (

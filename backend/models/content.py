@@ -31,8 +31,9 @@ class StudentUpload(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
-    storage_path = db.Column(db.String(512), nullable=False)
-    size_bytes = db.Column(db.Integer, nullable=False)
+    file_url = db.Column(db.String(512), nullable=False)
+    parsed_text = db.Column(db.Text, nullable=True)
+    size_bytes = db.Column(db.Integer, nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # We might distinguish between embedded StudentUpload vs embedded SyllabusDoc via doc_type later.

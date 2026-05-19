@@ -1,7 +1,8 @@
 import React from 'react';
-import { Sparkles, Calendar, TrendingUp } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Sparkles, Calendar, TrendingUp, Compass } from 'lucide-react';
 
-const WelcomeSection = ({ data }) => {
+const WelcomeSection = ({ data, user }) => {
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -10,62 +11,89 @@ const WelcomeSection = ({ data }) => {
   });
 
   return (
-    <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 p-8 md:p-10 shadow-2xl shadow-blue-900/20 text-white border border-white/10">
-      {/* Abstract Background Patterns */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-white/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-400/20 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/4 pointer-events-none"></div>
-      
-      {/* Noise Texture Overlay */}
-      <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
+    <motion.div 
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-950 p-8 md:p-10 shadow-xl border border-white/5 text-white"
+    >
+      {/* 3D Glowing Ambient Spheres */}
+      <div className="absolute top-[-50%] right-[-20%] w-[600px] h-[600px] bg-gradient-to-br from-blue-500/15 to-indigo-500/10 rounded-full blur-[120px] pointer-events-none animate-pulse"></div>
+      <div className="absolute bottom-[-40%] left-[-10%] w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[80px] pointer-events-none"></div>
 
-      <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+      <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
         
-        {/* Left Content */}
-        <div className="flex flex-col gap-4 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-blue-50 text-sm font-medium backdrop-blur-md shadow-sm w-fit">
-            <Calendar size={16} className="text-blue-200" />
+        {/* Left Focus Room Brand Message */}
+        <div className="flex flex-col gap-5 max-w-2xl">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-indigo-200 text-xs font-semibold backdrop-blur-md shadow-sm w-fit"
+          >
+            <Calendar size={14} className="text-indigo-400" />
             {currentDate}
+          </motion.div>
+          
+          <div className="space-y-2">
+            <motion.h2 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight"
+            >
+              Welcome back, <br className="hidden md:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-200 to-amber-200 drop-shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                {user?.username || data.name.split(' ')[0]}!
+              </span>
+            </motion.h2>
           </div>
           
-          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white leading-tight">
-            Ready to excel today, <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-100">
-              {data.name.split(' ')[0]}?
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="flex flex-wrap items-center gap-3 mt-1"
+          >
+            <span className="px-4 py-2 rounded-2xl bg-white/5 backdrop-blur-md text-xs font-bold text-slate-300 border border-white/5 flex items-center gap-2 shadow-sm">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping absolute"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 relative"></span>
+              {user?.semester || data.semester}
             </span>
-          </h2>
-          
-          <div className="flex flex-wrap items-center gap-3 mt-2">
-            <span className="px-4 py-1.5 rounded-xl bg-black/20 backdrop-blur-sm text-sm font-semibold text-white/90 border border-white/10 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-              {data.semester}
+            
+            <span className="px-4 py-2 rounded-2xl bg-white/5 backdrop-blur-md text-xs font-bold text-slate-300 border border-white/5 shadow-sm">
+              {user?.department || data.department || 'Computer Engineering'}
             </span>
-            <span className="px-4 py-1.5 rounded-xl bg-black/20 backdrop-blur-sm text-sm font-semibold text-white/90 border border-white/10">
-              {data.department}
-            </span>
-            <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-200 px-4 py-1.5 rounded-xl text-sm font-bold border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-              <TrendingUp size={16} className="text-amber-400" />
+
+            <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-300 px-4 py-2 rounded-2xl text-xs font-extrabold border border-amber-500/20 shadow-md">
+              <TrendingUp size={14} className="text-amber-400 animate-bounce" />
               {data.streak} Day Streak! Keep it up 🔥
             </div>
-          </div>
+          </motion.div>
         </div>
         
-        {/* Right Content / Quote Card */}
-        <div className="relative group perspective-1000">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-50"></div>
-          <div className="relative bg-white/10 backdrop-blur-xl p-6 rounded-2xl border border-white/20 shadow-2xl max-w-sm transform transition-all duration-500 group-hover:-translate-y-2 group-hover:rotate-1">
-            <Sparkles className="absolute -top-3 -right-3 text-amber-300 w-8 h-8 opacity-80" />
-            <p className="text-lg font-medium text-white/95 leading-relaxed relative z-10 italic">
+        {/* Right Dynamic Focus Quote Console */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, rotate: -1 }}
+          animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          transition={{ delay: 0.4, duration: 0.8, type: 'spring' }}
+          className="relative group perspective-1000 w-full lg:w-auto"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-60"></div>
+          <div className="relative bg-white/5 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-2xl max-w-sm ml-auto transform transition-all duration-500 hover:-translate-y-1 hover:border-white/20">
+            <Sparkles className="absolute -top-3 -right-3 text-amber-300 w-8 h-8 opacity-80 animate-pulse" />
+            <p className="text-base font-semibold text-slate-200 leading-relaxed relative z-10 italic">
               "The capacity to learn is a gift; the ability to learn is a skill; the willingness to learn is a choice."
             </p>
             <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
-              <div className="w-8 h-1 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
-              <p className="text-sm font-bold text-blue-100 tracking-wide uppercase">— Brian Herbert</p>
+              <div className="w-8 h-0.5 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full"></div>
+              <p className="text-[10px] font-bold text-indigo-300 tracking-wider uppercase">— Brian Herbert</p>
             </div>
           </div>
-        </div>
+        </motion.div>
         
       </div>
-    </div>
+    </motion.div>
   );
 };
 

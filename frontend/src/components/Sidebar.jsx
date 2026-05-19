@@ -20,7 +20,7 @@ const Sidebar = ({ user }) => {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:5000/auth/logout', { method: 'POST', credentials: 'include' });
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
       navigate('/');
     } catch (err) {
       console.error(err);

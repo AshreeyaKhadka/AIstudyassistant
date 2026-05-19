@@ -21,6 +21,8 @@ class User(db.Model):
     uploads = db.relationship('StudentUpload', backref='uploader', lazy=True)
     chat_sessions = db.relationship('ChatSession', backref='user', lazy=True)
     quiz_sets = db.relationship('QuizSet', backref='user', lazy=True)
+    revision_plans = db.relationship('RevisionPlan', backref='user', lazy=True, cascade='all, delete-orphan')
+
 
     def to_dict(self):
         return {

@@ -8,7 +8,7 @@ db = SQLAlchemy()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-default-key')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'postgresql://ce_user:secretpassword@localhost:5432/ce_study_assistant')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///ce_study_assistant.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Google OAuth

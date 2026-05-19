@@ -3,8 +3,10 @@ from services.auth_service import login_required
 from config import db
 from models.quiz import QuizSet
 import json
+import logging
 
 quiz_bp = Blueprint('quiz', __name__)
+logger = logging.getLogger(__name__)
 
 @quiz_bp.route('/generate', methods=['POST'])
 @login_required
@@ -20,11 +22,17 @@ def generate_quiz(user):
     
     quiz_set = QuizSet(
         topic=topic,
-        questions=json.dumps(mock_quiz),
+        questions_json=mock_quiz,
         user_id=user.id
     )
-    db.session.add(quiz_set)
-    db.session.commit()
+    
+    try:
+        db.session.add(quiz_set)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to create quiz set: {e}")
+        return jsonify({"error": "Failed to create quiz"}), 500
     
     return jsonify({
         "message": "Quiz generated",
@@ -35,11 +43,16 @@ def generate_quiz(user):
 @quiz_bp.route('/history', methods=['GET'])
 @login_required
 def quiz_history(user):
-    quizzes = QuizSet.query.filter_by(user_id=user.id).order_by(QuizSet.created_at.desc()).all()
-    return jsonify([
-        {
-            "id": q.id,
-            "topic": q.topic,
-            "created_at": q.created_at
-        } for q in quizzes
-    ]), 200
+    try:
+        quizzes = QuizSet.query.filter_by(user_id=user.id).order_by(QuizSet.created_at.desc()).all()
+        return jsonify([
+            {
+                "id": q.id,
+                "topic": q.topic,
+                "score": q.score,
+                "created_at": q.created_at
+            } for q in quizzes
+        ]), 200
+    except Exception as e:
+        logger.error(f"Failed to fetch quiz history: {e}")
+        return jsonify({"error": "Failed to fetch quiz history"}), 500
