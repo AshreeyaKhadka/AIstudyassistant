@@ -5,8 +5,10 @@ from config import db
 from models.content import StudentUpload
 from services.auth_service import login_required
 import os
+import logging
 
 upload_bp = Blueprint('upload', __name__)
+logger = logging.getLogger(__name__)
 
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -15,7 +17,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 @login_required
 def upload_pdf(user):
     # Check limit
-    upload_count = StudentUpload.query.filter_by(uploader_id=user.id).count()
+    upload_count = StudentUpload.query.filter_by(user_id=user.id).count()
     if upload_count >= 10:
         return jsonify({"error": "Upload limit of 10 PDFs reached."}), 403
 
@@ -29,7 +31,13 @@ def upload_pdf(user):
     if file and file.filename.lower().endswith('.pdf'):
         filename = secure_filename(file.filename)
         filepath = os.path.join(UPLOAD_FOLDER, f"{user.id}_{filename}")
-        file.save(filepath)
+        
+        try:
+            file.save(filepath)
+            size_bytes = os.path.getsize(filepath)
+        except Exception as e:
+            logger.error(f"Failed to save file: {e}")
+            return jsonify({"error": "Failed to save file locally"}), 500
         
         # Parse PDF using PyMuPDF
         text = ""
@@ -39,23 +47,31 @@ def upload_pdf(user):
                 text += page.get_text()
             doc.close()
         except Exception as e:
+            logger.error(f"Failed to parse PDF: {e}")
             return jsonify({"error": f"Failed to parse PDF: {str(e)}"}), 500
             
         # Create DB record mapping to the user
         upload = StudentUpload(
-            title=filename,
+            filename=filename,
             file_url=filepath,  # In real life, might be S3 URL
             parsed_text=text,
-            uploader_id=user.id
+            size_bytes=size_bytes,
+            user_id=user.id
         )
-        db.session.add(upload)
-        db.session.commit()
+        
+        try:
+            db.session.add(upload)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Database error during upload: {e}")
+            return jsonify({"error": "Failed to save record to database"}), 500
         
         # Truncating parse text for response
         return jsonify({
             "message": "File uploaded and parsed successfully",
             "upload_id": upload.id,
-            "parsed_preview": text[:200]
+            "parsed_preview": text[:200] if text else ""
         }), 200
         
     return jsonify({"error": "Invalid file type, only PDF allowed"}), 400
@@ -63,5 +79,14 @@ def upload_pdf(user):
 @upload_bp.route('/', methods=['GET'])
 @login_required
 def get_uploads(user):
-    uploads = StudentUpload.query.filter_by(uploader_id=user.id).all()
-    return jsonify([{"id": u.id, "title": u.title, "uploaded_at": u.uploaded_at} for u in uploads]), 200
+    try:
+        uploads = StudentUpload.query.filter_by(user_id=user.id).order_by(StudentUpload.created_at.desc()).all()
+        return jsonify([{
+            "id": u.id, 
+            "filename": u.filename, 
+            "size_bytes": u.size_bytes,
+            "created_at": u.created_at
+        } for u in uploads]), 200
+    except Exception as e:
+        logger.error(f"Database error fetching uploads: {e}")
+        return jsonify({"error": "Failed to fetch uploads"}), 500

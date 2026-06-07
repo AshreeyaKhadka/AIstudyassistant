@@ -2,8 +2,10 @@ from flask import Blueprint, jsonify, request
 from services.auth_service import admin_required
 from config import db
 from models.user import User
+import logging
 
 admin_bp = Blueprint('admin', __name__)
+logger = logging.getLogger(__name__)
 
 @admin_bp.route('/users', methods=['GET'])
 @admin_required
@@ -22,7 +24,13 @@ def ban_user(admin_user, user_id):
     user.is_banned = not user.is_banned
     user.ban_reason = data.get('reason', '') if user.is_banned else None
     
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to ban/unban user: {e}")
+        return jsonify({"error": "Failed to update user status"}), 500
+        
     status = "banned" if user.is_banned else "unbanned"
     return jsonify({"message": f"User {user.email} has been {status}"}), 200
 

@@ -20,12 +20,15 @@ def create_app():
     from routes.upload import upload_bp
     from routes.quiz import quiz_bp
     from routes.admin import admin_bp
+    from routes.revision import revision_bp
     
     oauth.init_app(app)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(upload_bp, url_prefix='/upload')
     app.register_blueprint(quiz_bp, url_prefix='/quiz')
     app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(revision_bp, url_prefix='/revision-plans')
+
 
     # Ensure DB tables are created (useful for dev)
     with app.app_context():
@@ -35,6 +38,8 @@ def create_app():
         from models.chat import ChatSession, ChatMessage
         from models.quiz import QuizSet
         from models.embedding import DocEmbedding
+        from models.revision import RevisionPlan
+
         
         # We will set up pgvector later during DB migrations, 
         # but for initial start, this avoids missing table errors.
