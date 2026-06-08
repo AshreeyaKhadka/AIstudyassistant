@@ -23,6 +23,21 @@ import {
 
 const DashboardHome = () => {
   const { user } = useOutletContext();
+  const [liveMaterials, setLiveMaterials] = React.useState([]);
+
+  React.useEffect(() => {
+    fetch('/api/upload', { credentials: 'include' })
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Failed to fetch');
+      })
+      .then(data => {
+        setLiveMaterials(data);
+      })
+      .catch(err => console.error('Error fetching dashboard materials:', err));
+  }, []);
+
+  const materialsToDisplay = liveMaterials.length > 0 ? liveMaterials.slice(0, 3) : uploadedMaterials;
 
   return (
     <div className="flex flex-col gap-6 max-w-[1600px] mx-auto pb-10">
@@ -49,7 +64,7 @@ const DashboardHome = () => {
           </div>
 
           {/* Uploaded Materials */}
-          <UploadedMaterials materials={uploadedMaterials} />
+          <UploadedMaterials materials={materialsToDisplay} />
           
           {/* Global Shared Resources */}
           <SharedResources resources={sharedResources} />

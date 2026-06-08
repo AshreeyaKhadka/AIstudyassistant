@@ -28,12 +28,30 @@ class SyllabusDoc(db.Model):
 
 class StudentUpload(db.Model):
     __tablename__ = 'student_uploads'
+    
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     filename = db.Column(db.String(255), nullable=False)
-    file_url = db.Column(db.String(512), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    file_type = db.Column(db.String(50), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False, default=0) # Size in bytes
+    subject = db.Column(db.String(255), nullable=False)
+    storage_path = db.Column(db.String(512), nullable=False)
     parsed_text = db.Column(db.Text, nullable=True)
-    size_bytes = db.Column(db.Integer, nullable=False, default=0)
+    upload_date = db.Column(db.DateTime, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # We might distinguish between embedded StudentUpload vs embedded SyllabusDoc via doc_type later.
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'filename': self.filename,
+            'original_filename': self.original_filename,
+            'file_type': self.file_type,
+            'file_size': self.file_size,
+            'subject': self.subject,
+            'storage_path': self.storage_path,
+            'upload_date': self.upload_date.isoformat(),
+            'created_at': self.created_at.isoformat()
+        }
+
