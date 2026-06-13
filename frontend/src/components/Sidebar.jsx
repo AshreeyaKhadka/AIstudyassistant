@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useClerk } from '@clerk/react';
 import { motion } from 'framer-motion';
 import { 
   Library, 
@@ -17,15 +18,10 @@ import {
 
 const Sidebar = ({ user }) => {
   const navigate = useNavigate();
+  const { signOut } = useClerk();
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-      navigate('/');
-    } catch (err) {
-      console.error(err);
-      navigate('/');
-    }
+  const handleLogout = () => {
+    signOut({ redirectUrl: '/' });
   };
 
   return (
