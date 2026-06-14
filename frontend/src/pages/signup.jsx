@@ -1,17 +1,26 @@
-import React from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Library } from 'lucide-react';
-import { Show, SignUp } from '@clerk/react';
+import { Show, SignUp, useAuth } from '@clerk/react';
 import './signup.css';
 
 const SignUpPage = () => {
+  const navigate = useNavigate();
+  const { isLoaded, isSignedIn } = useAuth();
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isLoaded, isSignedIn, navigate]);
+
+  if (isLoaded && isSignedIn) {
+    return null;
+  }
+
   return (
     <>
-      <Show when="signed-in">
-        <Navigate to="/dashboard" replace />
-      </Show>
-
       <Show when="signed-out">
         <div className="signup-container font-sans antialiased">
           <div className="signup-image-pane">
@@ -85,6 +94,7 @@ const SignUpPage = () => {
                   routing="path"
                   path="/signup"
                   signInUrl="/signin"
+                  forceRedirectUrl="/dashboard"
                   fallbackRedirectUrl="/dashboard"
                 />
               </div>

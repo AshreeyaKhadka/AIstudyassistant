@@ -1,6 +1,20 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config, db
+from sqlalchemy import inspect, text
+
+
+def _ensure_student_upload_schema():
+    inspector = inspect(db.engine)
+    if 'student_uploads' not in inspector.get_table_names():
+        return
+
+    columns = {column['name'] for column in inspector.get_columns('student_uploads')}
+    with db.engine.begin() as connection:
+        if 'file_url' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN file_url VARCHAR(512)'))
+        if 'parsed_text' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN parsed_text TEXT'))
 
 def create_app():
     app = Flask(__name__)
@@ -17,6 +31,7 @@ def create_app():
 
     # Import and register blueprints
     from routes.auth import auth_bp, oauth
+    from routes.chat import chat_bp
     from routes.upload import upload_bp
     from routes.quiz import quiz_bp
     from routes.admin import admin_bp
@@ -24,6 +39,7 @@ def create_app():
     
     oauth.init_app(app)
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(chat_bp, url_prefix='/chat')
     app.register_blueprint(upload_bp, url_prefix='/upload')
     app.register_blueprint(quiz_bp, url_prefix='/quiz')
     app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -44,6 +60,7 @@ def create_app():
         # We will set up pgvector later during DB migrations, 
         # but for initial start, this avoids missing table errors.
         db.create_all()
+        _ensure_student_upload_schema()
 
     return app
 

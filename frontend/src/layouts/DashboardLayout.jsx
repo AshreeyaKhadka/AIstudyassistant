@@ -9,18 +9,20 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoaded, isSignedIn } = useAuth();
-  const { user: clerkUser } = useUser();
+  const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
   const [user, setUser] = useState(null);
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !isUserLoaded) return;
 
     if (!isSignedIn) {
       navigate('/signin');
       return;
     }
+
+    if (!clerkUser) return;
 
     const userData = {
       name: clerkUser.fullName,
@@ -31,7 +33,7 @@ const DashboardLayout = () => {
     };
     setUser(userData);
     setLoading(false);
-  }, [isLoaded, isSignedIn, clerkUser, navigate]);
+  }, [isLoaded, isUserLoaded, isSignedIn, clerkUser, navigate]);
 
   useEffect(() => {
     const handleScroll = (e) => {
