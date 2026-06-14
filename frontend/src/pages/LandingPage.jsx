@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Show, UserButton } from '@clerk/react';
 import { motion } from 'framer-motion';
 import { BookOpen, Sparkles, BrainCircuit, Library, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -54,9 +55,14 @@ const LandingPage = () => {
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <a href="#" className="title-sm" style={{ color: 'var(--outline-variant)', textDecoration: 'none', transition: 'color 0.2s' }}>Features</a>
           <a href="#" className="title-sm" style={{ color: 'var(--outline-variant)', textDecoration: 'none', transition: 'color 0.2s' }}>Syllabus</a>
-          <Button variant="secondary" onClick={handleSignIn}>
-            Sign In
-          </Button>
+          <Show when="signed-out">
+            <Button variant="secondary" onClick={handleSignIn}>
+              Sign In
+            </Button>
+          </Show>
+          <Show when="signed-in">
+            <UserButton afterSignOutUrl="/" />
+          </Show>
         </div>
       </nav>
 

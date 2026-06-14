@@ -1,41 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useAuth, useUser } from '@clerk/react';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isLoaded, isSignedIn } = useAuth();
+  const { user: clerkUser, isLoaded: isUserLoaded } = useUser();
   const [user, setUser] = useState(null);
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then(res => {
-        if (!res.ok) throw new Error('Not logged in');
-        return res.json();
-      })
-      .then(data => {
-        if (!data.college || !data.semester) {
-          navigate('/onboard');
-        } else {
-          // Provide default username logic if needed, backend provides name
-          const userData = {
-            ...data,
-            username: data.name ? data.name.split(' ')[0] : 'User',
-            department: 'Computer Engineering' // Default for now until backend supports it
-          };
-          setUser(userData);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        console.error('Auth error:', err);
-        navigate('/signin');
-      });
-  }, [navigate]);
+    if (!isLoaded || !isUserLoaded) return;
+
+    if (!isSignedIn) {
+      navigate('/signin');
+      return;
+    }
+
+    if (!clerkUser) return;
+
+    const userData = {
+      name: clerkUser.fullName,
+      username: clerkUser.firstName || clerkUser.username || 'User',
+      email: clerkUser.primaryEmailAddress?.emailAddress,
+      avatar_url: clerkUser.imageUrl,
+      department: 'Computer Engineering',
+    };
+    setUser(userData);
+    setLoading(false);
+  }, [isLoaded, isUserLoaded, isSignedIn, clerkUser, navigate]);
 
   useEffect(() => {
     const handleScroll = (e) => {

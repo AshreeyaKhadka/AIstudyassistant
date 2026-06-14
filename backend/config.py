@@ -19,3 +19,6 @@ class Config:
     # Providers
     LLM_PROVIDER = os.environ.get('LLM_PROVIDER', 'placeholder')
     EMBEDDING_PROVIDER = os.environ.get('EMBEDDING_PROVIDER', 'placeholder')
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY') or os.environ.get('Gemini_API_KEY')
+    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+    GEMINI_API_BASE_URL = os.environ.get('GEMINI_API_BASE_URL', 'https://generativelanguage.googleapis.com/v1')

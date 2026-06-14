@@ -198,6 +198,12 @@
   margin-top: 2.5rem;
 }
 
+.clerk-sign-in-root {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
 .signin-header {
   margin-bottom: 2rem;
   text-align: center;
