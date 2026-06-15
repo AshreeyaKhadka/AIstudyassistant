@@ -1,0 +1,1277 @@
+{
+  "Pokhara University - Bachelor in Computer Engineering": {
+    "Data Communication (3-0-2)": {
+      "credits": "3-0-2",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Introduction",
+          "sub_topics": [
+          "Evolution of Data Communication systems",
+          "Analog and Digital Data Transmission, Data Communication Terminology",
+          "Standards Organizations, Applications"
+          ],
+          "hours": "2 hrs"
+          
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Data Transmission",
+          "sub_topics": [
+          "Data Transmission Techniques - Parallel Transmission, Serial Transmission (Synchronous, Asynchronous and Isochronous Communication), Modes of Data Transmission",
+          "Line Configuration, Bit Rate/ Baud rate, Transmission Channel, Data Rate Limits - Shannon Capacity Theorem and Nyquist Bit Rate, RS-232C (DTE-DCE, DTE-DTE)"
+        ],
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Signals and Systems",
+           "sub_topics": [
+          "Signals and their classification: Periodic and non-periodic signals; Deterministic and Random signals; Energy and Power signals; Continuous and Discrete time signals",
+          "Basic Elementary Signals - Unit Step Signal, Ramp Signal, Impulse Signal, Sinusoidal Signal, Signum Signal",
+          "System - Continuous and Discrete time system",
+          "Basic system properties: Linearity, Causality, Stability, Static & Dynamic, and Time Invariance, Introduction to LTI System"
+        ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Overview of Data Communication Networking and Protocols",
+          "sub_topics": [
+          "Network Types, Topology",
+          "OSI layers and Functions, TCP/IP layer, Local Area Networks (LAN) Architecture, LLC/MAC & Routing",
+          "IEEE Standards, Ethernet (Aloha, CSMA), Wide Area Networks (WAN): X.25, Frame Relay, ATM"
+        ],
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Transmission Media",
+          "sub_topics": [
+          "Electromagnetic Spectrum for Telecommunication",
+          "Type of Propagation",
+          "Guided Transmission Media: Twisted Pair Cable, Coaxial Cable, Optical Fiber, Characteristics of Unguided Communication Bands, Antennas",
+          "Unguided Transmission Media: Terrestrial Microwave, Satellite Communication, VSAT, and Cellular Telephony"
+        ],
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Impairments, Error Handling and Compression Techniques",
+          "sub_topics": [
+          "Attenuation & Distortion, Delay Distortion, Noise & Types, interference, crosstalk",
+          "Types of error & its Detection and Correction Methods",
+          "Data Compression, Lossless Compression - Run Length Coding, Dictionary Coding and Huffman Coding",
+          "Lossy Compression - Predictive Coding and Transform Coding"
+        ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 7",
+          "title": "Data Link Control and Protocol",
+           "sub_topics": [
+          "Framing",
+          "Flow Control: Stop - & - Wait, Sliding Window, Error Control: Automatic Repeat Request (ARQ), Stop- and Wait ARQ, Sliding Window (ARQ)",
+          "HDLC protocol",
+          "Point- to- Point protocol"
+        ],
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 8",
+          "title": "Multiplexing & Switching",
+          "sub_topics": [
+          "Multiplexing types and Application",
+          "Multiplexing Vs Non- Multiplexing",
+          "The Telephone System: Analog services and its Hierarchy",
+          "Digital services and Hierarchy Circuit Switching, Packet Switching, Message Switching, and Private Branch Exchange"
+        ],
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 9",
+          "title": "Data Encoding & Modulation",
+          "sub_topics": [
+          "Line coding - Unipolar, Polar and Bipolar signaling",
+          "Digital Modulation Techniques - Amplitude, Frequency, and Phase Shift Keying",
+          "Analog to Digital Conversion - Pulse Code and Delta Modulation",
+          "Analog Modulation Techniques - Amplitude, Frequency, and Phase Modulation",
+          "Multilevel Modulation- QPSK, QAM",
+          "Introduction to Modem"
+        ],
+          "hours": "9 hrs"
+        }
+      ]
+    },
+    "Calculus II (3-2-0)": {
+      "credits": "3-2-0",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Multiple Integrals",
+          "sub_topics": [
+          "Introduction",
+          "Double integrals in Cartesian and polar form, Fubini's theorem (statement only), change of order of integration, change of variable from in double integral Jacobian matrix and reduction into Polar",
+          "Triple integrals in Cartesian form and Dirichlet's Integral, use of cylindrical and spherical coordinates to evaluate triple integral",
+          "Application of double and triple integrals to find Area and volume"
+        ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "Series Solution of Differential Equations and Special Functions",
+          "sub_topics": [
+          "Power series method of solution of differential equations",
+          "Legendre's Equation, Legendre's polynomials P_n(x) of x. Graph of P_1(x), P_2(x), P_3(x)",
+          "Frobenius method. Bessel's equation, Bessel's function J_v(x) and its properties. Graph of J_v(x) for v=1 2"
+        ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Laplace Transform and Its Application",
+          "sub_topics": [
+          "Laplace Transform (LT), Inverse LT, Linearity of LT, LT of elementary functions, inverses and first shifting (shifting) theorem. Existence theorem of Laplace transform (without proof) and uniqueness",
+          "Transform of Derivative and Integrals of a function",
+          "Differentiation and Integration of Laplace transform",
+          "Unit step function, periodic function and LT, second shifting (t-shifting) theorem",
+          "Convolution theorem and its application to find inverse",
+          "Application of Laplace transform to find the solutions of ordinary differential equations (IVP)"
+        ],
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Advanced Vector Calculus",
+          "sub_topics": [
+          "Differentiation of vector function of scalar variable",
+          "Point functions, Gradient, directional derivative, divergence and curl with properties (without proof)",
+          "Line integral with physical interpretation and evaluation of line integrals on various path",
+          "Line integral, potential function and independence of path",
+          "Green's theorem in plane (without proof) and its various applications",
+          "Surface integral and evaluation of surface integrals",
+          "Stoke's theorem (without proof) and its applications",
+          "Gauss Divergence theorem (without proof) and its applications"
+        ],
+          "hours": "15 hrs"
+        },
+        {
+          "unit": "Unit V",
+          "title": "Fourier Series",
+          "sub_topics": [
+          "Periodic Functions, odd and even functions",
+          "Fourier series of 2 π periodic functions in the interval (α, α + 2 π)",
+          "Fourier series of 2 1 periodic functions",
+          "Fourier series of odd and even functions, sine and cosine series"
+        ],
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit VII",
+          "title": "Partial Differential Equations","sub_topics": [
+          "Introduction",
+          "Linear constant coefficient equation",
+          "Applications in conservation laws, the breaking time, shock waves, nonlinear advection equations, and traffic flow"
+        ],
+          "hours": "5 hrs"
+        }
+      ]
+    },
+    "Computer Graphics (3-1-2)": {
+      "credits": "3-1-2",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Overview of Computer Graphics and Graphics Systems",
+          "sub_topics": [
+          "Introduction, Applications and Recent trends of Computer Graphics",
+          "Interactive Input Devices",
+          "Display Devices, Color Monitors, Hard Copy Devices",
+          "Raster and Random Scan Systems and Architectures",
+          "Video Controller",
+          "Use of Digital to Analog Converter and Frame Buffer Organization",
+          "Graphics Software, Modern Graphics Hardware (GPU)"
+        ],
+
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Scan Conversion Algorithms",
+          "sub_topics": [
+          "Scan Conversion",
+          "Line Drawing Algorithms: Digital Differential Analyzer, Bresenham's Algorithm",
+          "Circle Generation Algorithm",
+          "Ellipse Generation Algorithm",
+          "Filled Area Primitives: Scan Line Polygon Fill Algorithm, Boundary Fill Algorithm, Flood Fill Algorithm"
+        ],
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Two Dimensional Geometric Transformations and Viewing",
+           "sub_topics": [
+          "Two Dimensional Transformations: Translation, Rotation, Scaling, Shearing, Reflection",
+          "Matrix Representations of Transformations",
+          "Homogeneous Coordinate System",
+          "Composite Transformations",
+          "Windowing Concepts, Two Dimensional Viewing Pipeline",
+          "Window to Viewport Transformation",
+          "Line Clipping Algorithm: Cohen-Sutherland",
+          "Polygon Clipping: Sutherland-Hodgeman"
+        ],
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Graphics in Three Dimensions",
+          "sub_topics": [
+          "Three Dimensional Coordinate Systems",
+          "Three Dimensional Transformations: Translation, Rotation, Scaling, Reflection",
+          "Three Dimensional Representations: Polygon Surfaces, Cubic Spline and Beizer Curve, Non-Planer Surface: Beizer Surface, Fractal Geometry Method",
+          "Three Dimensional Viewing Transformation and Pipeline",
+          "Projections: Parallel Projection, Perspective Projection",
+          "Clipping in Three Dimensions"
+        ],
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Visual Realism",
+          "sub_topics": [
+          "Hidden Surfaces and Hidden Surface Removal Approaches: Back-Face Detection, Depth Buffer Method, A-buffer method, Scan Line Method, Depth Sorting Method",
+          "Illumination and Shading Methods: Illumination Theory and Models (Ambient Light, Diffuse Reflection, Specular Reflection (Phong Model)), Polygon Surface Shading Methods (Constant Shading (Flat Shading), Gouraud Shading, Phong Shading, Fast Phong Shading)",
+          "Color Models: RGB, CMYK"
+        ],
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Graphical Standards",
+          "sub_topics": [
+          "Need for Machine Independent Graphical Languages",
+          "Graphical Standards: PHIGS, GKS",
+          "Graphics Software Standards and Language Binding",
+          "Overview of Graphics File Formats",
+          "Visualization of Data Sets"
+        ],
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 7",
+          "title": "Introduction to OpenGL",
+          "sub_topics": [
+          "Overview and Basic Architecture of OpenGL",
+          "GL Related Libraries: Drawing Basic Output Primitives and Polygons, Call Back Functions and Input Handling, Basic Transformations, Projections and Lighting"
+        ],
+          "hours": "4 hrs"
+        }
+      ]
+    },
+    "Database Management System (3-1-3)": {
+      "credits": "3-1-3",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Introduction",
+          "sub_topics": [
+          "Database Management System purpose and applications",
+          "Database Systems vs File Systems",
+          "View of Data-Data Abstraction (Physical, logical and view level, Data Independence)",
+          "Instances and Schemas",
+          "Database Languages (DDL, DML and DCL)",
+          "Database and Application Architecture- Database System Architecture and Database Application Architecture (two-tier and three-tier)"
+        ],
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "ER and Relational Model",
+          "sub_topics": [
+          "Introduction to ER Model",
+          "Entity sets, attributes and values, Relationship sets-participation, entity's role, descriptive attributes, degree of relationship set, Mapping Cardinalities, Attributes-simple, composite, single-valued, multi-valued, derived, Entity-Relationship (ER) Diagram, Specialization, Generalization, and Aggregation",
+          "Key-Super key, Candidate key and Primary key, Strong and Weak Entity Sets",
+          "Introduction to Relational Model",
+          "Reducing ER diagrams to Relational Schema",
+          "Structure of Relational Databases, Database Schema, Keys, Schema Diagrams",
+          "Relational Algebra"
+        ],
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Structured Query Language",
+          "sub_topics": [
+          "Structured Query Language (SQL)-SQL DDL and DML",
+          "Basic Structure of SQL Queries, DDL queries, Basic Operations (Rename, String, Attribute Specification in the select clause, order by, where-clause), Set Operations, Null values, Aggregate Functions",
+          "Nested Queries",
+          "Join Expressions (Natural Join, Join Conditions, Outer Joins)",
+          "Modification of Database (delete, insert into, update)",
+          "Views, Stored Procedures"
+        ],
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Relational Database Design",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Security",
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Query Processing and Optimization",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 7",
+          "title": "Storage Management and Indexing",
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit 8",
+          "title": "Transactions and Concurrency Control",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 9",
+          "title": "Crash Recovery",
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit 10",
+          "title": "Emerging Trend in Databases",
+          "hours": "4 hrs"
+        }
+      ]
+    },
+    "Operating Systems (3-1-2)": {
+      "credits": "3-1-2",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Introduction",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Processes and Threads",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Memory Management",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Kernel",
+          "hours": "2 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Input/Output Management",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "File Systems",
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit 7",
+          "title": "New Trends in Operating System",
+          "hours": "11 hrs"
+        }
+      ]
+    },
+    "Microprocessor and ALP (3-1-2)": {
+      "credits": "3-1-2",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Introduction to Microprocessor",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "8085 Microprocessor Architecture",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Programming of 8085 Microprocessor",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "8086 Microprocessor Architectural Details and Programming",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Bus Structure, Memory, I/O and Interfacing",
+          "hours": "12 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Interrupt Operation",
+          "hours": "8 hrs"
+        }
+      ]
+    },
+    "Applied Physics (3-1-2)": {
+      "credits": "3-1-2",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Mechanical Oscillation",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "Wave Motion",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Acoustics",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Photonics",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit V",
+          "title": "Capacitor and Dielectric",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit VI",
+          "title": "Electromagnetism",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit VII",
+          "title": "Quantum Mechanics",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit VIII",
+          "title": "Fundamentals of Thermodynamics and Heat Transfer",
+          "hours": "8 hrs"
+        }
+      ]
+    },
+    "Object Oriented Programming in C++ (3-1-3)": {
+      "credits": "3-1-3",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Object Oriented Concepts",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Classes and Objects",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Inheritance",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Polymorphism",
+          "hours": "9 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Templates",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Exception Handling and Stream I/O",
+          "hours": "7 hrs"
+        }
+      ]
+    },
+    "Instrumentation (3-1-2)": {
+      "credits": "3-1-2",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Introduction to Instrumentation System",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "Principle of Analog Instruments",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Electrical Signal Processing and Data Acquisition",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Data Converter and Connectors",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit V",
+          "title": "Wave Analyzers and Digital Instruments",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit VI",
+          "title": "Recorders, Displays and Storage Devices",
+          "hours": "5 hrs"
+        }
+      ]
+    },
+    "Data Structure and Algorithms (3-1-3)": {
+      "credits": "3-1-3",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Introduction",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Stack and Recursion",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Queue and Linked List",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Tree",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Sorting Algorithms",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Searching Algorithms and Hashing",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 7",
+          "title": "Graphs",
+          "hours": "6 hrs"
+        }
+      ]
+    },
+    "Algebra and Geometry (3-2-0)": {
+      "credits": "3-2-0",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Matrix and System of Linear Equations",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "Vector Space",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Linear Programming Problems",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Vector Algebra",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit V",
+          "title": "Infinite Series",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit VI",
+          "title": "Two-dimensional Geometry",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit VII",
+          "title": "Three-dimensional Geometry",
+          "hours": "12 hrs"
+        }
+      ]
+    },
+    "Theory of Computation (3-1-0)": {
+      "credits": "3-1-0",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Introduction",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Finite Automata and Regular Language",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Context-Free Language and Pushdown Automata",
+          "hours": "13 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Turing Machines",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Undecidability",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Computational Complexity",
+          "hours": "4 hrs"
+        }
+      ]
+    },
+    "Research Fundamentals (2-0-2)": {
+      "credits": "2-0-2",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Introduction",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Research Process Model",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Participants and Research Ethics",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Proposal Writing",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Report Writing",
+          "hours": "4 hrs"
+        }
+      ]
+    },
+    "Numerical Methods (2-1-2)": {
+      "credits": "2-1-2",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Solution of Non-linear Equations",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Interpolation and Approximation",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Numerical Differentiation and Integration",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Solution of System of Linear Algebraic Equations",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Solution of Ordinary Differential Equations",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Numerical Solution of Partial Differential Equations",
+          "hours": "4 hrs"
+        }
+      ]
+    },
+    "Computer Architecture (3-1-1)": {
+      "credits": "3-1-1",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Introduction to Architecture",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Register Transfer Language and Micro Operations",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Processor Organization",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Control Unit",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Computer Arithmetic",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Pipelining",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 7",
+          "title": "Memory Organization",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 8",
+          "title": "Input-Output Processing",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 9",
+          "title": "Parallel Processing",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 10",
+          "title": "Multi-core Computer",
+          "hours": "4 hrs"
+        }
+      ]
+    },
+    "Applied Mathematics (3-2-0)": {
+      "credits": "3-2-0",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Complex Analysis",
+          "hours": "17 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "Z-Transform and its Applications",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Partial Differential Equations",
+          "hours": "12 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Fourier Integral and Transform",
+          "hours": "6 hrs"
+        }
+      ]
+    },
+    "Advanced Programming with Java": {
+      "credits": "N/A",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Basics of Programming in Java",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Object Oriented Principles in Java",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Building Components using Swing and JavaFX",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Distributed Network Programming",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Database Connectivity with JAVA",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Servlets and JSP",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 7",
+          "title": "Advanced Topics in JAVA",
+          "hours": "7 hrs"
+        }
+      ]
+    },
+    "Software Engineering": {
+      "credits": "N/A",
+      "units": [
+        {
+          "unit": "Chapter 1",
+          "title": "Software Engineering and Project Management",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Chapter 2",
+          "title": "Software Process Models and Agility",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Chapter 3",
+          "title": "Requirements Engineering and Principles",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Chapter 4",
+          "title": "Software Design, Architecture and Principles",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Chapter 5",
+          "title": "Testing Techniques and Maintenance",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Chapter 6",
+          "title": "Software Quality Assurance Process",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Chapter 7",
+          "title": "Software Configuration Management",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Chapter 8",
+          "title": "Advanced Software Engineering Concepts",
+          "hours": "4 hrs"
+        }
+      ]
+    },
+    "Probability and Statistics": {
+      "credits": "2-2-0",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Introduction and Descriptive Statistics",
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "Probability",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Discrete Probability Distributions",
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Continuous Probability Distributions",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit V",
+          "title": "Bivariate Random Variables and Joint Probability Distribution",
+          "hours": "2 hrs"
+        },
+        {
+          "unit": "Unit VI",
+          "title": "Sampling Distribution and Estimation",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit VII",
+          "title": "Hypothesis Testing",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit VIII",
+          "title": "Correlation and Regression",
+          "hours": "3 hrs"
+        }
+      ]
+    },
+    "Engineering Management (2-1-0)": {
+      "credits": "2-1-0",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Introduction",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "Planning and Organizing",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Motivation and Leadership",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Human Resource Management and Control",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit V",
+          "title": "Emerging Trends in Engineering Management",
+          "hours": "4 hrs"
+        }
+      ]
+    },
+    "Embedded System (2-1-3)": {
+      "credits": "2-1-3",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Introduction to Embedded Systems",
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "Programming for Embedded Systems",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Real-Time Operating Systems (RTOS)",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Embedded System Design using VHDL",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit V",
+          "title": "Communication Protocols",
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit VI",
+          "title": "Peripherals and Interfacing",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit VII",
+          "title": "Internet of Things (IoT) and Embedded Systems",
+          "hours": "3 hrs"
+        }
+      ]
+    },
+    "Artificial Intelligence (3-1-3)": {
+      "credits": "3-1-3",
+      "units": [
+        {
+          "unit": "Chapter 1",
+          "title": "Introduction to Artificial Intelligence",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Chapter 2",
+          "title": "Intelligent Agents",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Chapter 3",
+          "title": "Problem Solving and Search Algorithms",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Chapter 4",
+          "title": "Knowledge Representation and Reasoning",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Chapter 5",
+          "title": "Machine Learning",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Chapter 6",
+          "title": "Fuzzy Logic",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Chapter 7",
+          "title": "Expert System",
+          "hours": "5 hrs"
+        }
+      ]
+    },
+    "Digital Signal Analysis and Processing (3-1-2)": {
+      "credits": "3-1-2",
+      "units": [
+        {
+          "unit": "Chapter 1",
+          "title": "Discrete Signals and Systems",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Chapter 2",
+          "title": "Z-transform",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Chapter 3",
+          "title": "Analysis of LTI System in Frequency Domain",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Chapter 4",
+          "title": "Discrete Filter Structures",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Chapter 5",
+          "title": "IIR Filter Design",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Chapter 6",
+          "title": "FIR Filter Design",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Chapter 7",
+          "title": "Discrete Fourier Transform",
+          "hours": "6 hrs"
+        }
+      ]
+    },
+    "Computer Networks (3-1-2)": {
+      "credits": "3-1-2",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Introduction to Computer Network",
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "Reference Model",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Physical Layer",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Data Link Layer",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit V",
+          "title": "Network Layer Protocols and Addressing",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit VI",
+          "title": "Transport Layer and Protocols",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit VII",
+          "title": "Congestion Control and Quality of Services",
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit VIII",
+          "title": "Application Layer, Servers and Protocols",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit IX",
+          "title": "Network Management and Security",
+          "hours": "7 hrs"
+        }
+      ]
+    },
+    "Simulation and Modeling": {
+      "credits": "N/A",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Introduction to Simulation and Modeling",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "System Simulation",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Continuous System",
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Discrete System",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Probability Concept and Random Numbers",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Discrete System Languages",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 7",
+          "title": "Output Analysis Method",
+          "hours": "5 hrs"
+        }
+      ]
+    },
+    "Image Processing and Pattern Recognition (3-1-2)": {
+      "credits": "3-1-2",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Introduction to Digital Image Processing",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Image Enhancement in Spatial Domain",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Image Enhancement in the Frequency Domain",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Image Restoration",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Image Compression and Coding",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Image Analysis",
+          "hours": "9 hrs"
+        },
+        {
+          "unit": "Unit 7",
+          "title": "Pattern Recognition & Artificial Neural Network",
+          "hours": "8 hrs"
+        }
+      ]
+    },
+    "Machine Learning (3-1-2)": {
+      "credits": "3-1-2",
+      "units": [
+        {
+          "unit": "Chapter 1",
+          "title": "Introduction to Machine Learning",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Chapter 2",
+          "title": "Supervised Learning",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Chapter 3",
+          "title": "Unsupervised Learning",
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Chapter 4",
+          "title": "Artificial Neural Network",
+          "hours": "12 hrs"
+        },
+        {
+          "unit": "Chapter 5",
+          "title": "Model Evaluation and Validation",
+          "hours": "8 hrs"
+        }
+      ]
+    },
+    "Compiler Design (2-2-2)": {
+      "credits": "2-2-2",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Overview of Compilation",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "Scanners",
+          "hours": "7 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Parsers",
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Intermediate Representations",
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit V",
+          "title": "Code Generation",
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit VI",
+          "title": "Machine Independent Optimization",
+          "hours": "4 hrs"
+        }
+      ]
+    }
+  }
+}
