@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, request
 from config import Config
+from models import User
 from models.content import StudentUpload
-from services.auth_service import login_required
+from services.auth_service import decode_token
 import logging
 import requests
 
@@ -59,6 +60,22 @@ def _normalize_history(history):
     return normalized
 
 
+def _get_optional_user():
+    token = request.cookies.get('session_token')
+    if not token:
+        return None
+
+    payload = decode_token(token)
+    if not payload:
+        return None
+
+    user = User.query.get(payload.get('user_id'))
+    if not user or user.is_banned:
+        return None
+
+    return user
+
+
 def _parse_response_body(response):
     try:
         return response.json()
@@ -106,8 +123,7 @@ def _build_gemini_contents(history, message, material_context):
 
 
 @chat_bp.route('/message', methods=['POST'])
-@login_required
-def send_message(user):
+def send_message():
     if not Config.GEMINI_API_KEY:
         return jsonify({'error': 'Gemini API key is not configured.'}), 500
 
@@ -117,7 +133,8 @@ def send_message(user):
         return jsonify({'error': 'Message is required.'}), 400
 
     history = _normalize_history(data.get('history', []))
-    material_context = _build_material_context(user)
+    user = _get_optional_user()
+    material_context = _build_material_context(user) if user else 'No uploaded study materials are available yet.'
 
     payload = {
         'contents': _build_gemini_contents(history, message, material_context),
