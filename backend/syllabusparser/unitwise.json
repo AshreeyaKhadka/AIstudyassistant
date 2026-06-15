@@ -314,36 +314,83 @@
         {
           "unit": "Unit 4",
           "title": "Relational Database Design",
+          "sub_topics": [
+          "Integrity constraints- Domain Constraints, Entity Integrity Constraints, Referential Integrity Constraints, Assertions and Triggers",
+          "Features of Good Relational Designs",
+          "Functional dependencies and Armstrong's Axioms",
+          "Closure of a Set of Functional Dependencies and Closure of Attribute Sets",
+          "Database Normalization and Normal Forms- 1NF, 2NF, 3NF and BCNF",
+          "Denormalization for Performance"
+        ],
           "hours": "6 hrs"
         },
         {
           "unit": "Unit 5",
           "title": "Security",
+          "sub_topics": [
+          "Security and integrity violations",
+          "Access control",
+          "Authorization",
+          "Security and Views"
+        ],
           "hours": "3 hrs"
         },
         {
           "unit": "Unit 6",
           "title": "Query Processing and Optimization",
+           "sub_topics": [
+          "Introduction to Query Processing",
+          "Equivalence of Expressions",
+          "Query Cost Estimation",
+          "Query Optimization",
+          "Query evaluation and execution plan"
+        ],
           "hours": "5 hrs"
         },
         {
           "unit": "Unit 7",
           "title": "Storage Management and Indexing",
+          "sub_topics": [
+          "File Organization- fixed length records, variable length records",
+          "Organization of Records in File- Heap, Sequential and Indexed sequential file organizations",
+          "B+ Tree Index Files",
+          "Hash Indices"
+        ],
           "hours": "3 hrs"
         },
         {
           "unit": "Unit 8",
           "title": "Transactions and Concurrency Control",
+          "sub_topics": [
+          "Transaction Concepts",
+          "Transaction Model and State Diagram",
+          "ACID properties of transaction",
+          "Serializability- conflict and view serializability",
+          "SQL Standard Isolation Levels",
+          "Concurrency Control- Lock-Based Protocols and Graph-Based Protocols"
+        ],
           "hours": "4 hrs"
         },
         {
           "unit": "Unit 9",
           "title": "Crash Recovery",
+          "sub_topics": [
+          "Failure classification",
+          "Recovery and Atomicity-log records, database modification, concurrency control and recovery, transaction commit, Redo and Undo Transactions using Log, Check Points",
+          "Recovery Algorithm Using Log Records-Transaction Rollback, Recovery After a System Crash, Optimizing Commit Processing",
+          "High Availability Using Remote Backup System"
+        ],
           "hours": "3 hrs"
         },
         {
           "unit": "Unit 10",
           "title": "Emerging Trend in Databases",
+          "sub_topics": [
+          "NoSQL Databases-Characteristics, Categories, Advantages",
+          "Object Oriented Database and ORM",
+          "Distributed Databases-",
+          "Distributed Ledger Technology: Blockchain, Cryptocurrency, Blockchain Properties"
+        ],
           "hours": "4 hrs"
         }
       ]
@@ -354,36 +401,86 @@
         {
           "unit": "Unit 1",
           "title": "Introduction",
+           "sub_topics": [
+          "Concept and function of operating systems",
+          "Operating systems concept and functionality - Processes, Files, System Calls, The Shell",
+          "Operating System Structure - Monolithic System, Layered, Virtual Machines, Client-server. Microkernel and exokernel",
+          "Types and Evolution of Operating Systems"
+        ],
           "hours": "4 hrs"
         },
         {
           "unit": "Unit 2",
           "title": "Processes and Threads",
+          "sub_topics": [
+          "Process: Definition, states and transition diagram, Process control block (PCB), Concurrent and Parallel processes",
+          "Interprocess Communication and Synchronization: Introduction, Race Condition, Critical Regions and condition, Avoiding critical region, Mutual exclusion conditions, mutual exclusion (disabling interrupts, lock variable, strict alteration (Dekker's algorithms, Peterson's algorithms), The TSL instruction, sleep and wakeup, producer and consumer problem), Types of mutual exclusion (Semaphore, Monitors, Bounded buffer, Message passing), Classical IPC Problems (The Dining Philosophers problem, The Readers and Writers problem, The Sleeping Barber Problem), Serializability: Locking Protocols and Time Stamp Protocols",
+          "Process Scheduling: Basic Concept, Type of scheduling (Preemptive scheduling, Non-preemptive scheduling, Batch, Interactive, Real time scheduling), Scheduling criteria and performance analysis, scheduling algorithm with examples (First come first served, Shortest-job-first, Round-robin, Shortest process next, Shortest remaining time next, Real time, Priority fair share, guaranteed, Lottery scheduling)",
+          "Threads: Definitions of Threads, Types of thread process (Single and multithreaded process), Benefits of Multithreading, Threads Models (Many-to-one model, One-to-one Model, Many-to-many model), User Space and Kernel Space Threads, Difference between Processes and Threads"
+        ],
           "hours": "10 hrs"
         },
         {
           "unit": "Unit 3",
           "title": "Memory Management",
+          "sub_topics": [
+          "Storage organization, Memory hierarchy",
+          "Storage allocation, Contiguous verses non-contiguous store allocation, logical and physical memory",
+          "Fragmentation, fixed partition and variable partition for multiprogramming, Logical versus physical address space",
+          "Relocation and Protection",
+          "Memory management with swapping: Memory management with bitmaps and linked list, Memory management without swapping",
+          "Contiguous-memory allocation: memory protection, memory allocation, Fragmentation (Inter fragmentation and external fragmentation)",
+          "Paging, Structure of page table: Hierarchical page table, Hashed page table, Inverted page table, Shared page table",
+          "Virtual memory- Introduction, Paging, Page Table, Block mapping, Direct mapping, Translation Look Aside Buffers) Demand paging, Thrashing",
+          "Page replacement, Page replacement algorithms: First-in-first-out, Not recently used, Optimal page replacement, Second chance page replacement, Least Recently used, Clock page replacement, Working set page replacement, WS clock page replacement",
+          "Segmentation, Segmentation with paging",
+          "Coalescing and Compaction"
+        ],
           "hours": "10 hrs"
         },
         {
           "unit": "Unit 4",
           "title": "Kernel",
+          "sub_topics": [
+          "Introduction, Architecture of the Kernel, Types of Kernels",
+          "Context Switching (Kernel and User mode), Kernel implementation processes"
+        ],
           "hours": "2 hrs"
         },
         {
           "unit": "Unit 5",
           "title": "Input/Output Management",
+          "sub_topics": [
+          "Introduction, Interrupts Handlers",
+          "Principles of I/O Hardware (I/O Device, Device Controller, Memory Mapped I/O, Direct Memory Access)",
+          "Principles of I/O Software (Goals of I/O Software, Polled I/O verses Interrupt Driven I/O, Character User Interface and Graphical User Interface, Device Driver, Device Independent I/O Software, User-space I/O Software",
+          "System Resources: Preemptable and Non-preempable, Method of handling Deadlocks, Deadlock prevention",
+          "Deadlock avoidance: Banker's Algorithm, Deadlock detection: Resource allocation graph, Recovery from Deadlock",
+          "Redundant Array of Inexpensive Disks",
+          "RAM Disks"
+        ],
           "hours": "5 hrs"
         },
         {
           "unit": "Unit 6",
           "title": "File Systems",
+          "sub_topics": [
+          "File and File Organization (Blocking and Buffering, File Descriptor, file Naming, File Structure, File Types, File Attributes, File Operations, File Access Methods)",
+          "Directories Management (Single-level directory systems, Hierarchical Directory systems, Path names, Directory operation)",
+          "Access Methods: Sequential, Direct, other access methods, Protection: Types of access, Access Control List",
+          "File System Implementation: Contiguous allocation, Linked list allocation, linked list allocation using an Index nodes",
+          "Security and Multi-media files"
+        ],
           "hours": "3 hrs"
         },
         {
           "unit": "Unit 7",
           "title": "New Trends in Operating System",
+          "sub_topics": [
+          "Concept, character and role of Real-time Operating System, Distributed Operating System, Cloud Operating System, Mobile Operating System",
+          "Security issues and method of deployment",
+          "Memory wall and bottleneck for Operating system"
+        ],
           "hours": "11 hrs"
         }
       ]
@@ -394,31 +491,71 @@
         {
           "unit": "Unit 1",
           "title": "Introduction to Microprocessor",
+          "sub_topics": [
+          "Microcomputer System",
+          "Microprocessor Operations: Microprocessor initiated operations, Internal operations, Peripheral initiated operations",
+          "Evolution of Microprocessor",
+          "Microcontroller and Microcontroller",
+          "Von Neumann and Harvard Architecture",
+          "Concept of Instruction Execution Cycle"
+        ],
           "hours": "4 hrs"
         },
         {
           "unit": "Unit 2",
           "title": "8085 Microprocessor Architecture",
+          "sub_topics": [
+          "Internal Architecture and features of 8085 Microprocessor",
+          "Addressing Modes of 8085 and its types",
+          "Instruction Cycle, Machine Cycle and T-State",
+          "Timing Diagram: Opcode fetch Cycle, Memory Read Cycle, Memory Write Cycle, I/O Read Cycle, I/O Write Cycle"
+        ],
           "hours": "6 hrs"
         },
         {
           "unit": "Unit 3",
           "title": "Programming of 8085 Microprocessor",
+          "sub_topics": [
+          "Intel 8085 Instruction Set",
+          "Classification of Intel 8085 Instruction: Data Transfer Instruction, Arithmetic Instruction, Logical Instruction, Branching Instruction, Stack, I/O and Machine control Instruction",
+          "Assembly Language Program: Format of an Assembly Language Instruction, Simple Programs with Arithmetic and Logical Operations, Conditions and Loops"
+        ],
           "hours": "5 hrs"
         },
         {
           "unit": "Unit 4",
           "title": "8086 Microprocessor Architectural Details and Programming",
+           "sub_topics": [
+          "Internal Architecture and features of 8086 Microprocessor: BIU and EU, Memory Segmentation, Segment and Offset Address",
+          "Intel 8086 Instruction Set",
+          "Classification of Intel 8085 Instruction: Data Transfer Instruction, Arithmetic Instruction, Logical Instruction, Branching Instruction, String manipulation Instruction, Machine control Instruction",
+          "Addressing Modes of 8086 and its types",
+          "Assembly Language program: Format of an assembly language Instruction, ALP Development Tools, Assembler Directives, DOS Interrupt function(Keyboard and display services), Simple Programs for Arithmetic, Logical, String Input/Output, Conditions and Loops, Stacks Procedures, Macros program design"
+        ],
           "hours": "10 hrs"
         },
         {
           "unit": "Unit 5",
           "title": "Bus Structure, Memory, I/O and Interfacing",
+           "sub_topics": [
+          "Bus Structure: Synchronous Bus, Asynchronous Bus",
+          "Memory Device Classification and Hierarchy",
+          "Interfacing I/O and Memory: Address Decoding, Unique and Non-Unique Address Decoding, I/O Mapped I/O and Memory mapped I/O, I/O Address Decoding (8085), Memory Address Decoding (8085)",
+          "Parallel Interface: Modes: Simple I/O, Strobe I/O, Single Handshaking and Double Handshaking, Programmable Peripheral Interface (PPI): Architecture of Intel (8255-PPI)",
+          "Serial Interface: Synchronous and Asynchronous Transmission, Programmable Communication Interface: USART (8251)",
+          "DMA and Intel 8237A DMA Controller"
+        ],
           "hours": "12 hrs"
         },
         {
           "unit": "Unit 6",
           "title": "Interrupt Operation",
+           "sub_topics": [
+          "Interrupt, sources of interrupt and its Classification",
+          "Interrupt Processing Sequence in 8085/8086",
+          "Interrupt Instruction: Interrupts pins and priorities, Interrupt Service procedure, Interrupt Vector Table, Multiple Interrupt Handling (Polled and Vectored interrupt)",
+          "Programmable Interrupt Controller (PIC) Intel (8259) and its Architecture"
+        ],
           "hours": "8 hrs"
         }
       ]
