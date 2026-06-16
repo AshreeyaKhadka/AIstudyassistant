@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search, Bell } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { UserButton } from '@clerk/react';
 
 const Navbar = ({ user, scrolled }) => {
   const location = useLocation();
@@ -17,6 +18,7 @@ const Navbar = ({ user, scrolled }) => {
     if (path.includes('/progress')) return 'Progress Tracker';
     if (path.includes('/revision')) return 'Revision Planner';
     if (path.includes('/settings')) return 'Settings';
+    if (path.includes('/profile')) return 'Profile';
     return 'Dashboard';
   };
 
@@ -32,14 +34,14 @@ const Navbar = ({ user, scrolled }) => {
     if (path.includes('/progress')) return 'Track your learning journey and performance.';
     if (path.includes('/revision')) return 'Schedule and plan your revision effectively.';
     if (path.includes('/settings')) return 'Manage your account and preferences.';
+    if (path.includes('/profile')) return 'Manage your personal and academic information.';
     return '';
   };
 
   return (
-    <header 
-      className={`flex justify-between items-center px-8 py-5 transition-all duration-300 relative z-10 ${
-        scrolled ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/50' : 'bg-transparent'
-      }`}
+    <header
+      className={`flex justify-between items-center px-8 py-5 transition-all duration-300 relative z-10 ${scrolled ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/50' : 'bg-transparent'
+        }`}
     >
       <div>
         <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
@@ -47,13 +49,13 @@ const Navbar = ({ user, scrolled }) => {
         </h2>
         <p className="text-sm text-slate-500 mt-1">{getPageSubtitle()}</p>
       </div>
-      
+
       <div className="flex items-center gap-5">
         <div className="relative group w-[300px] hidden md:block">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search resources, topics..." 
+          <input
+            type="text"
+            placeholder="Search resources, topics..."
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm placeholder:text-slate-400"
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -66,6 +68,10 @@ const Navbar = ({ user, scrolled }) => {
           <Bell size={20} />
           <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
         </button>
+
+        <div className="flex items-center pl-2 border-l border-slate-200">
+          <UserButton afterSignOutUrl="/" />
+        </div>
       </div>
     </header>
   );

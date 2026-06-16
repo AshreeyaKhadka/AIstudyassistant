@@ -8,6 +8,8 @@ class User(db.Model):
     google_id = db.Column(db.String(100), unique=True, nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
     name = db.Column(db.String(255), nullable=False)
+    first_name = db.Column(db.String(120), nullable=True)
+    last_name = db.Column(db.String(120), nullable=True)
     avatar_url = db.Column(db.String(512), nullable=True)
     college = db.Column(db.String(255), nullable=True)
     semester = db.Column(db.Integer, nullable=True) # 1-8
@@ -25,12 +27,19 @@ class User(db.Model):
 
 
     def to_dict(self):
+        display_name = ' '.join(part for part in [self.first_name, self.last_name] if part) or self.name
         return {
             'id': self.id,
             'email': self.email,
             'name': self.name,
+            'display_name': display_name,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
             'avatar_url': self.avatar_url,
             'college': self.college,
             'semester': self.semester,
-            'role': self.role
+            'role': self.role,
+            'university': 'Pokhara University',
+            'course': 'Computer Engineering',
+            'profile_complete': bool(self.first_name and self.last_name and self.college and self.semester)
         }

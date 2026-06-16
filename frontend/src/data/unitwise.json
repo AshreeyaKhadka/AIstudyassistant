@@ -1,16 +1,15 @@
 {
   "Pokhara University - Bachelor in Computer Engineering": {
     
-  "Calculus I (3-1-0)": {
-    "credits": "3-1-0",
-    "Semester": "1",
+  "Calculus I (3-1-2)": {
+    "credits": "3-1-2",
     "units": [
       {
         "unit": "Unit I",
         "title": "Limit Continuity and Derivatives",
         "sub_topics": [
-          "1.1 Introduction",
-          " 1.2 Limit, continuity and differentiability",
+          "Introduction",
+          "Limit, continuity and differentiability",
           "Higher order derivatives by Leibnitz method"
         ],
         "hours": "5 hrs"
@@ -19,11 +18,11 @@
         "unit": "Unit II",
         "title": "Applications of Derivatives",
         "sub_topics": [
-          "2.1 Mean value theorems: Rolle's theorem, Lagrange's Theorem (Geometrical interpretation and verification) and applications",
-          "2.2 Higher order mean value theorem: Taylor's Series, Maclaurin's Series expansion of function",
-          "2.3 Asymptotes to Cartesian curves up to four degrees",
-          "2.4 Curve tracing in Cartesian form and parametric form",
-          "2.5 Curvature"
+          "Mean value theorems: Rolle's theorem, Lagrange's Theorem (Geometrical interpretation and verification) and applications",
+          "Higher order mean value theorem: Taylor's Series, Maclaurin's Series expansion of function",
+          "Asymptotes to Cartesian curves up to four degrees",
+          "Curve tracing in Cartesian form and parametric form",
+          "Curvature"
         ],
         "hours": "8 hrs"
       },
@@ -31,11 +30,11 @@
         "unit": "Unit III",
         "title": "Integral Calculus",
         "sub_topics": [
-          "3.1 Introduction",
-          "3.2 Review on Indefinite Integral and fundamental theorem of integral calculus",
-          "3.3 Definite integral and its properties",
-          "3.4 Improper Integrals; comparison test",
-          "3.5 Reduction formula, Beta Gamma functions"
+          "Introduction",
+          "Review on Indefinite Integral and fundamental theorem of integral calculus",
+          "Definite integral and its properties",
+          "Improper Integrals; comparison test",
+          "Reduction formula, Beta Gamma functions"
         ],
         "hours": "6 hrs"
       },
@@ -43,8 +42,8 @@
         "unit": "Unit IV",
         "title": "Application of Integral",
         "sub_topics": [
-          "4.1 Application of integrals for finding area beneath a curve and between two curves and arc length",
-          "4.2 Surface and volume of solid of revolution in the plane for Cartesian and parametric curves"
+          "Application of integrals for finding area beneath a curve and between two curves and arc length",
+          "Surface and volume of solid of revolution in the plane for Cartesian and parametric curves"
         ],
         "hours": "6 hrs"
       },
@@ -52,10 +51,10 @@
         "unit": "Unit V",
         "title": "Partial Differentiation",
         "sub_topics": [
-          "5.1 Introduction",
-          "5.2 Partial Derivatives",
-          "5.3 Homogeneous function and Euler's theorem for the function of two and three variables",
-          "5.4 Total Derivatives and Differentiation of Implicit functions"
+          "Introduction",
+          "Partial Derivatives",
+          "Homogeneous function and Euler's theorem for the function of two and three variables",
+          "Total Derivatives and Differentiation of Implicit functions"
         ],
         "hours": "3 hrs"
       },
@@ -63,8 +62,8 @@
         "unit": "Unit VI",
         "title": "Application of Partial Differentiation",
         "sub_topics": [
-          "6.1 Extrema of functions of two and three variables",
-          "6.2 Lagrange's method of undetermined Multipliers (up to 2 multipliers)"
+          "Extrema of functions of two and three variables",
+          "Lagrange's method of undetermined Multipliers (up to 2 multipliers)"
         ],
         "hours": "4 hrs"
       },
@@ -72,9 +71,9 @@
         "unit": "Unit VII",
         "title": "First Order Ordinary Differential Equations",
         "sub_topics": [
-          "7.1 Review of separable, homogeneous and exact differential equation with engineering applications",
-          "7.2 Linear, Bernoulli equation and Riccati's equation with engineering application",
-          "7.3 Mathematical modeling of engineering problems using first order equation"
+          "Review of separable, homogeneous and exact differential equation with engineering applications",
+          "Linear, Bernoulli equation and Riccati's equation with engineering application",
+          "Mathematical modeling of engineering problems using first order equation"
         ],
         "hours": "6 hrs"
       },
@@ -82,9 +81,9 @@
         "unit": "Unit VIII",
         "title": "Second Order Ordinary Differential Equations",
         "sub_topics": [
-          "8.1 Second order Homogeneous ODE with constant and variable coefficients, Euler-Cauchy equation",
-          "8.2 Existence and uniqueness of solutions, Wronskian and general solutions for solving ODE",
-          "8.3 Non-homogeneous second order ODE and Solution by undetermined coefficients and variation of parameters and engineering application"
+          "Second order Homogeneous ODE with constant and variable coefficients, Euler-Cauchy equation",
+          "Existence and uniqueness of solutions, Wronskian and general solutions for solving ODE",
+          "Non-homogeneous second order ODE and Solution by undetermined coefficients and variation of parameters and engineering application"
         ],
         "hours": "7 hrs"
       }
@@ -92,16 +91,15 @@
   },
   "Basic Electrical Engineering (3-1-2)": {
     "credits": "3-1-2",
-    "Semester": "1",
     "units": [
       {
         "unit": "Unit I",
         "title": "Introduction",
         "sub_topics": [
-          "1.1 Role of electricity in modern society",
-          "1.2 Energy sources and production",
-          "1.3 Alphabets and language",
-          "1.4 Consumption of electricity"
+          "Role of electricity in modern society",
+          "Energy sources and production",
+          "Generation, transmission and distribution of electrical energy",
+          "Consumption of electricity"
         ],
         "hours": "2 hrs"
       },
@@ -109,16 +107,16 @@
         "unit": "Unit II",
         "title": "DC Circuit Analysis",
         "sub_topics": [
-          "2.1 Circuits concepts (lumped and distributed parameters), linear and nonlinear parameter, passive and active circuits",
-          "2.2 Circuit elements (Resistance, capacitance and inductance), their properties and characteristics",
-          "2.3 Color coding, Series of parallel compilation of resistances, Equivalent resistance, star-delta transformation",
-          "2.4 Concept of power, energy and its calculations",
-          "2.5 Short and open circuit",
-          "2.6 Ideal and non-ideal sources, source conversion",
-          "2.7 Voltage divider and current divider formula",
-          "2.8 Kirchhoff's current and voltage laws",
-          "2.9 Nodal method and mesh method of network analysis (without dependent source)",
-          "2.10 Network theorem (Superposition, Thevenin's, Norton's, maximum power transfer theorem)"
+          "Circuits concepts (lumped and distributed parameters), linear and nonlinear parameter, passive and active circuits",
+          "Circuit elements (Resistance, capacitance and inductance), their properties and characteristics",
+          "Color coding, Series of parallel compilation of resistances, Equivalent resistance, star-delta transformation",
+          "Concept of power, energy and its calculations",
+          "Short and open circuit",
+          "Ideal and non-ideal sources, source conversion",
+          "Voltage divider and current divider formula",
+          "Kirchhoff's current and voltage laws",
+          "Nodal method and mesh method of network analysis (without dependent source)",
+          "Network theorem (Superposition, Thevenin's, Norton's, maximum power transfer theorem)"
         ],
         "hours": "15 hrs"
       },
@@ -126,11 +124,11 @@
         "unit": "Unit III",
         "title": "Single Phase AC Circuits Analysis",
         "sub_topics": [
-          "3.1 Generation of EMF by electromagnetic induction, Generation of alternating voltage",
-          "3.2 Sinusoidal functions-terminology (phase, phase angle, amplitude, frequency, peak to peak value), average values and RMS or effective value",
-          "3.3 Phase algebra, power triangle, impedance triangle, steady state response of circuits (RL, RC, RLC series and parallel)",
-          "3.4 Instantaneous power, average real power, reactive power, power factor and significance",
-          "3.5 Resonance in series and parallel RLC circuit, bandwidth, effect of Q factor"
+          "Generation of EMF by electromagnetic induction, Generation of alternating voltage",
+          "Sinusoidal functions-terminology (phase, phase angle, amplitude, frequency, peak to peak value), average values and RMS or effective value",
+          "Phase algebra, power triangle, impedance triangle, steady state response of circuits (RL, RC, RLC series and parallel)",
+          "Instantaneous power, average real power, reactive power, power factor and significance",
+          "Resonance in series and parallel RLC circuit, bandwidth, effect of Q factor"
         ],
         "hours": "10 hrs"
       },
@@ -138,10 +136,10 @@
         "unit": "Unit IV",
         "title": "Poly-phase AC Circuit Analysis",
         "sub_topics": [
-          "4.1 Application of integrals for finding area beneath a curve and between two curves and arc length",
-          "4.2 Differences between single phase and three phase system",
-          "4.3 Star and delta connected supply and load circuits, Line and phase voltage/current relations",
-          "4.4 Concept of three phase power and its measurement by single and two wattmeter methods"
+          "Generation of three phase alternating quantity and Concept of a balanced three phase supply",
+          "Differences between single phase and three phase system",
+          "Star and delta connected supply and load circuits, Line and phase voltage/current relations",
+          "Concept of three phase power and its measurement by single and two wattmeter methods"
         ],
         "hours": "6 hrs"
       },
@@ -149,22 +147,21 @@
         "unit": "Unit V",
         "title": "Electrical Machines",
         "sub_topics": [
-          "5.1 Differences and similarities between electric circuit and magnetic circuit",
-          "5.2 Transformers: Principle of operations, features, equivalent circuits, efficiency & regulation, open circuit & short circuit tests",
-          "5.3 DC generator: Construction features, working principles, basic characteristics",
-          "5.4 DC motors: Performance & operation, basic characteristics, speed control & selection of motors",
-          "5.5 AC machines: Single phase and three phase induction motors (working principles, construction features and uses)"
+          "Differences and similarities between electric circuit and magnetic circuit",
+          "Transformers: Principle of operations, features, equivalent circuits, efficiency & regulation, open circuit & short circuit tests",
+          "DC generator: Construction features, working principles, basic characteristics",
+          "DC motors: Performance & operation, basic characteristics, speed control & selection of motors",
+          "AC machines: Single phase and three phase induction motors (working principles, construction features and uses)"
         ],
         "hours": "12 hrs"
       }
     ]
   },
-  "Communication Techniques (2-2-0)": {
+  "Communication Techniques (3-0-0)": {
     "credits": "3-0-0",
-    "Semester": "1",
     "units": [
       {
-        "unit": "Unit 1",
+        "unit": "Weeks 1-2",
         "title": "Audience, Ethics, and Research",
         "sub_topics": [
           "Thinking about audience, purpose, and genre",
@@ -175,7 +172,7 @@
         "hours": "Not specified"
       },
       {
-        "unit": "Unit 2",
+        "unit": "Weeks 3-4",
         "title": "Workplace Writing and Style",
         "sub_topics": [
           "Writing email and letters for the workplace: informative, positive, negative, persuasive",
@@ -185,7 +182,7 @@
         "hours": "Not specified"
       },
       {
-        "unit": "Unit 3",
+        "unit": "Weeks 5-6",
         "title": "Document Design and Visuals",
         "sub_topics": [
           "Designing documents and page layout",
@@ -194,7 +191,7 @@
         "hours": "Not specified"
       },
       {
-        "unit": "Unit 4",
+        "unit": "Weeks 7-8",
         "title": "Proposals and Instructional Documents",
         "sub_topics": [
           "Writing winning proposals",
@@ -203,7 +200,7 @@
         "hours": "Not specified"
       },
       {
-        "unit": "Unit 5",
+        "unit": "Weeks 9-10",
         "title": "Usability Testing",
         "sub_topics": [
           "Testing instructional documents",
@@ -212,7 +209,7 @@
         "hours": "Not specified"
       },
       {
-        "unit": "Unit 6",
+        "unit": "Weeks 11-12",
         "title": "Reporting Information and Online Access",
         "sub_topics": [
           "Reporting technical information: white papers or information reports",
@@ -221,7 +218,7 @@
         "hours": "Not specified"
       },
       {
-        "unit": "Unit 7",
+        "unit": "Weeks 13-14",
         "title": "Online Documents and Progress Reports",
         "sub_topics": [
           "Taking technical communication online: writing online documents",
@@ -230,7 +227,7 @@
         "hours": "Not specified"
       },
       {
-        "unit": "Unit 8",
+        "unit": "Weeks 15-16",
         "title": "Oral Presentations",
         "sub_topics": [
           "Oral presentation of technical reports",
@@ -240,64 +237,46 @@
       }
     ]
   },
-  "Programming in C (3-1-3)": {
-    "credits": "3-1-3",
-    "Semester": "1",
+  "Programming in C (3-1-2)": {
+    "credits": "3-1-2",
     "units": [
       {
         "unit": "Unit I",
         "title": "Programming Languages and Problem Solving",
         "sub_topics": [
-          "1.1 Programming Languages: machine-level, assembly, high-level",
-          "1.2 Software and its types",
-          "1.3 Generations of programming languages",
-          "1.4 Structured programming",
-          "1.5 Problem solving using computer: Problem Analysis (feasibility, requirement), Design (Algorithm, flowchart), Coding (compilation/interpretation, execution)"
+          "Programming Languages: machine-level, assembly, high-level",
+          "Software and its types",
+          "Generations of programming languages",
+          "Structured programming",
+          "Problem solving using computer: Problem Analysis (feasibility, requirement), Design (Algorithm, flowchart), Coding (compilation/interpretation, execution)"
         ],
         "hours": "6 hrs"
       },
       {
         "unit": "Unit II",
-        "title": "Introduction to C",
+        "title": "Fundamentals of C Programming",
         "sub_topics": [
-          "2.1 History of C language",
-          "2.2 Features of C",
-          "2.3 Operators and Expressions",
-          "2.4 Input/output statements",
-          "2.5 Decision making and branching (if, if-else, nested, switch)",
-          "2.6 Looping (for, while, do-while)",
-          "2.7 Keywords and Identifiers",
-          "2.8 Constants and Variables and their Declaration",
-          "2.9 Formatted Input and Output",
-          "2.10 The C operators"
+          "Character set, Identifiers, Keywords",
+          "Data types, Constants, Variables",
+          "Operators and Expressions",
+          "Input/output statements",
+          "Decision making and branching (if, if-else, nested, switch)",
+          "Looping (for, while, do-while)"
         ],
-        "hours": "6 hrs"
+        "hours": "Not specified"
       },
       {
         "unit": "Unit III",
-        "title": "Control Structures",
+        "title": "Arrays and Strings",
         "sub_topics": [
-          "3.1 Introduction and types of control statements-sequential, branching and looping statements",
-          "3.2 Branching statements- simple if statement, if-else, nested if, if-else-if ladder and switchstatement",
-          "3.3 Looping statements- for loop, while loop, do-while loop, nested loops",
-          "3.4 The break and continue statements"
+          "Introduction to Arrays",
+          "One and Two dimensional arrays",
+          "Strings and string handling functions"
         ],
-        "hours": "6 hrs"
+        "hours": "Not specified"
       },
       {
         "unit": "Unit IV",
-        "title": "Arrays and Strings",
-        "sub_topics": [
-          "4.1 Application of integrals for finding area beneath a curve and between two curves and arc length",
-          "4.2 One and Two dimensional arrays",
-          "4.3 Initialization of arrays",
-          "4.4 Strings - the character array",
-          "4.5 Functions related to strings"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit V",
         "title": "Functions",
         "sub_topics": [
           "Introduction to functions",
@@ -305,10 +284,10 @@
           "Storage classes",
           "Recursion"
         ],
-        "hours": "6 hrs"
+        "hours": "Not specified"
       },
       {
-        "unit": "Unit VI",
+        "unit": "Unit V",
         "title": "Pointers",
         "sub_topics": [
           "Introduction",
@@ -322,7 +301,7 @@
         "hours": "Not specified"
       },
       {
-        "unit": "Unit VII",
+        "unit": "Unit VI",
         "title": "Structure and Union",
         "sub_topics": [
           "Definition of Structure",
@@ -335,7 +314,7 @@
         "hours": "5 hrs"
       },
       {
-        "unit": "Unit VIII",
+        "unit": "Unit VII",
         "title": "Files and File Handling",
         "sub_topics": [
           "FILE pointer, File opening modes (read, write, append)",
@@ -348,7 +327,6 @@
   },
   "Electronic Device and Circuit (3-1-2)": {
     "credits": "3-1-2",
-    "Semester": "1",
     "units": [
       {
         "unit": "Unit I",
@@ -476,7 +454,6 @@
   },
   "Digital Logic (3-1-2)": {
     "credits": "3-1-2",
-    "Semester": "1",
     "units": [
       {
         "unit": "Unit 1",
