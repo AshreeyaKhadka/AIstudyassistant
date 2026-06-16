@@ -1642,466 +1642,1022 @@
       }
     ]
   },
-    "Theory of Computation (3-1-0)": {
-      "credits": "3-1-0",
-      "units": [
-        {
-          "unit": "Unit 1",
-          "title": "Introduction",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 2",
-          "title": "Finite Automata and Regular Language",
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Unit 3",
-          "title": "Context-Free Language and Pushdown Automata",
-          "hours": "13 hrs"
-        },
-        {
-          "unit": "Unit 4",
-          "title": "Turing Machines",
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Unit 5",
-          "title": "Undecidability",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 6",
-          "title": "Computational Complexity",
-          "hours": "4 hrs"
-        }
-      ]
-    },
-    "Research Fundamentals (2-0-2)": {
-      "credits": "2-0-2",
-      "units": [
-        {
-          "unit": "Unit 1",
-          "title": "Introduction",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 2",
-          "title": "Research Process Model",
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Unit 3",
-          "title": "Participants and Research Ethics",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 4",
-          "title": "Proposal Writing",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 5",
-          "title": "Report Writing",
-          "hours": "4 hrs"
-        }
-      ]
-    },
-    "Numerical Methods (2-1-2)": {
-      "credits": "2-1-2",
-      "units": [
-        {
-          "unit": "Unit 1",
-          "title": "Solution of Non-linear Equations",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit 2",
-          "title": "Interpolation and Approximation",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit 3",
-          "title": "Numerical Differentiation and Integration",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 4",
-          "title": "Solution of System of Linear Algebraic Equations",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit 5",
-          "title": "Solution of Ordinary Differential Equations",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit 6",
-          "title": "Numerical Solution of Partial Differential Equations",
-          "hours": "4 hrs"
-        }
-      ]
-    },
-    "Computer Architecture (3-1-1)": {
-      "credits": "3-1-1",
-      "units": [
-        {
-          "unit": "Unit 1",
-          "title": "Introduction to Architecture",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 2",
-          "title": "Register Transfer Language and Micro Operations",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 3",
-          "title": "Processor Organization",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit 4",
-          "title": "Control Unit",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit 5",
-          "title": "Computer Arithmetic",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Unit 6",
-          "title": "Pipelining",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 7",
-          "title": "Memory Organization",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 8",
-          "title": "Input-Output Processing",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 9",
-          "title": "Parallel Processing",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 10",
-          "title": "Multi-core Computer",
-          "hours": "4 hrs"
-        }
-      ]
-    },
-    "Applied Mathematics (3-2-0)": {
-      "credits": "3-2-0",
-      "units": [
-        {
-          "unit": "Unit I",
-          "title": "Complex Analysis",
-          "hours": "17 hrs"
-        },
-        {
-          "unit": "Unit II",
-          "title": "Z-Transform and its Applications",
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Unit III",
-          "title": "Partial Differential Equations",
-          "hours": "12 hrs"
-        },
-        {
-          "unit": "Unit IV",
-          "title": "Fourier Integral and Transform",
-          "hours": "6 hrs"
-        }
-      ]
-    },
-    "Advanced Programming with Java": {
-      "credits": "N/A",
-      "units": [
-        {
-          "unit": "Unit 1",
-          "title": "Basics of Programming in Java",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Unit 2",
-          "title": "Object Oriented Principles in Java",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit 3",
-          "title": "Building Components using Swing and JavaFX",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit 4",
-          "title": "Distributed Network Programming",
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Unit 5",
-          "title": "Database Connectivity with JAVA",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit 6",
-          "title": "Servlets and JSP",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit 7",
-          "title": "Advanced Topics in JAVA",
-          "hours": "7 hrs"
-        }
-      ]
-    },
-    "Software Engineering": {
-      "credits": "N/A",
-      "units": [
-        {
-          "unit": "Chapter 1",
-          "title": "Software Engineering and Project Management",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Chapter 2",
-          "title": "Software Process Models and Agility",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Chapter 3",
-          "title": "Requirements Engineering and Principles",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Chapter 4",
-          "title": "Software Design, Architecture and Principles",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Chapter 5",
-          "title": "Testing Techniques and Maintenance",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Chapter 6",
-          "title": "Software Quality Assurance Process",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Chapter 7",
-          "title": "Software Configuration Management",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Chapter 8",
-          "title": "Advanced Software Engineering Concepts",
-          "hours": "4 hrs"
-        }
-      ]
-    },
-    "Probability and Statistics": {
-      "credits": "2-2-0",
-      "units": [
-        {
-          "unit": "Unit I",
-          "title": "Introduction and Descriptive Statistics",
-          "hours": "3 hrs"
-        },
-        {
-          "unit": "Unit II",
-          "title": "Probability",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit III",
-          "title": "Discrete Probability Distributions",
-          "hours": "3 hrs"
-        },
-        {
-          "unit": "Unit IV",
-          "title": "Continuous Probability Distributions",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit V",
-          "title": "Bivariate Random Variables and Joint Probability Distribution",
-          "hours": "2 hrs"
-        },
-        {
-          "unit": "Unit VI",
-          "title": "Sampling Distribution and Estimation",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit VII",
-          "title": "Hypothesis Testing",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit VIII",
-          "title": "Correlation and Regression",
-          "hours": "3 hrs"
-        }
-      ]
-    },
-    "Engineering Management (2-1-0)": {
-      "credits": "2-1-0",
-      "units": [
-        {
-          "unit": "Unit I",
-          "title": "Introduction",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit II",
-          "title": "Planning and Organizing",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit III",
-          "title": "Motivation and Leadership",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit IV",
-          "title": "Human Resource Management and Control",
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Unit V",
-          "title": "Emerging Trends in Engineering Management",
-          "hours": "4 hrs"
-        }
-      ]
-    },
-    "Embedded System (2-1-3)": {
-      "credits": "2-1-3",
-      "units": [
-        {
-          "unit": "Unit I",
-          "title": "Introduction to Embedded Systems",
-          "hours": "3 hrs"
-        },
-        {
-          "unit": "Unit II",
-          "title": "Programming for Embedded Systems",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit III",
-          "title": "Real-Time Operating Systems (RTOS)",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit IV",
-          "title": "Embedded System Design using VHDL",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit V",
-          "title": "Communication Protocols",
-          "hours": "3 hrs"
-        },
-        {
-          "unit": "Unit VI",
-          "title": "Peripherals and Interfacing",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit VII",
-          "title": "Internet of Things (IoT) and Embedded Systems",
-          "hours": "3 hrs"
-        }
-      ]
-    },
-    "Artificial Intelligence (3-1-3)": {
-      "credits": "3-1-3",
-      "units": [
-        {
-          "unit": "Chapter 1",
-          "title": "Introduction to Artificial Intelligence",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Chapter 2",
-          "title": "Intelligent Agents",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Chapter 3",
-          "title": "Problem Solving and Search Algorithms",
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Chapter 4",
-          "title": "Knowledge Representation and Reasoning",
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Chapter 5",
-          "title": "Machine Learning",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Chapter 6",
-          "title": "Fuzzy Logic",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Chapter 7",
-          "title": "Expert System",
-          "hours": "5 hrs"
-        }
-      ]
-    },
-    "Digital Signal Analysis and Processing (3-1-2)": {
-      "credits": "3-1-2",
-      "units": [
-        {
-          "unit": "Chapter 1",
-          "title": "Discrete Signals and Systems",
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Chapter 2",
-          "title": "Z-transform",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Chapter 3",
-          "title": "Analysis of LTI System in Frequency Domain",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Chapter 4",
-          "title": "Discrete Filter Structures",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Chapter 5",
-          "title": "IIR Filter Design",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Chapter 6",
-          "title": "FIR Filter Design",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Chapter 7",
-          "title": "Discrete Fourier Transform",
-          "hours": "6 hrs"
-        }
-      ]
-    },
+    "Research Fundamentals": {
+    "credits": "Not specified",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction",
+        "sub_topics": [
+          "1.1 What is research?",
+          "1.2 Research Aim and Objectives",
+          "1.3 Features of Research",
+          "1.4 Types of Research",
+          "1.5 The 6Ps of Research",
+          "1.6 Purpose of Research- reasons for doing research",
+          "1.7 Product of Research- outcomes of research",
+          "1.8 Research and Project"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Research Process Model",
+        "sub_topics": [
+          "2.1 Personal Experiences and Motivation",
+          "2.2 Literature Review - Purpose and objectives of a literature review, Literature resources, Conducting a literature review, Citation and its types, Bibliographic Detail and Referencing Systems, Plagiarism",
+          "2.3 Research Question",
+          "2.4 Conceptual framework",
+          "2.5 Strategies - Survey, Design and Creation, Experiment, Case Study, Action Research, Ethnography",
+          "2.6 Data Generation Methods - Interview, Observations, Questionnaire, Documents, Types of triangulation in a research project",
+          "2.7 Data Analysis - Quantitative and Qualitative data analysis"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Participants and Research Ethics",
+        "sub_topics": [
+          "3.1 Participants",
+          "3.2 The law and Research",
+          "3.3 Rights of People Directly Involved",
+          "3.4 Responsibilities of an Ethical Researcher"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Proposal Writing",
+        "sub_topics": [
+          "4.1 What is a research proposal?",
+          "4.2 Need of a Research Proposal",
+          "4.3 Components of a Research Proposal",
+          "4.4 A case study on any research paper/project"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Report Writing",
+        "sub_topics": [
+          "5.1 What is a research report?",
+          "5.2 Need of a Research Report",
+          "5.3 Components of a Research Report",
+          "5.4 A case study on any research paper/report"
+        ],
+        "hours": "4 hrs"
+      }
+    ]
+  },
+  "Theory of Computation": {
+    "credits": "Not specified",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction",
+        "sub_topics": [
+          "1.1 Review of set, relation and function",
+          "1.2 Proof techniques– proof by contradiction, pigeon hole principle, induction and diagonalization",
+          "1.3 Alphabets and language",
+          "1.4 Chomsky's hierarchy"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Finite Automata and Regular Language",
+        "sub_topics": [
+          "2.1 Deterministic Finite Automata, Non-Deterministic Finite Automata",
+          "2.2 Regular expressions and regular language, equivalence of regular language and finite automata",
+          "2.3 Properties of regular language",
+          "2.4 Pumping lemma for regular sets",
+          "2.5 Closure properties of regular sets",
+          "2.6 Decision algorithms for regular sets"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Context-Free Language and Pushdown Automata",
+        "sub_topics": [
+          "3.1 Context-free grammar",
+          "3.2 Derivative trees and simplification of context-free grammar",
+          "3.3 Normal forms (CNF, GNF)",
+          "3.4 Pushdown automata (formal description and final state PDA design)",
+          "3.5 Equivalence of pushdown automata and context-free grammar",
+          "3.6 Properties of context-free languages (CFL)",
+          "3.7 Pumping lemma for CFL's",
+          "3.8 Closure properties of CFL's",
+          "3.9 Decision algorithms for CFL's"
+        ],
+        "hours": "13 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Turing Machines",
+        "sub_topics": [
+          "4.1 Introduction to Turing machine",
+          "4.2 Computing with Turing machine",
+          "4.3 Extensions of Turing machine",
+          "4.4 Unrestricted grammar",
+          "4.5 Recursively enumerable languages"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Undecidability",
+        "sub_topics": [
+          "5.1 The Church-Turing thesis",
+          "5.2 Halting Problem",
+          "5.3 Universal Turing machines",
+          "5.4 Undecidable problems about Turing machines",
+          "5.5 Properties of Recursive and Recursively enumerable languages"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Computational Complexity",
+        "sub_topics": [
+          "6.1 Introduction to Complexity theory, tractable and intractable problems",
+          "6.2 Class P and Class NP problems",
+          "6.3 NP-complete problems"
+        ],
+        "hours": "4 hrs"
+      }
+    ]
+  },
+  "Numerical Methods": {
+    "credits": "2-1-2",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Solution of Non-linear equations",
+        "sub_topics": [
+          "1.1 Introduction, Importance of Numerical Methods",
+          "1.2 Approximation and Errors in computation",
+          "1.3 Bisection Method",
+          "1.4 Secant method",
+          "1.5 Newton Raphson method",
+          "1.6 Fixed point iterative method"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Interpolation and approximation",
+        "sub_topics": [
+          "2.1 Lagrange interpolation",
+          "2.2 Finite differences (forward, backward, and divided difference)",
+          "2.3 Newton's Interpolation (forward, backward)",
+          "2.4 Least square method of fitting linear and nonlinear curve for discrete data and continuous function",
+          "2.5 Cubic Spline Interpolation"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Numerical Differentiation and Integration",
+        "sub_topics": [
+          "3.1 Numerical Differentiation formulae",
+          "3.2 Trapezoidal, Simpson's 1/3, 3/8 rule",
+          "3.3 Romberg integration",
+          "3.4 Gaussian integration (2-point and 3-point formula)"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Solution of system of linear algebraic equations",
+        "sub_topics": [
+          "4.1 Gauss elimination method and concept of pivoting",
+          "4.2 Ill-conditioned system of linear equations",
+          "4.3 LU Factorization method (Dolittle, Crout's, Cholesky's)",
+          "4.4 Iterative methods (Jacobi method, Gauss-Seidel method)",
+          "4.5 Eigen value and Eigen vector using Power method"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Solution of ordinary differential equations",
+        "sub_topics": [
+          "5.1 Review of ordinary differential equations",
+          "5.2 Runge-Kutta methods (first, second and fourth) for first and second order differential equations",
+          "5.3 Solution of boundary value problem by shooting method"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Numerical solution of Partial differential Equation",
+        "sub_topics": [
+          "6.1 Classification of partial differential equation (elliptic, parabolic and hyperbolic)",
+          "6.2 Solution of Laplace equation (standard 5-point formula with iterative methods)",
+          "6.3 Solution of Poisson equation (finite difference approximation method)",
+          "6.4 Solution of one-dimensional Heat equation by Schmidt method"
+        ],
+        "hours": "4 hrs"
+      }
+    ]
+  },
+  "Computer Architecture": {
+    "credits": "Not specified",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction to Architecture",
+        "sub_topics": [
+          "1.1 Brief overview of Computer organization and Architecture",
+          "1.2 Hierarchy structure of computer system",
+          "1.3 Computer evolution and generations",
+          "1.4 Computer Components and Functions",
+          "1.5 Future Trends in Computer",
+          "1.6 Review of Instruction sets, Addressing Modes and Instruction format"
+        ],
+        "hours": "4 Hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Register Transfer Language and Micro operations",
+        "sub_topics": [
+          "2.1 Register Transfer and RTL",
+          "2.2 Micro Operation",
+          "2.3 Data Transfer Micro Operations",
+          "2.4 Arithmetic and Logical Operations",
+          "2.5 Shift Micro operations",
+          "2.6 Introduction to HDL and VHDL",
+          "2.7 VHDL programming for Adder, Mux, ALU"
+        ],
+        "hours": "4 Hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Processor Organization",
+        "sub_topics": [
+          "3.1 CPU Organization/Structure",
+          "3.2 Register Organization and Data paths",
+          "3.3 Instruction Cycle(T states)",
+          "3.4 Arithmetic and Logical Unit",
+          "3.5 Design Principles for Modern Systems"
+        ],
+        "hours": "5 Hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Control Unit",
+        "sub_topics": [
+          "4.1 Control of the processor",
+          "4.2 Hardwired Control Unit(Control unit inputs/logic)",
+          "4.3 Microinstruction Format",
+          "4.4 Micro Programmed Control Unit",
+          "4.5 Architecture of Microprogrammed Control Unit",
+          "4.6 Microinstruction Sequencing and Execution",
+          "4.7 Application of Hardwired and Micro programmed Control Units",
+          "4.8 RISC and CISC Architecture"
+        ],
+        "hours": "5 Hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Computer Arithmetic",
+        "sub_topics": [
+          "5.1 Integer Representation",
+          "5.2 Integer Arithmetic",
+          "5.3 Unsigned Binary Addition and Subtraction",
+          "5.4 Unsigned Binary Multiplication Algorithm",
+          "5.5 Booth Multiplication Algorithm",
+          "5.6 Unsigned Binary Division Algorithm",
+          "5.7 Floating Point Representation"
+        ],
+        "hours": "7 Hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Pipelining",
+        "sub_topics": [
+          "6.1 Pipelining",
+          "6.2 Arithmetic Pipeline",
+          "6.3 Instruction Pipeline",
+          "6.4 Conflicts in Instruction Pipelining and their solutions",
+          "6.5 RISC pipeline",
+          "6.6 Register Windowing and Register Renaming"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "Memory Organization",
+        "sub_topics": [
+          "7.1 Memory Hierarchy",
+          "7.2 Main Memory and Auxiliary Memory",
+          "7.3 Associative Memory and Cache Memory",
+          "7.4 Cache mapping techniques- Direct, Associative and Set Associative Mapping",
+          "7.5 Cache Write Policy",
+          "7.6 Cache Replacement algorithm (FIFO, LRU, LFU)"
+        ],
+        "hours": "4 Hrs"
+      },
+      {
+        "unit": "Unit 8",
+        "title": "Input-Output Processing",
+        "sub_topics": [
+          "8.1 Peripheral Devices",
+          "8.2 I/O Modules",
+          "8.3 I/O Interface and Techniques",
+          "8.4 Modes of Transfer: Programmed, Interrupt-Driven and DMA",
+          "8.5 I/O Processor and IO channel",
+          "8.6 GPU and TPU",
+          "8.7 External Interfaces: FireWire and Infiniband"
+        ],
+        "hours": "4 Hrs"
+      },
+      {
+        "unit": "Unit 9",
+        "title": "Parallel Processing",
+        "sub_topics": [
+          "9.1 Parallel Processing",
+          "9.2 Parallelism In Uniprocessor system",
+          "9.3 Multiprocessor System and their characteristics",
+          "9.4 Flynn Classification",
+          "9.5 Interconnection structures in Multiprocessors",
+          "9.6 Vector processing and Array processing",
+          "9.7 Introduction to Multithreaded Architecture"
+        ],
+        "hours": "4 Hrs"
+      },
+      {
+        "unit": "Unit 10",
+        "title": "Multi-core computer",
+        "sub_topics": [
+          "10.1 Hardware performance issues",
+          "10.2 Software Performance Issues",
+          "10.3 Multicore Organization",
+          "10.4 Dual Core, Quad Core and Octa Core",
+          "10.5 Power Efficient Processor"
+        ],
+        "hours": "4 Hrs"
+      }
+    ]
+  },
+  "Applied Mathematics": {
+    "credits": "Not specified",
+    "units": [
+      {
+        "unit": "Unit I",
+        "title": "Complex Analysis",
+        "sub_topics": [
+          "1.1 Complex numbers and functions - Review on Complex number, their geometric representation, Polar form, power and roots, Sets and functions in complex plane, Limits Continuity and derivatives of function of complex variables, Analytic functions, Cauchy-Riemann(C-R) equations, Laplace equation, harmonic functions and harmonic conjugate",
+          "1.2 Integrals in complex plane - Line integrals in the complex plane, Cauchy's Integral theorem, Cauchy's integral formula and Cauchy integral formula of higher order",
+          "1.3 Taylor and Laurent series for functions of complex variables - Taylor series and Laurent series, Singularities and zeros, Residues and integration, Cauchy Residue theorem",
+          "1.4 Conformal mapping - Special Linear fractional transformation (Bilinear fractional transformation)"
+        ],
+        "hours": "17 hrs"
+      },
+      {
+        "unit": "Unit II",
+        "title": "Z-Transform and its Applications",
+        "sub_topics": [
+          "2.1 Z-transform, Z-transform of elementary functions, Properties of Z-transforms, Shifting theorems, initial value theorem, final value theorem",
+          "2.2 Inverse z-transforms using division method, expansion method, Partial fraction method and residue method",
+          "2.3 Application: Difference equations and solution by using Z-transform"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit III",
+        "title": "Partial Differential Equations",
+        "sub_topics": [
+          "3.1 Partial differential equations and solutions by variable separation method",
+          "3.2 One dimensional wave equation and its solutions",
+          "3.3 One dimensional heat equation and its solutions",
+          "3.4 Two dimensional heat equation, Laplace equation (steady state heat equation) and its solution for rectangular boundaries, Laplace equation in polar form and its solution for circular boundaries"
+        ],
+        "hours": "12 hrs"
+      },
+      {
+        "unit": "Unit IV",
+        "title": "Fourier integral and Transform",
+        "sub_topics": [
+          "4.1 Fourier integral, Fourier sine and cosine integrals",
+          "4.2 Fourier integral in complex form and Fourier transform and inverse transform, Fourier sine and cosine transforms and their inverse transforms, Convolution theorem, Parseval's identity"
+        ],
+        "hours": "6 hrs"
+      }
+    ]
+  },
+  "Advanced Programming with JAVA": {
+    "credits": "Not specified",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Basics of Programming in Java",
+        "sub_topics": [
+          "1.1 Java Architecture, Class paths, Sample Program",
+          "1.2 Classes, Objects, Constructors",
+          "1.3 Packages and Data Types",
+          "1.4 Conditional Statements",
+          "1.5 Access Modifiers",
+          "1.6 Exception Handling",
+          "1.7 Java Collections"
+        ],
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Object Oriented Principles in Java",
+        "sub_topics": [
+          "2.1 Review of object-oriented principles",
+          "2.2 Super class, sub class, inheritance, and member access",
+          "2.3 Types of inheritance",
+          "2.4 Extends and super keyword",
+          "2.5 Overriding/Overloading",
+          "2.6 Final classes and methods",
+          "2.7 Abstract classes and methods",
+          "2.8 Upcasting vs Down casting",
+          "2.9 Interfaces and Implementations"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Building Components using Swing and JavaFX",
+        "sub_topics": [
+          "3.1 Introduction to AWT and Swing: Concept, Applets, Swing Class Hierarchy, Components/Containers",
+          "3.2 Layout Management",
+          "3.3 GUI Controls",
+          "3.4 Menu Elements and Tooltips",
+          "3.5 Dialogs and Frames",
+          "3.6 Event handling and Listener Interfaces",
+          "3.7 Handling Action Events",
+          "3.8 JavaFX vs Swing",
+          "3.9 JavaFX Layouts",
+          "3.10 JavaFX UI Controls"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Distributed Network Programming",
+        "sub_topics": [
+          "4.1 TCP, UDP, IP Address and Ports",
+          "4.2 Socket Programming using TCP and UDP",
+          "4.3 Working with URLs and URL Connection Class",
+          "4.4 Email Handling using Java Mail API",
+          "4.5 Architecture of RMI",
+          "4.6 Creating and Executing RMI Applications",
+          "4.7 Architecture of CORBA",
+          "4.8 RMI vs CORBA",
+          "4.9 IDL and Simple CORBA Program"
+        ],
+        "hours": "8 Hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Database Connectivity with JAVA",
+        "sub_topics": [
+          "5.1 JDBC Architecture",
+          "5.2 JDBC Driver Types and Configuration",
+          "5.3 Managing Connections and Statements",
+          "5.4 Result Sets and Exception Handling",
+          "5.5 DDL and DML Operations",
+          "5.6 SQL Injection and Prepared Statements",
+          "5.7 Row Sets and Transactions",
+          "5.8 SQL Escapes"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Servlets and JSP",
+        "sub_topics": [
+          "6.1 Overview of Web Application",
+          "6.2 HTTP Methods and Responses",
+          "6.3 Life Cycle of Web Servlets",
+          "6.4 Writing Servlet programs with Servlet APIs",
+          "6.5 Reading and Processing Forms",
+          "6.6 Handling GET/POST Requests",
+          "6.7 Database connectivity through servlets",
+          "6.8 Cookies and Sessions"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "Advanced Topics in JAVA",
+        "sub_topics": [
+          "7.1 Overview of ORM",
+          "7.2 Hibernate",
+          "7.3 Web Framework Introduction",
+          "7.4 Basics of Spring Boot",
+          "7.5 Concurrency and Multithreading in JAVA",
+          "7.6 Design Patterns: Singleton, Factory and Abstract Factory"
+        ],
+        "hours": "7 Hrs"
+      }
+    ]
+  },
+  "Software Engineering": {
+    "credits": "Not specified",
+    "units": [
+      {
+        "unit": "Chapter 1",
+        "title": "Software Engineering and Project Management",
+        "sub_topics": [
+          "1.1 Nature and Characteristics of Software",
+          "1.2 Software versus System Engineering",
+          "1.3 Software Crisis and Myths",
+          "1.4 Four Ps of Software Project Management",
+          "1.5 Process and Project Metrics",
+          "1.6 Measurement of Software: Metrics, Measure, Indicator",
+          "1.7 Project Estimation, Empirical Estimation Models",
+          "1.8 Software Risks, Assumption, Issues, Dependency - Identification, Mitigation, Monitoring, Management",
+          "1.9 Software Engineering Ethics and Professional Practice"
+        ],
+        "hours": "7 Hrs"
+      },
+      {
+        "unit": "Chapter 2",
+        "title": "Software Process Models and Agility",
+        "sub_topics": [
+          "2.1 Software Development Lifecycle (SDLC)",
+          "2.2 Waterfall, Incremental, Prototyping, Iterative, Spiral, Rapid Application Development, Aspect Oriented Software Engineering",
+          "2.3 Agile Software Development - Extreme Programming, Scrum, Agile Project Management and Scaling Agile Methods",
+          "2.4 Pros and Cons of Process Models and their Applicability"
+        ],
+        "hours": "5 Hr"
+      },
+      {
+        "unit": "Chapter 3",
+        "title": "Requirements Engineering and Principles",
+        "sub_topics": [
+          "3.1 Types of Requirements",
+          "3.2 Requirements Modeling Principles",
+          "3.3 Domain Analysis and System Models - Context Models, Behavioural Models, Data Models",
+          "3.4 Requirements Engineering Process - Feasibility Study, Requirements Elicitation, Analysis, Modeling, Specification, Requirements Validation",
+          "3.5 Object Oriented Analysis"
+        ],
+        "hours": "7 Hr"
+      },
+      {
+        "unit": "Chapter 4",
+        "title": "Software Design, Architecture and Principles",
+        "sub_topics": [
+          "4.1 Design Modeling Principles",
+          "4.2 Design Process",
+          "4.3 Architectural design - Layered, Repository, Client Server, Pipe and Filter",
+          "4.4 Interface, Component, Database Design",
+          "4.5 Design Patterns",
+          "4.6 Security by Design",
+          "4.7 Object Oriented Design",
+          "4.8 Embedded System Design"
+        ],
+        "hours": "7 Hr"
+      },
+      {
+        "unit": "Chapter 5",
+        "title": "Software Testing and Maintenance",
+        "sub_topics": [
+          "5.1 Validation and Verification",
+          "5.2 Testing Phases - Development Testing (Unit, Component, System), Release Testing (Requirements-based, Scenario, Performance), User Testing (Alpha, Beta, Acceptance)",
+          "5.3 Test Case Development Strategies - Boundary Value Analysis, Equivalence Partitioning, Basis Path Testing, Control structure Testing",
+          "5.4 Software Changes and Evolution",
+          "5.5 Maintenance Process and Reengineering"
+        ],
+        "hours": "7 Hr"
+      },
+      {
+        "unit": "Chapter 6",
+        "title": "Software Quality Assurance Process",
+        "sub_topics": [
+          "6.1 Software Quality Concepts, Software Reliability",
+          "6.2 Software Quality Management and Planning",
+          "6.3 Software Standards and their Compliance - ISO, CMMI",
+          "6.4 Capability Assessment and Process Improvement",
+          "6.5 Process and Product Standards",
+          "6.6 Reviews and Inspections"
+        ],
+        "hours": "4 Hr"
+      },
+      {
+        "unit": "Chapter 7",
+        "title": "Software Configuration Management",
+        "sub_topics": [
+          "7.1 Software Configuration Items",
+          "7.2 Configuration Management Activities - Change Management, Version Management, System Building, System Release"
+        ],
+        "hours": "4 Hr"
+      },
+      {
+        "unit": "Chapter 8",
+        "title": "Advanced Topics and Trends",
+        "sub_topics": [
+          "8.1 Software Reuse - Application Frameworks, Software Product Lines, COTS Product Reuse",
+          "8.2 Cloud Based Software Engineering",
+          "8.3 Artificial Intelligence in Software Engineering"
+        ],
+        "hours": "Not specified"
+      }
+    ]
+  },
+  "Probability and Statistics": {
+    "credits": "Not specified",
+    "units": [
+      {
+        "unit": "Unit I",
+        "title": "Introduction and Descriptive Statistics",
+        "sub_topics": [
+          "1.1 Introduction of statistics and its applications in engineering",
+          "1.2 Collection and presentation of data (Diagrammatic as well as graphical presentation)",
+          "1.3 Measure of central tendency, location and Measures of variability"
+        ],
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit II",
+        "title": "Probability",
+        "sub_topics": [
+          "2.1 Basic probability, additive law, multiplicative law and Bayes' theorem",
+          "2.2 Random variables (Discrete and Continuous) and probability distribution function",
+          "2.3 Mathematical expectation of random variables"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit III",
+        "title": "Discrete Probability Distributions",
+        "sub_topics": [
+          "3.1 Binomial distribution",
+          "3.2 Poisson distribution",
+          "3.3 Negative Binomial distribution",
+          "3.4 Hyper geometric distribution"
+        ],
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit IV",
+        "title": "Continuous Probability Distributions",
+        "sub_topics": [
+          "4.1 Rectangular or uniform distribution",
+          "4.2 Normal distribution",
+          "4.3 Gamma and Beta distributions",
+          "4.4 Exponential distribution"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit V",
+        "title": "Bivariate Random Variables and Joint Probability Distribution",
+        "sub_topics": [
+          "5.1 Joint probability mass function, marginal probability mass function",
+          "5.2 Joint probability density function, marginal probability density function"
+        ],
+        "hours": "2 hrs"
+      },
+      {
+        "unit": "Unit VI",
+        "title": "Sampling Distribution and Estimation",
+        "sub_topics": [
+          "6.1 Review of terms used in sampling",
+          "6.2 Probability and non-probability sampling",
+          "6.3 Sampling distribution of mean and standard error",
+          "6.4 Central limit theorem",
+          "6.5 Concept of point and interval estimation",
+          "6.6 Sample size determination",
+          "6.7 Confidence interval for single mean and difference of two population means and population proportion"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit VII",
+        "title": "Hypothesis Testing",
+        "sub_topics": [
+          "7.1 Basic concept in hypothesis testing",
+          "7.2 One sample test for mean and proportion",
+          "7.3 Two sample tests for mean and proportions",
+          "7.4 Paired t - test",
+          "7.5 Chi-square test of independence"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit VIII",
+        "title": "Correlation and Regression",
+        "sub_topics": [
+          "8.1 Simple correlation and its properties",
+          "8.2 Simple linear regression"
+        ],
+        "hours": "3 hrs"
+      }
+    ]
+  },
+    "Engineering Management": {
+    "credits": "Not specified",
+    "units": [
+      {
+        "unit": "Unit I",
+        "title": "Introduction",
+        "sub_topics": [
+          "1.1 Management - 1.1.1 Functions of management, 1.1.2 Level and scope of management, 1.1.3 Principles of management",
+          "1.2 Organization - 1.2.1 Characteristics of organization, 1.2.2 Types of organization: formal and informal organizations, virtual organization",
+          "1.3 Engineering Management - 1.3.1 Importance of management in technology-driven environments, 1.3.2 Engineering functions in organizations: product development, operations, IT systems, quality assurance and others, 1.3.3 Roles and responsibilities of an engineering manager"
+        ],
+        "hours": "6 Hrs"
+      },
+      {
+        "unit": "Unit II",
+        "title": "Planning and Organizing",
+        "sub_topics": [
+          "2.1 Planning - 2.1.1 Levels of planning: strategic, tactical and operational, 2.1.2 Steps in planning, 2.1.3 Tools for planning, 2.1.4 Importance of planning",
+          "2.2 Organizing - 2.2.1 Process of organizing, 2.2.2 Organization structure, 2.2.3 Types of organization structure: Traditional structure (line and functional), Modern structure (matrix, network, hybrid)",
+          "2.3 Emerging planning and organizing issues for ICT enterprises"
+        ],
+        "hours": "6 Hrs"
+      },
+      {
+        "unit": "Unit III",
+        "title": "Motivation and Leadership",
+        "sub_topics": [
+          "3.1 Motivation - 3.1.1 Theories of motivation: Maslow's hierarchy, Herzberg's two factor, Expectancy, Equity, 3.1.2 Techniques for motivation",
+          "3.2 Leadership - 3.2.1 Leadership styles: autocratic, democratic, servant and transformational, 3.2.2 Characteristics of learning organization in the ICT industry",
+          "3.3 Challenges and strategies for motivating and leading technical workforce"
+        ],
+        "hours": "6 Hrs"
+      },
+      {
+        "unit": "Unit IV",
+        "title": "Human Resource Management and Control",
+        "sub_topics": [
+          "4.1 Human Resource Management - 4.1.1 Functions of human resource management, 4.1.2 Job analysis, job specification, job description, 4.1.3 Recruitment and selection, 4.1.4 Human resource training (on the job and off the job), 4.1.5 Performance appraisal and methods, 4.1.6 Challenges in managing people in ICT workforce",
+          "4.2 Control - 4.2.1 Importance, 4.2.2 Process and types, 4.2.3 Techniques, 4.2.4 ICT tools for effective control of engineering projects and organizations"
+        ],
+        "hours": "8 Hrs"
+      },
+      {
+        "unit": "Unit V",
+        "title": "Emerging trends in engineering management",
+        "sub_topics": [
+          "5.1 Participative management, conflict resolution, change management, quality management, innovation management and disruption",
+          "5.2 Recent engineering management concepts for managing ICT based projects and organizations"
+        ],
+        "hours": "4 Hrs"
+      }
+    ]
+  },
+  "Embedded Systems": {
+    "credits": "Not specified",
+    "units": [
+      {
+        "unit": "Unit I",
+        "title": "Introduction to Embedded Systems",
+        "sub_topics": [
+          "1.1 Definition and Overview of Embedded Systems",
+          "1.2 Embedded Systems vs. General-Purpose Systems",
+          "1.3 Applications and Domains (Automotive, Healthcare, Industrial Control, IoT, etc.)",
+          "1.4 Key Components: Microcontrollers, Sensors, Actuators, Peripherals"
+        ],
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit II",
+        "title": "Programming for Embedded Systems",
+        "sub_topics": [
+          "2.1 Overview of AVR Architecture",
+          "2.2 Embedded C Programming for Microcontroller: Introduction to C for Embedded Systems, Data Types, Control Structures, and Pointers, Memory Management, AVR Interrupt Handling, Input and output ports interfacing on AVR, Timers and Counters in AVR, Serial Communication in AVR"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit III",
+        "title": "Real-Time Operating Systems (RTOS)",
+        "sub_topics": [
+          "3.1 Concepts of Real-Time Systems",
+          "3.2 Introduction to RTOS (e.g., FreeRTOS, VxWorks)",
+          "3.3 Task Scheduling, Context Switching, Task Synchronization",
+          "3.4 Resource Sharing, Deadlock, and Priority Inversion",
+          "3.5 Multithreading and Multi-tasking in RTOS"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit IV",
+        "title": "Embedded System Design using VHDL",
+        "sub_topics": [
+          "4.1 Introduction to VHDL",
+          "4.2 Different Modelling styles in VHDL for combinational and sequential circuits",
+          "4.3 Data types in VHDL",
+          "4.4 Sub program and Packages",
+          "4.5 VHDL realization for combinational and sequential circuits"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit V",
+        "title": "Communication Protocols",
+        "sub_topics": [
+          "5.1 Serial Communication: UART, SPI, I2C",
+          "5.2 Wireless Communication: Bluetooth, ZigBee, Wi-Fi, LoRa, GSM/GPRS",
+          "5.3 Networking: TCP/IP Basics in Embedded Systems"
+        ],
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit VI",
+        "title": "Peripherals and Interfacing",
+        "sub_topics": [
+          "6.1 Sensor Interfacing: Analog and Digital Sensors (e.g., temperature, humidity, motion)",
+          "6.2 Actuator Interfacing: Motor Control (DC, Stepper, Servo), PWM for controlling brightness, speed, etc.",
+          "6.3 Display Interfacing: LCD, and Seven Segment Displays"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit VII",
+        "title": "Internet of Things (IoT) and Embedded Systems",
+        "sub_topics": [
+          "7.1 Introduction to IoT Concepts and Embedded System's Role in IoT",
+          "7.2 IoT communication protocol: MQTT (Basic Concept)",
+          "7.3 Overview of common IoT hardware platforms: Arduino, ESP32, and Raspberry Pi (Basic Introduction)"
+        ],
+        "hours": "3 hrs"
+      }
+    ]
+  },
+  "Artificial Intelligence": {
+    "credits": "3-1-3",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction to Artificial Intelligence",
+        "sub_topics": [
+          "1.1 Intelligence - 1.1.1 Types of Intelligence, 1.1.2 Components of Intelligence",
+          "1.2 Artificial Intelligence - 1.2.1 Approaches of AI (Acting Humanly, Thinking Humanly, Thinking Rationally, Acting Rationally), 1.2.2 Foundations of AI, 1.2.3 History of AI, 1.2.4 Risk and Benefits of AI",
+          "1.3 Ethics and Societal Implications - 1.3.1 Ethical Implications of AI, 1.3.2 AI and Society: Work and Automation, Employment, Privacy and Security, 1.3.3 Governance and Regulation"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Intelligent Agents",
+        "sub_topics": [
+          "2.1 Agents and Environments",
+          "2.2 Concept of Rationality - 2.2.1 Performance Measures, 2.2.2 Rationality and Rational Agent",
+          "2.3 Task environment and its properties",
+          "2.4 Structure of Agents - 2.4.1 Agent programs, 2.4.2 Types of agent programs",
+          "2.5 Learning Agents"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Problem Solving and Search Algorithms",
+        "sub_topics": [
+          "3.1 Problem Solving - 3.1.1 Problem Solving Agents, 3.1.2 Problem solving process, 3.1.3 Production System, 3.1.4 Well-defined and ill-defined problems, 3.1.5 Problem formulation",
+          "3.2 Search Algorithms - 3.2.1 Uninformed Search (Breadth-First Search, Depth-First Search, Iterative Deepening Search), 3.2.2 Informed Search (Heuristics, Greedy Best-First Search, A* Search)",
+          "3.3 Local Search and Optimization Problems - 3.3.1 Hill-Climbing Search and its problems (Local maxima, plateaus, and ridges), 3.3.2 Simulated Annealing, 3.3.3 Genetic Algorithms, 3.3.4 Gradient Descent",
+          "3.4 Adversarial Search and Game Playing - 3.4.1 Minimax algorithm, 3.4.2 Alpha-beta pruning",
+          "3.5 Constraint Satisfaction Problems - 3.5.1 Representation of CSPs (Variables, Domains, Constraints), 3.5.2 Search Algorithms for CSPs (Backtracking search, Constraint propagation), 3.5.3 Optimization Technique: Min-Conflicts Heuristic"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Knowledge Representation and Reasoning",
+        "sub_topics": [
+          "4.1 Propositional Logic - 4.1.1 Syntax, 4.1.2 Semantics, 4.1.3 Inference in Propositional Logic, 4.1.4 Conjunctive Normal Form (CNF), 4.1.5 Resolution Theorem Proving, 4.1.6 Limitations of Propositional Logic",
+          "4.2 Predicate Logic - 4.2.1 Syntax, 4.2.2 Semantics, 4.2.3 Inference in Predicate Logic, 4.2.4 Resolution in Predicate Logic",
+          "4.3 Reasoning Under Uncertainty - 4.3.1 Probabilistic Reasoning (Bayesian Networks), 4.3.2 Probabilistic reasoning over time (Hidden Markov Models)",
+          "4.4 Other Approaches to Knowledge Representation - 4.4.1 Semantic Nets and Frames, 4.4.2 Rule-based Representation, 4.4.3 Ontological-Based Representation"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Machine Learning",
+        "sub_topics": [
+          "5.1 Definition and Evolution of Machine Learning",
+          "5.2 Learning by Analogy",
+          "5.3 Explanation-based learning",
+          "5.4 Supervised Learning Algorithms - 5.4.1 Classification and Regression, 5.4.2 Linear regression, 5.4.3 K-Nearest Neighbour",
+          "5.5 Unsupervised Learning Algorithms - 5.5.1 Clustering, 5.5.2 K-means Clustering",
+          "5.6 Artificial Neural Network - 5.6.1 Biological Inspiration, 5.6.2 Basic Components of ANN, 5.6.3 Training Neural Networks (Forward Propagation, Loss Function, Backward Propagation, Learning Rate), 5.6.4 Single-Layer Perceptron, 5.6.5 Multi-Layer Perceptron"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Fuzzy Logic",
+        "sub_topics": [
+          "6.1 Classical vs Fuzzy Logic",
+          "6.2 Fuzzy Sets and Membership Functions",
+          "6.3 Fuzzy Operations",
+          "6.4 Fuzzy Rule-Based Systems",
+          "6.5 Fuzzification and Defuzzification",
+          "6.6 Fuzzy Inference System: Mamdani"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "Expert System",
+        "sub_topics": [
+          "7.1 Definition and History of Expert System",
+          "7.2 Architecture of Expert Systems",
+          "7.3 Knowledge Representation in expert system - 7.3.1 Logic based representation, 7.3.2 Rule-based system, 7.3.3 Semantic networks, 7.3.4 Ontology-based Systems, 7.3.5 Frame-based Systems",
+          "7.4 Inference Mechanisms - 7.4.1 Forward Chaining, 7.4.2 Backward Chaining",
+          "7.5 Knowledge Acquisition and Learning",
+          "7.6 Applications of Expert Systems"
+        ],
+        "hours": "5 hrs"
+      }
+    ]
+  },
+  "Digital Signal Analysis and Processing": {
+    "credits": "3.1.2",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Discrete Signals and systems",
+        "sub_topics": [
+          "1.1 Discrete time signal, basic signal",
+          "1.2 Energy signal, power signal",
+          "1.3 Periodicity of discrete time signal",
+          "1.4 Transformation of independent variable",
+          "1.5 Discrete time Fourier Series and properties",
+          "1.6 Discrete time Fourier Transform and properties",
+          "1.7 Discrete time system properties",
+          "1.8 Linear Time Invariant (LTI) system, convolution sum, properties of LTI system",
+          "1.9 Frequency response of LTI system",
+          "1.10 Sampling of continuous time signal, spectral properties of sampled signal"
+        ],
+        "hours": "8 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Z-transform",
+        "sub_topics": [
+          "2.1 Definition, convergence of Z-transform and region of convergence",
+          "2.2 Properties of Z-transform (linearity, time shift, multiplication by exponential sequence, differentiation, time reversal, convolution, multiplication)",
+          "2.3 Inverse z-transform by long division and partial fraction expansion"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Analysis of LTI system in frequency domain",
+        "sub_topics": [
+          "3.1 Frequency response of LTI system, response to complex exponential",
+          "3.2 Linear constant co-efficient difference equation and corresponding system function",
+          "3.3 Relationship of frequency response to pole-zero of system",
+          "3.4 Linear phase of LTI system and its relationship to causality"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Discrete filter structures",
+        "sub_topics": [
+          "4.1 FIR filter, Structures for FIR filter (direct form, cascade, lattice)",
+          "4.2 IIR filter, Structures for IIR filter (direct form I, direct form II, cascade, lattice, lattice ladder)",
+          "4.3 Quantization effect (truncation, rounding), limit cycles and scaling"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "IIR Filter Design",
+        "sub_topics": [
+          "5.1 Filter design by impulse invariance method",
+          "5.2 Filter design using bilinear transformation method",
+          "5.3 Design of digital low pass Butterworth filter",
+          "5.4 Properties of Chebyshev filter, properties of elliptic filter, properties of Bessel filter, spectral transformation"
+        ],
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "FIR Filter Design",
+        "sub_topics": [
+          "6.1 Filter design by window method, commonly used windows (rectangular window, Hanning window, hamming window)",
+          "6.2 Filter design by Kaiser window",
+          "6.3 Filter design by frequency sampling method",
+          "6.4 Filter design using optimum approximation, Remez exchange algorithm"
+        ],
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "Discrete Fourier Transform",
+        "sub_topics": [
+          "7.1 Discrete Fourier transform (DFT) representation, properties of DFT (linearity, time shift, frequency shift, conjugation and conjugate symmetry, duality, convolution, multiplication), circular convolution",
+          "7.2 Fast Fourier Transform (FFT) algorithm (decimation in time algorithm, decimation in frequency algorithm)",
+          "7.3 Computational complexity of FFT algorithm"
+        ],
+        "hours": "6 hrs"
+      }
+    ]
+  },
     "Computer Networks (3-1-2)": {
       "credits": "3-1-2",
       "units": [
