@@ -17,8 +17,8 @@ const Dashboard = () => {
         return res.json();
       })
       .then(data => {
-        if (!data.college || !data.semester) {
-          navigate('/onboard');
+        if (!data.profile_complete) {
+          navigate('/profile-setup');
         } else {
           setUser(data);
         }
@@ -97,10 +97,10 @@ const Dashboard = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <div className="flex items-center gap-3 relative z-10">
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center text-blue-700 font-bold border border-white shadow-sm">
-                {user.username?.charAt(0).toUpperCase() || 'U'}
+                {(user.display_name || user.name || 'U').charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-800 truncate">{user.username}</p>
+                <p className="text-sm font-semibold text-slate-800 truncate">{user.display_name || user.name}</p>
                 <p className="text-xs text-slate-500 truncate">{user.college}</p>
               </div>
             </div>
@@ -129,7 +129,7 @@ const Dashboard = () => {
         >
           <div>
             <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-              {location.pathname === '/dashboard' ? `Welcome ${user?.username} 👋` : 
+              {location.pathname === '/dashboard' ? `Welcome ${ user?.name} 👋` : 
                location.pathname.includes('/upload') ? 'Study Materials' :
                location.pathname.includes('/chat') ? 'AI Assistant' :
                location.pathname.includes('/quizzes') ? 'Practice Area' : 'Dashboard'}

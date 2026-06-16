@@ -16,6 +16,19 @@ def _ensure_student_upload_schema():
         if 'parsed_text' not in columns:
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN parsed_text TEXT'))
 
+
+def _ensure_user_profile_schema():
+    inspector = inspect(db.engine)
+    if 'users' not in inspector.get_table_names():
+        return
+
+    columns = {column['name'] for column in inspector.get_columns('users')}
+    with db.engine.begin() as connection:
+        if 'first_name' not in columns:
+            connection.execute(text('ALTER TABLE users ADD COLUMN first_name VARCHAR(120)'))
+        if 'last_name' not in columns:
+            connection.execute(text('ALTER TABLE users ADD COLUMN last_name VARCHAR(120)'))
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -60,6 +73,7 @@ def create_app():
         # We will set up pgvector later during DB migrations, 
         # but for initial start, this avoids missing table errors.
         db.create_all()
+        _ensure_user_profile_schema()
         _ensure_student_upload_schema()
 
     return app

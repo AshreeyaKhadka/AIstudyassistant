@@ -2,18 +2,20 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useClerk } from '@clerk/react';
 import { motion } from 'framer-motion';
-import { 
-  Library, 
-  LogOut, 
-  MessageSquare, 
-  LayoutDashboard, 
-  BrainCircuit, 
-  FileUp, 
-  BookOpen, 
-  Target, 
-  LineChart, 
+import {
+  Library,
+  LogOut,
+  MessageSquare,
+  LayoutDashboard,
+  BrainCircuit,
+  FileUp,
+  BookOpen,
+  Book,
+  Target,
+  LineChart,
   CalendarCheck,
-  Settings
+  Settings,
+  User
 } from 'lucide-react';
 
 const Sidebar = ({ user }) => {
@@ -27,7 +29,7 @@ const Sidebar = ({ user }) => {
   return (
     <aside className="w-[280px] bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 relative z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
       {/* Logo Area */}
-      <div 
+      <div
         className="h-20 flex items-center gap-3 px-6 cursor-pointer mb-2 mt-2"
         onClick={(e) => {
           if (e.detail === 3 && user?.role === 'admin') {
@@ -46,11 +48,11 @@ const Sidebar = ({ user }) => {
 
       {/* Navigation */}
       <nav className="flex-1 px-4 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
-        
+
         <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2 px-3">Overview</div>
         <NavItem to="/dashboard" icon={<LayoutDashboard size={20} />} label="Dashboard" end />
         <NavItem to="/dashboard/progress" icon={<LineChart size={20} />} label="Progress Tracker" />
-        
+
         <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Personalized Learning</div>
         <NavItem to="/dashboard/chat" icon={<MessageSquare size={20} />} label="AI Chat Assistant" />
         <NavItem to="/dashboard/notes" icon={<BookOpen size={20} />} label="My Notes" />
@@ -59,10 +61,12 @@ const Sidebar = ({ user }) => {
 
         <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Practice & Materials</div>
         <NavItem to="/dashboard/upload" icon={<FileUp size={20} />} label="Uploaded Materials" />
+        <NavItem to="/dashboard/syllabus" icon={<Book size={20} />} label="Official Syllabus" />
         <NavItem to="/dashboard/exam-prep" icon={<Target size={20} />} label="Exam Preparation" />
         <NavItem to="/dashboard/mcq" icon={<Library size={20} />} label="MCQ Practice" />
-        
+
         <div className="mt-auto pt-4"></div>
+        <NavItem to="/dashboard/profile" icon={<User size={20} />} label="Profile" />
         <NavItem to="/dashboard/settings" icon={<Settings size={20} />} label="Settings" />
       </nav>
 
@@ -80,7 +84,7 @@ const Sidebar = ({ user }) => {
             </div>
           </div>
         </div>
-        <button 
+        <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium text-sm group"
         >
@@ -94,20 +98,20 @@ const Sidebar = ({ user }) => {
 
 const NavItem = ({ to, icon, label, end = false }) => {
   return (
-    <NavLink 
-      to={to} 
+    <NavLink
+      to={to}
       end={end}
       className={({ isActive }) => `
         w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative group
-        ${isActive 
-          ? 'text-blue-700 bg-blue-50/80 shadow-sm' 
+        ${isActive
+          ? 'text-blue-700 bg-blue-50/80 shadow-sm'
           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}
       `}
     >
       {({ isActive }) => (
         <>
           {isActive && (
-            <motion.div 
+            <motion.div
               layoutId="activeNavIndicator"
               className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-600 rounded-r-full"
             />

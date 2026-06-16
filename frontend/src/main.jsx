@@ -8,8 +8,8 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ClerkProvider
       afterSignOutUrl="/"
-      signInFallbackRedirectUrl="/dashboard"
-      signUpFallbackRedirectUrl="/dashboard"
+      signInFallbackRedirectUrl="/profile-setup"
+      signUpFallbackRedirectUrl="/profile-setup"
     >
       <App />
     </ClerkProvider>

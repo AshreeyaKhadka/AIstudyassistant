@@ -94,8 +94,8 @@ const SignInPage = () => {
                   routing="path"
                   path="/signin"
                   signUpUrl="/signup"
-                  forceRedirectUrl="/dashboard"
-                  fallbackRedirectUrl="/dashboard"
+                  forceRedirectUrl="/profile-setup"
+                  fallbackRedirectUrl="/profile-setup"
                 />
               </div>
 

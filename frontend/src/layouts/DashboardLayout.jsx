@@ -24,15 +24,67 @@ const DashboardLayout = () => {
 
     if (!clerkUser) return;
 
-    const userData = {
+    const clerkFirstName = clerkUser.firstName || '';
+    const clerkLastName = clerkUser.lastName || '';
+    const clerkEmail = clerkUser.primaryEmailAddress?.emailAddress || '';
+
+    const fallbackUser = {
       name: clerkUser.fullName,
-      username: clerkUser.firstName || clerkUser.username || 'User',
-      email: clerkUser.primaryEmailAddress?.emailAddress,
+      username: clerkFirstName || 'User',
+      email: clerkEmail,
       avatar_url: clerkUser.imageUrl,
       department: 'Computer Engineering',
     };
-    setUser(userData);
-    setLoading(false);
+
+    const loadProfile = async () => {
+      try {
+        let res = await fetch('/api/auth/me', { credentials: 'include' });
+
+        if (!res.ok) {
+          res = await fetch('/api/auth/onboard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              firstName: clerkFirstName,
+              lastName: clerkLastName,
+              email: clerkEmail,
+              externalId: clerkUser.id,
+              avatarUrl: clerkUser.imageUrl,
+              college: 'Not specified',
+              semester: 1,
+            }),
+          });
+          if (res.ok) res = await fetch('/api/auth/me', { credentials: 'include' });
+        }
+
+        if (res.ok) {
+          const profile = await res.json();
+          const dbFirst = profile.first_name || '';
+          const dbLast = profile.last_name || '';
+          const dbFull = [dbFirst, dbLast].filter(Boolean).join(' ') || profile.name || '';
+          setUser({
+            name: dbFull || fallbackUser.name,
+            username: dbFirst || fallbackUser.username,
+            email: profile.email || clerkEmail,
+            avatar_url: profile.avatar_url || clerkUser.imageUrl,
+            department: 'Computer Engineering',
+            college: profile.college || '',
+            semester: profile.semester || '',
+            first_name: dbFirst,
+            last_name: dbLast,
+          });
+        } else {
+          setUser(fallbackUser);
+        }
+      } catch {
+        setUser(fallbackUser);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
   }, [isLoaded, isUserLoaded, isSignedIn, clerkUser, navigate]);
 
   useEffect(() => {
