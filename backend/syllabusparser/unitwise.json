@@ -2352,156 +2352,312 @@
       }
     ]
   },
-    "Engineering Management (2-1-0)": {
-      "credits": "2-1-0",
-      "units": [
-        {
-          "unit": "Unit I",
-          "title": "Introduction",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit II",
-          "title": "Planning and Organizing",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit III",
-          "title": "Motivation and Leadership",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit IV",
-          "title": "Human Resource Management and Control",
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Unit V",
-          "title": "Emerging Trends in Engineering Management",
-          "hours": "4 hrs"
-        }
-      ]
-    },
-    "Embedded System (2-1-3)": {
-      "credits": "2-1-3",
-      "units": [
-        {
-          "unit": "Unit I",
-          "title": "Introduction to Embedded Systems",
-          "hours": "3 hrs"
-        },
-        {
-          "unit": "Unit II",
-          "title": "Programming for Embedded Systems",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit III",
-          "title": "Real-Time Operating Systems (RTOS)",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit IV",
-          "title": "Embedded System Design using VHDL",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit V",
-          "title": "Communication Protocols",
-          "hours": "3 hrs"
-        },
-        {
-          "unit": "Unit VI",
-          "title": "Peripherals and Interfacing",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit VII",
-          "title": "Internet of Things (IoT) and Embedded Systems",
-          "hours": "3 hrs"
-        }
-      ]
-    },
-    "Artificial Intelligence (3-1-3)": {
-      "credits": "3-1-3",
-      "units": [
-        {
-          "unit": "Chapter 1",
-          "title": "Introduction to Artificial Intelligence",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Chapter 2",
-          "title": "Intelligent Agents",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Chapter 3",
-          "title": "Problem Solving and Search Algorithms",
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Chapter 4",
-          "title": "Knowledge Representation and Reasoning",
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Chapter 5",
-          "title": "Machine Learning",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Chapter 6",
-          "title": "Fuzzy Logic",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Chapter 7",
-          "title": "Expert System",
-          "hours": "5 hrs"
-        }
-      ]
-    },
-    "Digital Signal Analysis and Processing (3-1-2)": {
-      "credits": "3-1-2",
-      "units": [
-        {
-          "unit": "Chapter 1",
-          "title": "Discrete Signals and Systems",
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Chapter 2",
-          "title": "Z-transform",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Chapter 3",
-          "title": "Analysis of LTI System in Frequency Domain",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Chapter 4",
-          "title": "Discrete Filter Structures",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Chapter 5",
-          "title": "IIR Filter Design",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Chapter 6",
-          "title": "FIR Filter Design",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Chapter 7",
-          "title": "Discrete Fourier Transform",
-          "hours": "6 hrs"
-        }
-      ]
-    },
+    "Engineering Management": {
+    "credits": "Not specified",
+    "units": [
+      {
+        "unit": "Unit I",
+        "title": "Introduction",
+        "sub_topics": [
+          "1.1 Management - 1.1.1 Functions of management, 1.1.2 Level and scope of management, 1.1.3 Principles of management",
+          "1.2 Organization - 1.2.1 Characteristics of organization, 1.2.2 Types of organization: formal and informal organizations, virtual organization",
+          "1.3 Engineering Management - 1.3.1 Importance of management in technology-driven environments, 1.3.2 Engineering functions in organizations: product development, operations, IT systems, quality assurance and others, 1.3.3 Roles and responsibilities of an engineering manager"
+        ],
+        "hours": "6 Hrs"
+      },
+      {
+        "unit": "Unit II",
+        "title": "Planning and Organizing",
+        "sub_topics": [
+          "2.1 Planning - 2.1.1 Levels of planning: strategic, tactical and operational, 2.1.2 Steps in planning, 2.1.3 Tools for planning, 2.1.4 Importance of planning",
+          "2.2 Organizing - 2.2.1 Process of organizing, 2.2.2 Organization structure, 2.2.3 Types of organization structure: Traditional structure (line and functional), Modern structure (matrix, network, hybrid)",
+          "2.3 Emerging planning and organizing issues for ICT enterprises"
+        ],
+        "hours": "6 Hrs"
+      },
+      {
+        "unit": "Unit III",
+        "title": "Motivation and Leadership",
+        "sub_topics": [
+          "3.1 Motivation - 3.1.1 Theories of motivation: Maslow's hierarchy, Herzberg's two factor, Expectancy, Equity, 3.1.2 Techniques for motivation",
+          "3.2 Leadership - 3.2.1 Leadership styles: autocratic, democratic, servant and transformational, 3.2.2 Characteristics of learning organization in the ICT industry",
+          "3.3 Challenges and strategies for motivating and leading technical workforce"
+        ],
+        "hours": "6 Hrs"
+      },
+      {
+        "unit": "Unit IV",
+        "title": "Human Resource Management and Control",
+        "sub_topics": [
+          "4.1 Human Resource Management - 4.1.1 Functions of human resource management, 4.1.2 Job analysis, job specification, job description, 4.1.3 Recruitment and selection, 4.1.4 Human resource training (on the job and off the job), 4.1.5 Performance appraisal and methods, 4.1.6 Challenges in managing people in ICT workforce",
+          "4.2 Control - 4.2.1 Importance, 4.2.2 Process and types, 4.2.3 Techniques, 4.2.4 ICT tools for effective control of engineering projects and organizations"
+        ],
+        "hours": "8 Hrs"
+      },
+      {
+        "unit": "Unit V",
+        "title": "Emerging trends in engineering management",
+        "sub_topics": [
+          "5.1 Participative management, conflict resolution, change management, quality management, innovation management and disruption",
+          "5.2 Recent engineering management concepts for managing ICT based projects and organizations"
+        ],
+        "hours": "4 Hrs"
+      }
+    ]
+  },
+  "Embedded Systems": {
+    "credits": "Not specified",
+    "units": [
+      {
+        "unit": "Unit I",
+        "title": "Introduction to Embedded Systems",
+        "sub_topics": [
+          "1.1 Definition and Overview of Embedded Systems",
+          "1.2 Embedded Systems vs. General-Purpose Systems",
+          "1.3 Applications and Domains (Automotive, Healthcare, Industrial Control, IoT, etc.)",
+          "1.4 Key Components: Microcontrollers, Sensors, Actuators, Peripherals"
+        ],
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit II",
+        "title": "Programming for Embedded Systems",
+        "sub_topics": [
+          "2.1 Overview of AVR Architecture",
+          "2.2 Embedded C Programming for Microcontroller: Introduction to C for Embedded Systems, Data Types, Control Structures, and Pointers, Memory Management, AVR Interrupt Handling, Input and output ports interfacing on AVR, Timers and Counters in AVR, Serial Communication in AVR"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit III",
+        "title": "Real-Time Operating Systems (RTOS)",
+        "sub_topics": [
+          "3.1 Concepts of Real-Time Systems",
+          "3.2 Introduction to RTOS (e.g., FreeRTOS, VxWorks)",
+          "3.3 Task Scheduling, Context Switching, Task Synchronization",
+          "3.4 Resource Sharing, Deadlock, and Priority Inversion",
+          "3.5 Multithreading and Multi-tasking in RTOS"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit IV",
+        "title": "Embedded System Design using VHDL",
+        "sub_topics": [
+          "4.1 Introduction to VHDL",
+          "4.2 Different Modelling styles in VHDL for combinational and sequential circuits",
+          "4.3 Data types in VHDL",
+          "4.4 Sub program and Packages",
+          "4.5 VHDL realization for combinational and sequential circuits"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit V",
+        "title": "Communication Protocols",
+        "sub_topics": [
+          "5.1 Serial Communication: UART, SPI, I2C",
+          "5.2 Wireless Communication: Bluetooth, ZigBee, Wi-Fi, LoRa, GSM/GPRS",
+          "5.3 Networking: TCP/IP Basics in Embedded Systems"
+        ],
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit VI",
+        "title": "Peripherals and Interfacing",
+        "sub_topics": [
+          "6.1 Sensor Interfacing: Analog and Digital Sensors (e.g., temperature, humidity, motion)",
+          "6.2 Actuator Interfacing: Motor Control (DC, Stepper, Servo), PWM for controlling brightness, speed, etc.",
+          "6.3 Display Interfacing: LCD, and Seven Segment Displays"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit VII",
+        "title": "Internet of Things (IoT) and Embedded Systems",
+        "sub_topics": [
+          "7.1 Introduction to IoT Concepts and Embedded System's Role in IoT",
+          "7.2 IoT communication protocol: MQTT (Basic Concept)",
+          "7.3 Overview of common IoT hardware platforms: Arduino, ESP32, and Raspberry Pi (Basic Introduction)"
+        ],
+        "hours": "3 hrs"
+      }
+    ]
+  },
+  "Artificial Intelligence": {
+    "credits": "3-1-3",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction to Artificial Intelligence",
+        "sub_topics": [
+          "1.1 Intelligence - 1.1.1 Types of Intelligence, 1.1.2 Components of Intelligence",
+          "1.2 Artificial Intelligence - 1.2.1 Approaches of AI (Acting Humanly, Thinking Humanly, Thinking Rationally, Acting Rationally), 1.2.2 Foundations of AI, 1.2.3 History of AI, 1.2.4 Risk and Benefits of AI",
+          "1.3 Ethics and Societal Implications - 1.3.1 Ethical Implications of AI, 1.3.2 AI and Society: Work and Automation, Employment, Privacy and Security, 1.3.3 Governance and Regulation"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Intelligent Agents",
+        "sub_topics": [
+          "2.1 Agents and Environments",
+          "2.2 Concept of Rationality - 2.2.1 Performance Measures, 2.2.2 Rationality and Rational Agent",
+          "2.3 Task environment and its properties",
+          "2.4 Structure of Agents - 2.4.1 Agent programs, 2.4.2 Types of agent programs",
+          "2.5 Learning Agents"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Problem Solving and Search Algorithms",
+        "sub_topics": [
+          "3.1 Problem Solving - 3.1.1 Problem Solving Agents, 3.1.2 Problem solving process, 3.1.3 Production System, 3.1.4 Well-defined and ill-defined problems, 3.1.5 Problem formulation",
+          "3.2 Search Algorithms - 3.2.1 Uninformed Search (Breadth-First Search, Depth-First Search, Iterative Deepening Search), 3.2.2 Informed Search (Heuristics, Greedy Best-First Search, A* Search)",
+          "3.3 Local Search and Optimization Problems - 3.3.1 Hill-Climbing Search and its problems (Local maxima, plateaus, and ridges), 3.3.2 Simulated Annealing, 3.3.3 Genetic Algorithms, 3.3.4 Gradient Descent",
+          "3.4 Adversarial Search and Game Playing - 3.4.1 Minimax algorithm, 3.4.2 Alpha-beta pruning",
+          "3.5 Constraint Satisfaction Problems - 3.5.1 Representation of CSPs (Variables, Domains, Constraints), 3.5.2 Search Algorithms for CSPs (Backtracking search, Constraint propagation), 3.5.3 Optimization Technique: Min-Conflicts Heuristic"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Knowledge Representation and Reasoning",
+        "sub_topics": [
+          "4.1 Propositional Logic - 4.1.1 Syntax, 4.1.2 Semantics, 4.1.3 Inference in Propositional Logic, 4.1.4 Conjunctive Normal Form (CNF), 4.1.5 Resolution Theorem Proving, 4.1.6 Limitations of Propositional Logic",
+          "4.2 Predicate Logic - 4.2.1 Syntax, 4.2.2 Semantics, 4.2.3 Inference in Predicate Logic, 4.2.4 Resolution in Predicate Logic",
+          "4.3 Reasoning Under Uncertainty - 4.3.1 Probabilistic Reasoning (Bayesian Networks), 4.3.2 Probabilistic reasoning over time (Hidden Markov Models)",
+          "4.4 Other Approaches to Knowledge Representation - 4.4.1 Semantic Nets and Frames, 4.4.2 Rule-based Representation, 4.4.3 Ontological-Based Representation"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Machine Learning",
+        "sub_topics": [
+          "5.1 Definition and Evolution of Machine Learning",
+          "5.2 Learning by Analogy",
+          "5.3 Explanation-based learning",
+          "5.4 Supervised Learning Algorithms - 5.4.1 Classification and Regression, 5.4.2 Linear regression, 5.4.3 K-Nearest Neighbour",
+          "5.5 Unsupervised Learning Algorithms - 5.5.1 Clustering, 5.5.2 K-means Clustering",
+          "5.6 Artificial Neural Network - 5.6.1 Biological Inspiration, 5.6.2 Basic Components of ANN, 5.6.3 Training Neural Networks (Forward Propagation, Loss Function, Backward Propagation, Learning Rate), 5.6.4 Single-Layer Perceptron, 5.6.5 Multi-Layer Perceptron"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Fuzzy Logic",
+        "sub_topics": [
+          "6.1 Classical vs Fuzzy Logic",
+          "6.2 Fuzzy Sets and Membership Functions",
+          "6.3 Fuzzy Operations",
+          "6.4 Fuzzy Rule-Based Systems",
+          "6.5 Fuzzification and Defuzzification",
+          "6.6 Fuzzy Inference System: Mamdani"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "Expert System",
+        "sub_topics": [
+          "7.1 Definition and History of Expert System",
+          "7.2 Architecture of Expert Systems",
+          "7.3 Knowledge Representation in expert system - 7.3.1 Logic based representation, 7.3.2 Rule-based system, 7.3.3 Semantic networks, 7.3.4 Ontology-based Systems, 7.3.5 Frame-based Systems",
+          "7.4 Inference Mechanisms - 7.4.1 Forward Chaining, 7.4.2 Backward Chaining",
+          "7.5 Knowledge Acquisition and Learning",
+          "7.6 Applications of Expert Systems"
+        ],
+        "hours": "5 hrs"
+      }
+    ]
+  },
+  "Digital Signal Analysis and Processing": {
+    "credits": "3.1.2",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Discrete Signals and systems",
+        "sub_topics": [
+          "1.1 Discrete time signal, basic signal",
+          "1.2 Energy signal, power signal",
+          "1.3 Periodicity of discrete time signal",
+          "1.4 Transformation of independent variable",
+          "1.5 Discrete time Fourier Series and properties",
+          "1.6 Discrete time Fourier Transform and properties",
+          "1.7 Discrete time system properties",
+          "1.8 Linear Time Invariant (LTI) system, convolution sum, properties of LTI system",
+          "1.9 Frequency response of LTI system",
+          "1.10 Sampling of continuous time signal, spectral properties of sampled signal"
+        ],
+        "hours": "8 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Z-transform",
+        "sub_topics": [
+          "2.1 Definition, convergence of Z-transform and region of convergence",
+          "2.2 Properties of Z-transform (linearity, time shift, multiplication by exponential sequence, differentiation, time reversal, convolution, multiplication)",
+          "2.3 Inverse z-transform by long division and partial fraction expansion"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Analysis of LTI system in frequency domain",
+        "sub_topics": [
+          "3.1 Frequency response of LTI system, response to complex exponential",
+          "3.2 Linear constant co-efficient difference equation and corresponding system function",
+          "3.3 Relationship of frequency response to pole-zero of system",
+          "3.4 Linear phase of LTI system and its relationship to causality"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Discrete filter structures",
+        "sub_topics": [
+          "4.1 FIR filter, Structures for FIR filter (direct form, cascade, lattice)",
+          "4.2 IIR filter, Structures for IIR filter (direct form I, direct form II, cascade, lattice, lattice ladder)",
+          "4.3 Quantization effect (truncation, rounding), limit cycles and scaling"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "IIR Filter Design",
+        "sub_topics": [
+          "5.1 Filter design by impulse invariance method",
+          "5.2 Filter design using bilinear transformation method",
+          "5.3 Design of digital low pass Butterworth filter",
+          "5.4 Properties of Chebyshev filter, properties of elliptic filter, properties of Bessel filter, spectral transformation"
+        ],
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "FIR Filter Design",
+        "sub_topics": [
+          "6.1 Filter design by window method, commonly used windows (rectangular window, Hanning window, hamming window)",
+          "6.2 Filter design by Kaiser window",
+          "6.3 Filter design by frequency sampling method",
+          "6.4 Filter design using optimum approximation, Remez exchange algorithm"
+        ],
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "Discrete Fourier Transform",
+        "sub_topics": [
+          "7.1 Discrete Fourier transform (DFT) representation, properties of DFT (linearity, time shift, frequency shift, conjugation and conjugate symmetry, duality, convolution, multiplication), circular convolution",
+          "7.2 Fast Fourier Transform (FFT) algorithm (decimation in time algorithm, decimation in frequency algorithm)",
+          "7.3 Computational complexity of FFT algorithm"
+        ],
+        "hours": "6 hrs"
+      }
+    ]
+  },
     "Computer Networks (3-1-2)": {
       "credits": "3-1-2",
       "units": [
