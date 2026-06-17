@@ -16,7 +16,12 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 @upload_bp.route('/', methods=['POST'])
 @login_required
 def upload_pdf(user):
-    # Check limit
+    # Check file size (10MB limit)
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    if request.content_length and request.content_length > MAX_FILE_SIZE:
+        return jsonify({"error": "File too large (Max 10MB allowed)."}), 413
+
+    # Check upload count limit
     upload_count = StudentUpload.query.filter_by(user_id=user.id).count()
     if upload_count >= 10:
         return jsonify({"error": "Upload limit of 10 PDFs reached."}), 403

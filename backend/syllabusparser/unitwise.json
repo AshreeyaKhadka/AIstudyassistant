@@ -1695,7 +1695,8 @@
     ]
   },
   "Research Fundamentals": {
-    "credits": "Not specified",
+    "credits": "2",
+    "Semester": "4",
     "units": [
       {
         "unit": "Unit 1",
@@ -1762,7 +1763,8 @@
     ]
   },
   "Theory of Computation": {
-    "credits": "Not specified",
+    "credits": "3",
+    "Semester": "4",
     "units": [
       {
         "unit": "Unit 1",
@@ -1915,7 +1917,8 @@
     ]
   },
   "Computer Architecture": {
-    "credits": "Not specified",
+    "credits": "3",
+    "Semester": "4",
     "units": [
       {
         "unit": "Unit 1",
@@ -2054,7 +2057,8 @@
     ]
   },
   "Applied Mathematics": {
-    "credits": "Not specified",
+    "credits": "3",
+    "Semester": "4",
     "units": [
       {
         "unit": "Unit I",
@@ -2100,7 +2104,8 @@
     ]
   },
   "Advanced Programming with JAVA": {
-    "credits": "Not specified",
+    "credits": "3",
+    "Semester": "4",
     "units": [
       {
         "unit": "Unit 1",
@@ -2211,7 +2216,8 @@
     ]
   },
   "Software Engineering": {
-    "credits": "Not specified",
+    "credits": "3",
+    "Semester": "5",
     "units": [
       {
         "unit": "Chapter 1",
@@ -2314,7 +2320,8 @@
     ]
   },
   "Probability and Statistics": {
-    "credits": "Not specified",
+    "credits": "2",
+    "Semester": "4",  
     "units": [
       {
         "unit": "Unit I",
@@ -2405,7 +2412,8 @@
     ]
   },
   "Engineering Management": {
-    "credits": "Not specified",
+    "credits": "2",
+    "Semester": "4",
     "units": [
       {
         "unit": "Unit I",
@@ -2458,7 +2466,8 @@
     ]
   },
   "Embedded Systems": {
-    "credits": "Not specified",
+    "credits": "2",
+    "Semester": "4",
     "units": [
       {
         "unit": "Unit I",
@@ -2538,6 +2547,7 @@
   },
   "Artificial Intelligence": {
     "credits": "3-1-3",
+    "Semester": "4",
     "units": [
       {
         "unit": "Unit 1",
@@ -2626,7 +2636,8 @@
     ]
   },
   "Digital Signal Analysis and Processing": {
-    "credits": "3.1.2",
+    "credits": "3-1-2",
+    "Semester": "4",
     "units": [
       {
         "unit": "Unit 1",
@@ -2710,198 +2721,675 @@
       }
     ]
   },
-  "Computer Networks (3-1-2)": {
+  "Computer Networks": {
     "credits": "3-1-2",
+    "Semester": "6",
     "units": [
       {
         "unit": "Unit I",
         "title": "Introduction to Computer Network",
+        "sub_topics": [
+          "1.1 Definition, merits, Demerits",
+          "1.2 Network Models",
+          "1.2.1 PAN, LAN, Campus Area Network (CAN), MAN, Country Area Network (CAN*), WAN, GAN",
+          "1.2.2 Topological Models (star, bus, distributed bus, mesh, tree, hybrid, ring)",
+          "1.2.3 Client/Server, Peer-to-Peer",
+          "1.3 ISPs, NSPs Overview and Backbone of Networking",
+          "1.4 Recent Trends in Telecom Technologies: 2G/3G/4G/5G"
+        ],
         "hours": "3 hrs"
       },
       {
         "unit": "Unit II",
         "title": "Reference Model",
+        "sub_topics": [
+          "2.1 Protocols and Standards",
+          "2.2 Interfaces and Services",
+          "2.3 OSI Layers",
+          "2.4 TCP/IP Layers",
+          "2.5 Comparison between OSI and TCP/IP",
+          "2.6 Networking hardware: NIC, Hub, Repeater, Switches, Bridge, Router, Gateway"
+        ],
         "hours": "4 hrs"
       },
       {
         "unit": "Unit III",
         "title": "Physical Layer",
+        "sub_topics": [
+          "3.1 Guided Media: Copper, Fiber cabling and its capacity standards",
+          "3.2 Unguided Media: Bluetooth, Wi-Fi/Wireless LAN, Satellite Communication Basics (Microwaves, Radio waves)",
+          "3.3 Circuit/packet/message switching",
+          "3.4 ISDN signaling and Architecture",
+          "3.5 Network Performance: Bandwidth, Throughput, Latency, Bandwidth-Delay Product, Jitter"
+        ],
         "hours": "4 hrs"
       },
       {
         "unit": "Unit IV",
         "title": "Data Link Layer",
+        "sub_topics": [
+          "4.1 LLC and MAC sub-layer overview",
+          "4.2 Physical (MAC) addressing overview",
+          "4.3 Framing",
+          "4.4 Flow Control (stop and wait, go-back-N, selective-repeat-request)",
+          "4.5 Error Control Mechanism",
+          "4.5.1 Error Detection: Parity Check, CRC",
+          "4.5.2 Error Correction: Hamming Code",
+          "4.6 Channel Access",
+          "4.6.1 ALOHA Systems",
+          "4.6.2 CSMA, CSMA/CD",
+          "4.7 802.3 Ethernet, Fast Ethernet, Gigabit Ethernet",
+          "4.8 802.4 Token Bus, 802.5 Token Ring",
+          "4.9 Virtual Circuit Switching: Frame Relay, ATM and X.25"
+        ],
         "hours": "8 hrs"
       },
       {
         "unit": "Unit V",
         "title": "Network Layer Protocols and Addressing",
+        "sub_topics": [
+          "5.1 Logical Addressing",
+          "5.1.1 IPV4 addressing, subnetting, supernetting, CIDR, VLSM",
+          "5.1.2 IPV6 addressing overview",
+          "5.1.3 IPV4 and IPV6 header protocol format",
+          "5.1.4 IPV4 and IPV6 feature comparison",
+          "5.2 Routing Algorithm Overview",
+          "5.2.1 Classful and Classless Routing",
+          "5.2.2 Adaptive and non-adaptive Routing",
+          "5.2.3 Distance vector and Link-state routing",
+          "5.2.4 Interior and exterior routing",
+          "5.2.5 Unicast and multicast routing",
+          "5.2.6 Routing Algorithms: RIP, OSPF, BGP",
+          "5.3 NAT"
+        ],
         "hours": "8 hrs"
       },
       {
         "unit": "Unit VI",
         "title": "Transport Layer and Protocols",
+        "sub_topics": [
+          "6.1 Port addressing overview",
+          "6.2 Process to process delivery: multiplexing and demultiplexing",
+          "6.3 TCP services, features, segment headers, well known ports & Handshaking",
+          "6.4 UDP services, features, segment headers, well known ports",
+          "6.5 Concept of socket programming: TCP and UDP socket"
+        ],
         "hours": "4 hrs"
       },
       {
         "unit": "Unit VII",
         "title": "Congestion Control and Quality of Services",
+        "sub_topics": [
+          "7.1 Congestion Control: Open Loop and Closed Loop",
+          "7.2 Traffic Shaping (Leaky bucket and Token bucket)",
+          "7.3 TCP Congestion Control"
+        ],
         "hours": "3 hrs"
       },
       {
         "unit": "Unit VIII",
         "title": "Application Layer, Servers and Protocols",
+        "sub_topics": [
+          "8.1 Domain addressing, DNS server and Queries",
+          "8.2 HTTP, FTP & proxy server overview",
+          "8.3 DHCP Principles",
+          "8.4 Email Server Protocols: SMTP, POP, IMAP"
+        ],
         "hours": "4 hrs"
       },
       {
         "unit": "Unit IX",
         "title": "Network Management and Security",
+        "sub_topics": [
+          "9.1 Introduction to Network Management",
+          "9.2 Principles of Cryptography (Symmetric Key: DES, Asymmetric key: RSA)",
+          "9.3 Key Exchange Protocols (Diffie-Hellman, Kerberos)",
+          "9.4 VPN",
+          "9.5 Overview of IP Security",
+          "9.6 Firewall, Digital Certificate",
+          "9.7 Next Generation Network (NGN)"
+        ],
         "hours": "7 hrs"
       }
     ]
   },
+
   "Simulation and Modeling": {
-    "credits": "N/A",
+    "credits": "Not specified (Theory and Practical)",
+    "Semester": "6",
     "units": [
       {
         "unit": "Unit 1",
-        "title": "Introduction to Simulation and Modeling",
+        "title": "Introduction to simulation and modeling",
+        "sub_topics": [
+          "1.1 System and its concept",
+          "1.2 System Environment",
+          "1.3 Types of System (continuous and discrete, static and dynamic, stochastic and deterministic)",
+          "1.4 Steps of Simulation",
+          "1.5 Advantage, disadvantage and application of simulation",
+          "1.6 System Modeling and types of models",
+          "1.7 Principles of Modeling",
+          "1.8 Verification and validation of model"
+        ],
         "hours": "4 hrs"
       },
       {
         "unit": "Unit 2",
         "title": "System Simulation",
+        "sub_topics": [
+          "2.1 Monte Carlo Method",
+          "2.1.1 Problems regarding Monte Carlo method",
+          "2.2 Comparison of simulation and analytic solution",
+          "2.3 System simulation and its types",
+          "2.4 Real time simulation",
+          "2.5 Lag Models (Distributed lag Model, Cobweb Model)",
+          "2.6 Queuing system and its characteristics and notation",
+          "2.7 Single server queuing model",
+          "2.7.1 Arrival routine",
+          "2.7.2 Departure routine",
+          "2.7.3 Performance measure of SSQM",
+          "2.8 Time advance mechanism (next event oriented and fixed increment oriented)"
+        ],
         "hours": "8 hrs"
       },
       {
         "unit": "Unit 3",
         "title": "Continuous System",
+        "sub_topics": [
+          "3.1 Introduction to continuous system",
+          "3.2 Representation of continuous system using differential equation",
+          "3.3 Linear and nonlinear differential equations and its examples",
+          "3.4 Analog Computer (Components and examples)",
+          "3.5 Digital Analog Simulators",
+          "3.6 Hybrid Computers",
+          "3.7 CSSLs, CSMP III",
+          "3.7.1 Structural Statement",
+          "3.7.2 Data Statements",
+          "3.7.3 Control Statements",
+          "3.8 Feedback System with example",
+          "3.9 Interactive System"
+        ],
         "hours": "8 hrs"
       },
       {
         "unit": "Unit 4",
         "title": "Discrete System",
+        "sub_topics": [
+          "4.1 Introduction to discrete system",
+          "4.2 Components of discrete system",
+          "4.3 Representation of Time",
+          "4.4 Examples for discrete system",
+          "4.4.1 Telephone call system as lost call and delayed call system",
+          "4.4.2 Bank Queue System",
+          "4.5 Simulation Programming Task",
+          "4.6 Steps of simulation programming task",
+          "4.7 Gathering Statistics",
+          "4.7.1 Counters and Summary Measures",
+          "4.7.2 Measuring Utilization and Occupancy",
+          "4.7.2 Recording Distribution and Summary Measures",
+          "4.8 Discrete System Simulation Languages"
+        ],
         "hours": "7 hrs"
       },
       {
         "unit": "Unit 5",
         "title": "Probability Concept and Random Numbers",
+        "sub_topics": [
+          "5.1 Stochastic System",
+          "5.2 Discrete and continuous probability function",
+          "5.3 Random numbers versus pseudo random numbers",
+          "5.4 Properties of random numbers",
+          "5.5 Random number generation Techniques",
+          "5.5.1 Linear Congruential Generator",
+          "5.5.2 Mixed Generator",
+          "5.5.3 Additive and Incremental Generator",
+          "5.6 Test for randomness",
+          "5.6.1 Uniformity Test - KS Test, Chi Square Test",
+          "5.6.2 Independence Test - Run Test (above and below, up and down, length of Runs), Test for Auto correlation, Gap Test, Poker Test"
+        ],
         "hours": "7 hrs"
       },
       {
         "unit": "Unit 6",
         "title": "Discrete System Languages",
+        "sub_topics": [
+          "6.1 Simulation using GPSS",
+          "6.1.1 GPSS problems",
+          "6.2 Simulation using SIMSCRIPT",
+          "6.2.1 Organization of SIMSCRIPT",
+          "6.2.2 Programs of SIMSCRIPT",
+          "6.3 Other discrete simulation Languages"
+        ],
         "hours": "6 hrs"
       },
       {
         "unit": "Unit 7",
         "title": "Output Analysis Method",
+        "sub_topics": [
+          "7.1 Nature of Problem",
+          "7.2 Estimation Method",
+          "7.3 Simulation Run Statistics",
+          "7.4 Replication of Runs",
+          "7.5 Elimination of Initial Bias"
+        ],
         "hours": "5 hrs"
       }
     ]
   },
-  "Image Processing and Pattern Recognition (3-1-2)": {
+
+  "Machine Learning": {
     "credits": "3-1-2",
+    "Semester": "6",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction to Machine Learning",
+        "sub_topics": [
+          "1.1 Definition and Evolution of Machine Learning",
+          "1.2 Types of Machine Learning",
+          "1.2.1 Supervised Learning",
+          "1.2.2 Unsupervised Learning",
+          "1.2.3 Reinforcement Learning",
+          "1.2.4 Active Learning",
+          "1.3 Machine Learning Workflow",
+          "1.3.1 Problem Definition",
+          "1.3.2 Data Collection and Preprocessing",
+          "1.3.3 Model Selection",
+          "1.3.4 Model Evaluation and Validation",
+          "1.3.5 Model Deployment",
+          "1.4 Challenges in Machine Learning",
+          "1.4.1 Data Quality Issues",
+          "1.4.2 Computational Complexity",
+          "1.4.3 Interpretability and Explainability",
+          "1.4.4 Ethical Considerations"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Supervised Learning",
+        "sub_topics": [
+          "2.1 Types of Supervised Learning",
+          "2.1.1 Regression",
+          "2.1.2 Classification",
+          "2.2 Regression",
+          "2.2.1 Linear Regression",
+          "2.2.1.1 Simple and multiple regression",
+          "2.2.1.2 Polynomial Regression",
+          "2.2.2 Regularization Techniques",
+          "2.2.2.1 Ridge regression",
+          "2.2.2.2 Lasso regression",
+          "2.2.2.3 Bias-variance tradeoff",
+          "2.2.3 Support Vector Regression",
+          "2.3 Classification",
+          "2.3.1 Logistic Regression",
+          "2.3.1.1 Binary classification",
+          "2.3.1.2 Multi-class classification",
+          "2.3.2 K-Nearest Neighbors (KNN)",
+          "2.3.3 Support Vector Machine (SVM)",
+          "2.3.3.1 Hyperplane and Support Vectors",
+          "2.3.3.2 Kernels and its Types: Linear, Polynomial, Radial Basis Function (RBF)",
+          "2.3.3.3 SVM for Linear and Non-linear Classification",
+          "2.3.4 Decision Trees",
+          "2.3.4.1 Construction and pruning of decision trees",
+          "2.3.4.2 Ensemble methods: Bagging, Random Forests"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Unsupervised Learning",
+        "sub_topics": [
+          "3.1 Basic Concept of Unsupervised Learning",
+          "3.2 Types of Unsupervised Learning",
+          "3.2.1 Clustering",
+          "3.2.2 Dimensionality Reduction",
+          "3.2.3 Association Rule Learning",
+          "3.3 Clustering",
+          "3.3.1 K-Means Clustering",
+          "3.3.2 Hierarchical Clustering",
+          "3.3.2.1 Agglomerative Clustering",
+          "3.3.2.2 Divisive Clustering",
+          "3.3.3 Density-based Clustering",
+          "3.3.3.1 DBSCAN",
+          "3.4 Dimensionality Reduction",
+          "3.4.1 Principal Component Analysis (PCA)",
+          "3.4.2 Linear Discriminant Analysis (LDA)"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Artificial Neural Network",
+        "sub_topics": [
+          "4.1 Introduction to Neural Network",
+          "4.1.1 Neural Network Architectures",
+          "4.1.1.1 Feedforward",
+          "4.1.1.2 Convolution",
+          "4.1.1.3 Recurrent",
+          "4.1.2 Perceptrons",
+          "4.1.2.1 Single layer perceptron",
+          "4.1.2.2 Multilayer Perceptron",
+          "4.1.2.3 Backpropagation",
+          "4.2 Training Neural Network",
+          "4.2.1 Forward and Backward Propagation",
+          "4.2.1.1 Forward Propagation",
+          "4.2.1.2 Backpropagation and Gradient Descent",
+          "4.2.2 Loss functions",
+          "4.2.2.1 Role of loss function",
+          "4.2.2.2 Mean Squared Error (MSE)",
+          "4.2.2.3 Cross-Entropy Loss",
+          "4.2.3 Regularization Techniques",
+          "4.2.3.1 Overfitting and underfitting",
+          "4.2.3.2 Regularization methods: L1, L2, Dropout, Batch Normalization",
+          "4.3 Advanced Neural Network Architecture",
+          "4.3.1 Convolution Neural Network (CNNs)",
+          "4.3.1.1 CNNs and their components",
+          "4.3.1.2 Convolution, Pooling and fully connected layers",
+          "4.3.1.3 Applications in image processing and computer vision",
+          "4.3.2 Recurrent Neural Networks (RNNs)",
+          "4.3.2.1 Basics of RNNs",
+          "4.3.2.2 Long Short-Term Memory (LSTM)",
+          "4.3.2.3 Gradient Recurrent Units (GRU)",
+          "4.3.2.4 Applications in time-series prediction"
+        ],
+        "hours": "12 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Model Evaluation and Validation",
+        "sub_topics": [
+          "5.1 Need of Model Evaluation in ML",
+          "5.2 Model Evaluation Metrics",
+          "5.2.1 Classification Metrics",
+          "5.2.1.1 Accuracy",
+          "5.2.1.2 Precision, Recall and Fβ score",
+          "5.2.1.3 Confusion Matrix",
+          "5.2.1.4 ROC and PR-Curve",
+          "5.2.2 Regression Metrics",
+          "5.2.2.1 Mean Absolute Error (MAE)",
+          "5.2.2.2 Mean-Squared Error (MSE)",
+          "5.2.2.3 Root Mean-Squared Error (RMSE)",
+          "5.2.2.4 R-Squared",
+          "5.3 Model Validation Techniques",
+          "5.3.1 Train-Test Split",
+          "5.3.2 Cross-Validation",
+          "5.3.2.1 K-Fold Cross Validation",
+          "5.4 Hyperparameter Tuning",
+          "5.4.1 Grid Search",
+          "5.4.2 Random Search"
+        ],
+        "hours": "8 hrs"
+      }
+    ]
+  },
+
+  "Image Processing and Pattern Recognition": {
+    "credits": "3-1-2",
+    "Semester": "6",
     "units": [
       {
         "unit": "Unit 1",
         "title": "Introduction to Digital Image Processing",
+        "sub_topics": [
+          "1.1 Fundamental Steps and Elements of DIP",
+          "1.2 Applications Areas of DIP",
+          "1.3 Elements of Visual Perception, Sampling and Quantization",
+          "1.4 Image and its types (Color Image, grayscale Image)",
+          "1.5 Relationship between Pixels (Neighbors, Path, Connectivity, Adjacency, Distances)"
+        ],
         "hours": "4 hrs"
       },
       {
         "unit": "Unit 2",
         "title": "Image Enhancement in Spatial Domain",
+        "sub_topics": [
+          "2.1 Gray Level Transformations",
+          "2.1.1 Point operations",
+          "2.1.2 Contrast stretching",
+          "2.1.3 Thresholding",
+          "2.1.4 Digital negative",
+          "2.1.5 Intensity level slicing",
+          "2.1.6 Bit Plane Slicing",
+          "2.2 Histogram Modeling, Histogram equalization, Histogram matching",
+          "2.3 Enhancement Using Arithmetic and Logic Operations",
+          "2.4 Spatial Filters",
+          "2.5 Smoothening and Sharpening Spatial Filters",
+          "2.5.1 Averaging",
+          "2.5.2 Median filtering",
+          "2.5.3 Spatial Low Pass",
+          "2.5.4 High pass filtering",
+          "2.5.5 Magnification by replication and interpolation"
+        ],
         "hours": "7 hrs"
       },
       {
         "unit": "Unit 3",
         "title": "Image Enhancement in the Frequency Domain",
+        "sub_topics": [
+          "3.1 Introduction to Fourier Transform, DFT, FFT",
+          "3.2 Computing and Visualizing the 2D DFT",
+          "3.3 Smoothing Frequency Domain Filters",
+          "3.4 Sharpening Frequency Domain Filters",
+          "3.5 Other Image Transforms",
+          "3.5.1 Hadamard transform",
+          "3.5.2 Haar transform",
+          "3.5.3 Discrete Cosine transform"
+        ],
         "hours": "6 hrs"
       },
       {
         "unit": "Unit 4",
         "title": "Image Restoration",
+        "sub_topics": [
+          "4.1 A model of The Image Degradation / Restoration Process",
+          "4.2 Noise Models Restoration in the Presence of Noise-Only Spatial Filtering",
+          "4.3 Types of noise (White noise, salt & pepper noise, Impulse noise, Gaussian noise, Rayleigh noise)",
+          "4.4 Periodic Noise Reduction by Frequency Domain Filtering"
+        ],
         "hours": "4 hrs"
       },
       {
         "unit": "Unit 5",
         "title": "Image Compression and Coding",
+        "sub_topics": [
+          "5.1 Need of Compression",
+          "5.2 Lossy & Lossless Compression, Issues of Compression",
+          "5.3 A generic model of compression",
+          "5.4 Element of Information Theory (Self Information, Entropy)",
+          "5.5 Data Redundancy, Coding Redundancy",
+          "5.6 Types of compression techniques",
+          "5.6.1 Entropy Encoding",
+          "5.6.1.1 Run Length Encoding (Interpixel Redundancy)",
+          "5.6.1.2 Huffman Encoding (Coding Redundancy)",
+          "5.6.1.3 LZW coding",
+          "5.6.2 Transform Coding",
+          "5.6.2.3 Predictive Coding"
+        ],
         "hours": "7 hrs"
       },
       {
         "unit": "Unit 6",
         "title": "Image Analysis",
+        "sub_topics": [
+          "6.1 Introduction to Image Analysis",
+          "6.2 Feature Extraction & Types of Features, Detection of Discontinuities",
+          "6.3 Segmentation: Discontinuities-based segmentation (Point detection, line detection, Edge detection)",
+          "6.4 Similarities-based segmentation",
+          "6.4.1 Feature Thresholding",
+          "6.4.1.1 Amplitude Thresholding",
+          "6.4.1.2 Thresholding based upon histogram statistics",
+          "6.4.1.3 Multi-level Thresholding",
+          "6.4.1.4 Local & Global Thresholding",
+          "6.4.1.5 Optimum Thresholding",
+          "6.4.2 Region growing based segmentation: seeded and unseeded",
+          "6.4.3 Region splitting & Merging",
+          "6.5 Region Description & representation",
+          "6.5.1 Crack code & chain code",
+          "6.5.2 Polygon Approximation",
+          "6.5.3 Signatures",
+          "6.5.4 Shape Numbers",
+          "6.5.5 Fourier Descriptors"
+        ],
         "hours": "9 hrs"
       },
       {
         "unit": "Unit 7",
-        "title": "Pattern Recognition & Artificial Neural Network",
+        "title": "Pattern Recognition & Artificial Neural Network in Pattern Recognition",
+        "sub_topics": [
+          "7.1 Image pattern and its recognition",
+          "7.2 General steps of Pattern recognition",
+          "7.3 Boundary Preprocessing, Boundary Feature Descriptors, Region Feature Descriptors",
+          "7.4 Feature extraction: PCA",
+          "7.5 Scale-Invariant Feature Transform (SIFT)",
+          "7.6 Patterns and Pattern Classes",
+          "7.7 Pattern Classification by Prototype Matching",
+          "7.8 Optimum (Bayes) Statistical Classifiers",
+          "7.9 Artificial Neural Network",
+          "7.9.1 Perceptron",
+          "7.9.2 Hopfield Network"
+        ],
         "hours": "8 hrs"
       }
     ]
   },
-  "Machine Learning (3-1-2)": {
-    "credits": "3-1-2",
-    "units": [
-      {
-        "unit": "Chapter 1",
-        "title": "Introduction to Machine Learning",
-        "hours": "5 hrs"
-      },
-      {
-        "unit": "Chapter 2",
-        "title": "Supervised Learning",
-        "hours": "10 hrs"
-      },
-      {
-        "unit": "Chapter 3",
-        "title": "Unsupervised Learning",
-        "hours": "10 hrs"
-      },
-      {
-        "unit": "Chapter 4",
-        "title": "Artificial Neural Network",
-        "hours": "12 hrs"
-      },
-      {
-        "unit": "Chapter 5",
-        "title": "Model Evaluation and Validation",
-        "hours": "8 hrs"
-      }
-    ]
-  },
-  "Compiler Design (2-2-2)": {
+
+  "Compiler Design": {
     "credits": "2-2-2",
+    "Semester": "6",
     "units": [
       {
         "unit": "Unit I",
         "title": "Overview of Compilation",
-        "hours": "4 hrs"
+        "sub_topics": [
+          "1.1 Compiler and Interpreter",
+          "1.2 Compiler Structure",
+          "1.3 Overview of Translation",
+          "1.3.1 The Front End",
+          "1.3.2 The Optimizer",
+          "1.3.3 The Backend"
+        ],
+        "hours": "4 Hrs"
       },
       {
         "unit": "Unit II",
         "title": "Scanners",
-        "hours": "7 hrs"
+        "sub_topics": [
+          "2.1 The Role of the Scanner",
+          "2.2 Recognizing Words",
+          "2.2.1 A Formalism of Recognizer",
+          "2.2.2 Recognizing Complex Words",
+          "2.3 Regular Expression",
+          "2.3.1 Formalizing the Notation",
+          "2.3.2 Closure properties of REs",
+          "2.4 From Regular Expression to Scanner",
+          "2.4.1 Nondeterministic Finite Automata",
+          "2.4.2 Regular Expression to NFA: Thomson's Construction",
+          "2.4.3 NFA to DFA",
+          "2.4.4 Using a DFA as a Recognizer"
+        ],
+        "hours": "7 Hrs"
       },
       {
         "unit": "Unit III",
         "title": "Parsers",
-        "hours": "6 hrs"
+        "sub_topics": [
+          "3.1 Introduction to Syntax Analyzer",
+          "3.2 Context Free Grammar",
+          "3.3 Top Down Parsing",
+          "3.3.1 Transforming a Grammar for Top Down Parsing",
+          "3.3.2 Recursive Descent Parsing",
+          "3.3.3 Table Driver LL(1) Parsers",
+          "3.4 Bottom Up Parsing",
+          "3.4.1 The LR(1) Parsing Algorithm",
+          "3.4.2 Building LR(1) Table"
+        ],
+        "hours": "6 Hrs"
       },
       {
         "unit": "Unit IV",
         "title": "Intermediate Representations",
-        "hours": "5 hrs"
+        "sub_topics": [
+          "4.1 A Taxanomy of Intermediate Representations",
+          "4.2 Graphical IRs",
+          "4.2.1 Syntax Related Trees",
+          "4.2.2 Graphs",
+          "4.3 Linear IRs",
+          "4.4 Mapping Values to Names",
+          "4.5 Symbol Tables",
+          "4.5.1 Hash Tables",
+          "4.5.2 Building a Symbol Table"
+        ],
+        "hours": "5 Hrs"
       },
       {
         "unit": "Unit V",
         "title": "Code Generation",
-        "hours": "4 hrs"
+        "sub_topics": [
+          "5.1 Issues in Design of Code Generation",
+          "5.2 Basic Blocks and Flow Graphs & Optimization of Basic Blocks",
+          "5.3 A Simple Code Generator & Peephole Optimization",
+          "5.4 Register Allocation & Assignment, Dynamic Programming Code Generation"
+        ],
+        "hours": "4 Hrs"
       },
       {
-        "unit": "Unit VI",
+        "unit": "Unit 6",
         "title": "Machine Independent Optimization",
-        "hours": "4 hrs"
+        "sub_topics": [
+          "6.1 The Principal Sources of Optimization",
+          "6.2 Loops in Flow Graphs, Constant Propagation, Partial Redundancy Elimination",
+          "6.3 Introduction to Data-Flow Analysis",
+          "6.4 Solving Data-Flow Equations"
+        ],
+        "hours": "4 Hrs"
+      }
+    ]
+  },
+
+  "Project I": {
+    "credits": "0-0-2",
+    "Semester": "6",
+    "units": [
+      {
+        "unit": "Phase 1",
+        "title": "Proposal Phase",
+        "sub_topics": [
+          "Task accomplished (20%): Feasibility study- nature of the project, title, abstract etc.",
+          "Objective",
+          "Requirements analysis and specification",
+          "Project plan - cost estimation, timeline",
+          "Creativity, innovation",
+          "Teamwork",
+          "Documentation (10%): Report format and layout (refer to the Project Guideline)"
+        ],
+        "hours": "30% of total marks"
+      },
+      {
+        "unit": "Phase 2",
+        "title": "Mid-term Phase",
+        "sub_topics": [
+          "Task accomplished (20%): Level of proposal-feedback incorporated",
+          "System/architectural design",
+          "Progress/depth of project work",
+          "Validation criteria",
+          "Group/team effort",
+          "Documentation (10%): Report organization, completeness and consistency of the report, organization and analysis of data and results"
+        ],
+        "hours": "30% of total marks"
+      },
+      {
+        "unit": "Phase 3",
+        "title": "Final Phase",
+        "sub_topics": [
+          "Task accomplished (30%): Performance during presentation",
+          "Contribution in the entire work",
+          "Completeness of the work",
+          "Analysis and design, tools and techniques used",
+          "Viva-voce, Project demonstration",
+          "Documentation (10%): Final project report – layout and format (see the Project Guidelines)"
+        ],
+        "hours": "40% of total marks"
       }
     ]
   }
