@@ -98,3 +98,46 @@ hr {
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+/* Premium UI Components */
+.premium-header {
+  background-color: var(--surface-container-lowest);
+  padding: 2rem;
+  border-radius: 2.5rem;
+  border: 1px solid var(--outline-variant);
+  box-shadow: var(--shadow-ambient);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .premium-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2rem;
+  }
+}
+
+.secondary-header-text {
+  color: var(--outline-variant);
+  font-weight: 500;
+}
+
+.study-vault-card {
+  background: white;
+  border-radius: 2.5rem;
+  padding: 2rem;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.02);
+}
+
+/* Hide scrollbars but keep functionality */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

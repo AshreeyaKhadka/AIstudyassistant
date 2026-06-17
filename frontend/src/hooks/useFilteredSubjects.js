@@ -3,6 +3,10 @@ import syllabusData from '../data/unitwise.json';
 
 export const useFilteredSubjects = (userSemester) => {
     const allData = useMemo(() => {
+        if (!syllabusData || typeof syllabusData !== 'object') {
+            console.error("Syllabus data is missing or malformed.");
+            return {};
+        }
         const flattened = {};
         Object.keys(syllabusData).forEach(key => {
             if (key === "Pokhara University - Bachelor in Computer Engineering") {
