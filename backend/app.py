@@ -15,6 +15,8 @@ def _ensure_student_upload_schema():
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN file_url VARCHAR(512)'))
         if 'parsed_text' not in columns:
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN parsed_text TEXT'))
+        if 'subject' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN subject VARCHAR(255)'))
 
 
 def _ensure_user_profile_schema():
