@@ -79,6 +79,10 @@ const ProfileSetupPage = () => {
         return response.json();
       })
       .then((profile) => {
+        if (profile.profile_complete) {
+          navigate('/dashboard', { replace: true });
+          return;
+        }
         const derivedNames = splitName(profile.display_name || profile.name || '');
         setFormData((current) => ({
           ...current,
@@ -91,11 +95,11 @@ const ProfileSetupPage = () => {
           externalId: profile.id ? String(profile.id) : current.externalId,
         }));
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         setLoading(false);
       });
-  }, [clerkUser, isLoaded]);
+  }, [clerkUser, isLoaded, navigate]);
 
   const handleChange = (field) => (event) => {
     setFormData((current) => ({ ...current, [field]: event.target.value }));

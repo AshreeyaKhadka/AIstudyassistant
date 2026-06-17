@@ -38,28 +38,16 @@ const DashboardLayout = () => {
 
     const loadProfile = async () => {
       try {
-        let res = await fetch('/api/auth/me', { credentials: 'include' });
-
-        if (!res.ok) {
-          res = await fetch('/api/auth/onboard', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              firstName: clerkFirstName,
-              lastName: clerkLastName,
-              email: clerkEmail,
-              externalId: clerkUser.id,
-              avatarUrl: clerkUser.imageUrl,
-              college: 'Not specified',
-              semester: 1,
-            }),
-          });
-          if (res.ok) res = await fetch('/api/auth/me', { credentials: 'include' });
-        }
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
 
         if (res.ok) {
           const profile = await res.json();
+
+          if (!profile.profile_complete) {
+            navigate('/profile-setup', { replace: true });
+            return;
+          }
+
           const dbFirst = profile.first_name || '';
           const dbLast = profile.last_name || '';
           const dbFull = [dbFirst, dbLast].filter(Boolean).join(' ') || profile.name || '';
@@ -75,7 +63,8 @@ const DashboardLayout = () => {
             last_name: dbLast,
           });
         } else {
-          setUser(fallbackUser);
+          // If unauthorized or error, let them go to setup (or setup will redirect back to signin if needed)
+          navigate('/profile-setup', { replace: true });
         }
       } catch {
         setUser(fallbackUser);
@@ -115,13 +104,19 @@ const DashboardLayout = () => {
 
       <main className="flex-1 flex flex-col relative min-w-0 overflow-hidden bg-[#f8fafc]">
         {/* Background Decorative Elements */}
-        <div className="absolute top-0 left-0 w-full h-[300px] bg-gradient-to-b from-blue-50/50 to-transparent pointer-events-none"></div>
-        <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-100/30 blur-[100px] pointer-events-none"></div>
-        
+        <div className="absolute top-0 left-0 w-full h-[300px] bg-gradient-to-b from-blue-50/50 to-transparent pointer-events-none -z-10"></div>
+        <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-100/30 blur-[100px] pointer-events-none -z-10"></div>
+
         <Navbar user={user} scrolled={scrolled} />
 
         {/* Scrollable Outlet Area */}
-        <div id="main-scroll-area" className="flex-1 overflow-y-auto overflow-x-hidden p-8 relative z-0 custom-scrollbar pb-24">
+        <div
+          id="main-scroll-area"
+          className={`flex-1 overflow-y-auto overflow-x-hidden relative z-0 custom-scrollbar pb-24 ${location.pathname.includes('/upload') || location.pathname.includes('/syllabus') || location.pathname.includes('/mcq') || location.pathname.includes('/exam-prep')
+            ? 'p-6 md:p-10'
+            : 'p-8'
+            }`}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -129,15 +124,16 @@ const DashboardLayout = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="max-w-7xl mx-auto h-full"
+              className="max-w-7xl mx-auto min-h-full"
             >
               <Outlet context={{ user }} />
             </motion.div>
           </AnimatePresence>
         </div>
       </main>
-      
-      <style dangerouslySetInnerHTML={{__html: `
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
           height: 6px;
@@ -151,6 +147,13 @@ const DashboardLayout = () => {
         }
         .custom-scrollbar:hover::-webkit-scrollbar-thumb {
           background-color: #94a3b8;
+        }
+        .scrollbar-none::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-none {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}} />
     </div>

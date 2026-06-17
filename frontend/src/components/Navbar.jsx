@@ -5,9 +5,9 @@ import { UserButton } from '@clerk/react';
 
 const Navbar = ({ user, scrolled }) => {
   const location = useLocation();
+  const path = location.pathname;
 
   const getPageTitle = () => {
-    const path = location.pathname;
     if (path === '/dashboard') return `Welcome ${user?.username || 'back'} 👋`;
     if (path.includes('/upload')) return 'Uploaded Materials';
     if (path.includes('/chat')) return 'AI Chat Assistant';
@@ -23,7 +23,6 @@ const Navbar = ({ user, scrolled }) => {
   };
 
   const getPageSubtitle = () => {
-    const path = location.pathname;
     if (path === '/dashboard') return "Let's make today productive.";
     if (path.includes('/upload')) return 'Manage your personalized and shared study materials.';
     if (path.includes('/chat')) return 'Ask questions and get instant AI-powered explanations.';
@@ -38,17 +37,21 @@ const Navbar = ({ user, scrolled }) => {
     return '';
   };
 
+  const showNavbarTitle = !['/upload', '/mcq', '/exam-prep', '/syllabus', '/notes', '/flashcards'].some(p => path.includes(p));
+
   return (
     <header
       className={`flex justify-between items-center px-8 py-5 transition-all duration-300 relative z-10 ${scrolled ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200/50' : 'bg-transparent'
         }`}
     >
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
-          {getPageTitle()}
-        </h2>
-        <p className="text-sm text-slate-500 mt-1">{getPageSubtitle()}</p>
-      </div>
+      {showNavbarTitle ? (
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+            {getPageTitle()}
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">{getPageSubtitle()}</p>
+        </div>
+      ) : <div />}
 
       <div className="flex items-center gap-5">
         <div className="relative group w-[300px] hidden md:block">

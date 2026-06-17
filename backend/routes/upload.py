@@ -85,6 +85,7 @@ def get_uploads(user):
             "id": u.id, 
             "filename": u.filename, 
             "size_bytes": u.size_bytes,
+            "subject": u.subject,
             "created_at": u.created_at
         } for u in uploads]), 200
     except Exception as e:

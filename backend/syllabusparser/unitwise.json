@@ -1,1174 +1,1197 @@
 {
   "Pokhara University - Bachelor in Computer Engineering": {
-    
-  "Calculus I (3-1-0)": {
-    "credits": "3-1-0",
-    "Semester": "1",
-    "units": [
-      {
-        "unit": "Unit I",
-        "title": "Limit Continuity and Derivatives",
-        "sub_topics": [
-          "1.1 Introduction",
-          " 1.2 Limit, continuity and differentiability",
-          "Higher order derivatives by Leibnitz method"
-        ],
-        "hours": "5 hrs"
-      },
-      {
-        "unit": "Unit II",
-        "title": "Applications of Derivatives",
-        "sub_topics": [
-          "2.1 Mean value theorems: Rolle's theorem, Lagrange's Theorem (Geometrical interpretation and verification) and applications",
-          "2.2 Higher order mean value theorem: Taylor's Series, Maclaurin's Series expansion of function",
-          "2.3 Asymptotes to Cartesian curves up to four degrees",
-          "2.4 Curve tracing in Cartesian form and parametric form",
-          "2.5 Curvature"
-        ],
-        "hours": "8 hrs"
-      },
-      {
-        "unit": "Unit III",
-        "title": "Integral Calculus",
-        "sub_topics": [
-          "3.1 Introduction",
-          "3.2 Review on Indefinite Integral and fundamental theorem of integral calculus",
-          "3.3 Definite integral and its properties",
-          "3.4 Improper Integrals; comparison test",
-          "3.5 Reduction formula, Beta Gamma functions"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit IV",
-        "title": "Application of Integral",
-        "sub_topics": [
-          "4.1 Application of integrals for finding area beneath a curve and between two curves and arc length",
-          "4.2 Surface and volume of solid of revolution in the plane for Cartesian and parametric curves"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit V",
-        "title": "Partial Differentiation",
-        "sub_topics": [
-          "5.1 Introduction",
-          "5.2 Partial Derivatives",
-          "5.3 Homogeneous function and Euler's theorem for the function of two and three variables",
-          "5.4 Total Derivatives and Differentiation of Implicit functions"
-        ],
-        "hours": "3 hrs"
-      },
-      {
-        "unit": "Unit VI",
-        "title": "Application of Partial Differentiation",
-        "sub_topics": [
-          "6.1 Extrema of functions of two and three variables",
-          "6.2 Lagrange's method of undetermined Multipliers (up to 2 multipliers)"
-        ],
-        "hours": "4 hrs"
-      },
-      {
-        "unit": "Unit VII",
-        "title": "First Order Ordinary Differential Equations",
-        "sub_topics": [
-          "7.1 Review of separable, homogeneous and exact differential equation with engineering applications",
-          "7.2 Linear, Bernoulli equation and Riccati's equation with engineering application",
-          "7.3 Mathematical modeling of engineering problems using first order equation"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit VIII",
-        "title": "Second Order Ordinary Differential Equations",
-        "sub_topics": [
-          "8.1 Second order Homogeneous ODE with constant and variable coefficients, Euler-Cauchy equation",
-          "8.2 Existence and uniqueness of solutions, Wronskian and general solutions for solving ODE",
-          "8.3 Non-homogeneous second order ODE and Solution by undetermined coefficients and variation of parameters and engineering application"
-        ],
-        "hours": "7 hrs"
-      }
-    ]
-  },
-  "Basic Electrical Engineering (3-1-2)": {
-    "credits": "3-1-2",
-    "Semester": "1",
-    "units": [
-      {
-        "unit": "Unit I",
-        "title": "Introduction",
-        "sub_topics": [
-          "1.1 Role of electricity in modern society",
-          "1.2 Energy sources and production",
-          "1.3 Alphabets and language",
-          "1.4 Consumption of electricity"
-        ],
-        "hours": "2 hrs"
-      },
-      {
-        "unit": "Unit II",
-        "title": "DC Circuit Analysis",
-        "sub_topics": [
-          "2.1 Circuits concepts (lumped and distributed parameters), linear and nonlinear parameter, passive and active circuits",
-          "2.2 Circuit elements (Resistance, capacitance and inductance), their properties and characteristics",
-          "2.3 Color coding, Series of parallel compilation of resistances, Equivalent resistance, star-delta transformation",
-          "2.4 Concept of power, energy and its calculations",
-          "2.5 Short and open circuit",
-          "2.6 Ideal and non-ideal sources, source conversion",
-          "2.7 Voltage divider and current divider formula",
-          "2.8 Kirchhoff's current and voltage laws",
-          "2.9 Nodal method and mesh method of network analysis (without dependent source)",
-          "2.10 Network theorem (Superposition, Thevenin's, Norton's, maximum power transfer theorem)"
-        ],
-        "hours": "15 hrs"
-      },
-      {
-        "unit": "Unit III",
-        "title": "Single Phase AC Circuits Analysis",
-        "sub_topics": [
-          "3.1 Generation of EMF by electromagnetic induction, Generation of alternating voltage",
-          "3.2 Sinusoidal functions-terminology (phase, phase angle, amplitude, frequency, peak to peak value), average values and RMS or effective value",
-          "3.3 Phase algebra, power triangle, impedance triangle, steady state response of circuits (RL, RC, RLC series and parallel)",
-          "3.4 Instantaneous power, average real power, reactive power, power factor and significance",
-          "3.5 Resonance in series and parallel RLC circuit, bandwidth, effect of Q factor"
-        ],
-        "hours": "10 hrs"
-      },
-      {
-        "unit": "Unit IV",
-        "title": "Poly-phase AC Circuit Analysis",
-        "sub_topics": [
-          "4.1 Application of integrals for finding area beneath a curve and between two curves and arc length",
-          "4.2 Differences between single phase and three phase system",
-          "4.3 Star and delta connected supply and load circuits, Line and phase voltage/current relations",
-          "4.4 Concept of three phase power and its measurement by single and two wattmeter methods"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit V",
-        "title": "Electrical Machines",
-        "sub_topics": [
-          "5.1 Differences and similarities between electric circuit and magnetic circuit",
-          "5.2 Transformers: Principle of operations, features, equivalent circuits, efficiency & regulation, open circuit & short circuit tests",
-          "5.3 DC generator: Construction features, working principles, basic characteristics",
-          "5.4 DC motors: Performance & operation, basic characteristics, speed control & selection of motors",
-          "5.5 AC machines: Single phase and three phase induction motors (working principles, construction features and uses)"
-        ],
-        "hours": "12 hrs"
-      }
-    ]
-  },
-  "Communication Techniques (2-2-0)": {
-    "credits": "3-0-0",
-    "Semester": "1",
-    "units": [
-      {
-        "unit": "Unit 1",
-        "title": "Audience, Ethics, and Research",
-        "sub_topics": [
-          "Thinking about audience, purpose, and genre",
-          "Leading and misleading the reader: ethics at work, ethics for students",
-          "How is ethics related to technical communication?",
-          "Researching technical subjects"
-        ],
-        "hours": "Not specified"
-      },
-      {
-        "unit": "Unit 2",
-        "title": "Workplace Writing and Style",
-        "sub_topics": [
-          "Writing email and letters for the workplace: informative, positive, negative, persuasive",
-          "How is ethics related to technical communication",
-          "Writing technical prose: clarity, cohesion, conciseness, parallelism"
-        ],
-        "hours": "Not specified"
-      },
-      {
-        "unit": "Unit 3",
-        "title": "Document Design and Visuals",
-        "sub_topics": [
-          "Designing documents and page layout",
-          "Communicating through visuals"
-        ],
-        "hours": "Not specified"
-      },
-      {
-        "unit": "Unit 4",
-        "title": "Proposals and Instructional Documents",
-        "sub_topics": [
-          "Writing winning proposals",
-          "Writing how-to documents: instructions, procedures, and manuals"
-        ],
-        "hours": "Not specified"
-      },
-      {
-        "unit": "Unit 5",
-        "title": "Usability Testing",
-        "sub_topics": [
-          "Testing instructional documents",
-          "Testing and reporting document usability"
-        ],
-        "hours": "Not specified"
-      },
-      {
-        "unit": "Unit 6",
-        "title": "Reporting Information and Online Access",
-        "sub_topics": [
-          "Reporting technical information: white papers or information reports",
-          "Taking technical communication online: sharing documents electronically"
-        ],
-        "hours": "Not specified"
-      },
-      {
-        "unit": "Unit 7",
-        "title": "Online Documents and Progress Reports",
-        "sub_topics": [
-          "Taking technical communication online: writing online documents",
-          "Reporting technical information: status or progress reports"
-        ],
-        "hours": "Not specified"
-      },
-      {
-        "unit": "Unit 8",
-        "title": "Oral Presentations",
-        "sub_topics": [
-          "Oral presentation of technical reports",
-          "Student presentations of major project"
-        ],
-        "hours": "Not specified"
-      }
-    ]
-  },
-  "Programming in C (3-1-3)": {
-    "credits": "3-1-3",
-    "Semester": "1",
-    "units": [
-      {
-        "unit": "Unit I",
-        "title": "Programming Languages and Problem Solving",
-        "sub_topics": [
-          "1.1 Programming Languages: machine-level, assembly, high-level",
-          "1.2 Software and its types",
-          "1.3 Generations of programming languages",
-          "1.4 Structured programming",
-          "1.5 Problem solving using computer: Problem Analysis (feasibility, requirement), Design (Algorithm, flowchart), Coding (compilation/interpretation, execution)"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit II",
-        "title": "Introduction to C",
-        "sub_topics": [
-          "2.1 History of C language",
-          "2.2 Features of C",
-          "2.3 Operators and Expressions",
-          "2.4 Input/output statements",
-          "2.5 Decision making and branching (if, if-else, nested, switch)",
-          "2.6 Looping (for, while, do-while)",
-          "2.7 Keywords and Identifiers",
-          "2.8 Constants and Variables and their Declaration",
-          "2.9 Formatted Input and Output",
-          "2.10 The C operators"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit III",
-        "title": "Control Structures",
-        "sub_topics": [
-          "3.1 Introduction and types of control statements-sequential, branching and looping statements",
-          "3.2 Branching statements- simple if statement, if-else, nested if, if-else-if ladder and switchstatement",
-          "3.3 Looping statements- for loop, while loop, do-while loop, nested loops",
-          "3.4 The break and continue statements"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit IV",
-        "title": "Arrays and Strings",
-        "sub_topics": [
-          "4.1 Application of integrals for finding area beneath a curve and between two curves and arc length",
-          "4.2 One and Two dimensional arrays",
-          "4.3 Initialization of arrays",
-          "4.4 Strings - the character array",
-          "4.5 Functions related to strings"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit V",
-        "title": "Functions",
-        "sub_topics": [
-          "Introduction to functions",
-          "Function prototypes, definitions, arguments",
-          "Storage classes",
-          "Recursion"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit VI",
-        "title": "Pointers",
-        "sub_topics": [
-          "Introduction",
-          "Pointer operators",
-          "Pointer arithmetic",
-          "Returning multiple values from functions using pointers",
-          "Pointers and Arrays",
-          "Double indirection",
-          "Dynamic memory allocation"
-        ],
-        "hours": "Not specified"
-      },
-      {
-        "unit": "Unit VII",
-        "title": "Structure and Union",
-        "sub_topics": [
-          "Definition of Structure",
-          "Nested-Structure",
-          "Array of Structure",
-          "Structures and Pointers",
-          "Union",
-          "Self-referential structure"
-        ],
-        "hours": "5 hrs"
-      },
-      {
-        "unit": "Unit VIII",
-        "title": "Files and File Handling",
-        "sub_topics": [
-          "FILE pointer, File opening modes (read, write, append)",
-          "File handling functions",
-          "Creating and operating a file in different modes"
-        ],
-        "hours": "4 hrs"
-      }
-    ]
-  },
-  "Electronic Device and Circuit (3-1-2)": {
-    "credits": "3-1-2",
-    "Semester": "1",
-    "units": [
-      {
-        "unit": "Unit I",
-        "title": "Semiconductor diode",
-        "sub_topics": [
-          "Review of insulator, semiconductor and conductors",
-          "Conduction in semiconductors",
-          "Theory of p-n junction",
-          "Forward and reverse biasing of diode",
-          "Diode as a nonlinear device",
-          "Ideal and piecewise linear model of diode",
-          "The effects of temperature in V-I characteristic curves",
-          "Junction capacitances and its effects",
-          "Diode switching times",
-          "Junction breakdown",
-          "Construction, characteristics and applications of Zener diode, Schottky diode"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit II",
-        "title": "Bi-polar Junction Transistor",
-        "sub_topics": [
-          "Introduction of bipolar junction transistor",
-          "Current flow mechanism in PNP and NPN transistors",
-          "Input and output characteristics of CE and CB transistor amplifiers",
-          "Reach through and punch through effects",
-          "Active, cut off, saturation modes of operations and BJT switching times",
-          "The transistor as an amplifier and switch",
-          "Comparison of CB, CE and CC configurations",
-          "BJT biasing, dc load line, ac load line and Q point",
-          "Stability factor"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit III",
-        "title": "DC Power supply",
-        "sub_topics": [
-          "Half wave and full wave rectifiers",
-          "Average value, RMS value ripple factor of half and full wave rectifiers",
-          "Filtering process: Shunt capacitor, LC filter and pi filter",
-          "Series, Shunt and biased clipper circuits",
-          "Clamping circuits",
-          "Regulated and unregulated power supplies",
-          "Transistor series and transistor shunt regulators"
-        ],
-        "hours": "5 hrs"
-      },
-      {
-        "unit": "Unit IV",
-        "title": "The Field Effect Transistor (FET)",
-        "sub_topics": [
-          "Comparison between FET and BJT",
-          "Construction and working principle of JFET",
-          "Biasing and load line",
-          "Drain and transfer characteristics of JFET and JFET parameters",
-          "Construction and working principles of DMOSFET and EMOSFET"
-        ],
-        "hours": "5 hrs"
-      },
-      {
-        "unit": "Unit V",
-        "title": "Small Signal Low Frequency Analysis Model of BJT",
-        "sub_topics": [
-          "Low frequency hybrid model",
-          "Transistor configurations and their hybrid model",
-          "Low frequency re model, amplifier configuration for voltage gain, current gain, input and output impedance",
-          "Analysis of transistor amplifier circuit using re model",
-          "Emitter follower"
-        ],
-        "hours": "5 hrs"
-      },
-      {
-        "unit": "Unit VI",
-        "title": "Multistage Amplifiers",
-        "sub_topics": [
-          "Multistage amplifier and Gain calculation of n-stages cascaded amplifiers",
-          "Methods of coupling",
-          "Expression of voltage gains, Current gains, input and output impedance for two stages RC coupled amplifier",
-          "Choice of configuration in a cascade",
-          "Darlington-pair amplifier and its effective beta"
-        ],
-        "hours": "4 hrs"
-      },
-      {
-        "unit": "Unit VII",
-        "title": "Large Signal Amplifiers",
-        "sub_topics": [
-          "Analysis of large signal model",
-          "Class A, B, AB and Class C amplifiers",
-          "Push-pull amplifiers",
-          "Cross over distortion",
-          "Transformer coupled push-pull stages",
-          "Amplifier efficiency, power dissipation and heat sinks"
-        ],
-        "hours": "4 hrs"
-      },
-      {
-        "unit": "Unit VIII",
-        "title": "Feedback Amplifiers",
-        "sub_topics": [
-          "Negative feedback amplifiers and advantages",
-          "Gain stability, extension of bandwidth",
-          "Importance of positive feedback on oscillation"
-        ],
-        "hours": "3 hrs"
-      },
-      {
-        "unit": "Unit IX",
-        "title": "Operational Amplifier and Oscillator",
-        "sub_topics": [
-          "Basic Model",
-          "Ideal and non-ideal properties",
-          "Virtual ground concept, offset voltage, input bias current, slew rate and CMRR",
-          "Inverting and non-inverting amplifier",
-          "Integrator, differentiator and summing amplifier and their applications",
-          "Astable and monostable multivibrators",
-          "Barkhausen criteria for oscillation",
-          "RC phase shift and Wein bridge oscillator using Op-amp"
-        ],
-        "hours": "7 hrs"
-      }
-    ]
-  },
-  "Digital Logic (3-1-2)": {
-    "credits": "3-1-2",
-    "Semester": "1",
-    "units": [
-      {
-        "unit": "Unit 1",
-        "title": "Introduction",
-        "sub_topics": [
-          "Analog and digital signal",
-          "Analog and digital system",
-          "Numerical representation",
-          "Digital number system"
-        ],
-        "hours": "2 hrs"
-      },
-      {
-        "unit": "Unit 2",
-        "title": "Number Systems and Codes",
-        "sub_topics": [
-          "Number systems: Decimal, Binary, Octal, Hexadecimal",
-          "Number system conversion",
-          "Complements (radix and diminished-radix)",
-          "Subtraction using complements",
-          "Binary coding systems: Weighted codes (BCD, 8 4 -2 -1, 2 4 2 1), Non-weighted codes (Excess-3 and Gray)",
-          "Alphanumeric and instruction codes"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit 3",
-        "title": "Boolean Algebra and Logic Gates",
-        "sub_topics": [
-          "Boolean algebra (definition, properties, postulates and theorems)",
-          "Logic gates, truth tables and Boolean function",
-          "Duality principle and complements",
-          "Gate implementation",
-          "Universality of NAND and NOR gates"
-        ],
-        "hours": "4 hrs"
-      },
-      {
-        "unit": "Unit 4",
-        "title": "Simplification of Boolean Function",
-        "sub_topics": [
-          "Venn diagram",
-          "Canonical forms and standard forms",
-          "Karnaugh map up to 5 variables",
-          "Minimum realization",
-          "Don't care conditions",
-          "Simplification in SOP and POS using K-map"
-        ],
-        "hours": "5 hrs"
-      },
-      {
-        "unit": "Unit 5",
-        "title": "Combinational Circuit",
-        "sub_topics": [
-          "Design procedure",
-          "Adder and subtractor",
-          "Code conversion",
-          "Analysis procedure",
-          "NAND and NOR implementation",
-          "Multilevel NAND and NOR gates",
-          "Parity generator and checker"
-        ],
-        "hours": "4 hrs"
-      },
-      {
-        "unit": "Unit 6",
-        "title": "MSI and LSI Design",
-        "sub_topics": [
-          "Introduction to Integration technology",
-          "Parallel adder and subtractor",
-          "Decimal / BCD adder",
-          "Magnitude comparator",
-          "Multiplexer and demultiplexer",
-          "Encoder and Decoder",
-          "ROM and PLA"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit 7",
-        "title": "Sequential Circuits",
-        "sub_topics": [
-          "Synchronous and asynchronous logic",
-          "Differences between Latch and flip-flop, Flip flops (RS, JK, D, T) and their truth table, excitation table and characteristic equation",
-          "Triggering of flip flops",
-          "State diagram and state table",
-          "State reduction and binary assignment",
-          "Design and analysis of clocked sequential circuit",
-          "Master-slave flip flops"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit 8",
-        "title": "Registers and Counters",
-        "sub_topics": [
-          "Register, shift register and types of Shift register",
-          "Synchronous counters: up to 4-bit counters",
-          "Asynchronous counters: BCD ripple counter, Mod counter",
-          "Ring counter",
-          "Output hazard race"
-        ],
-        "hours": "6 hrs"
-      },
-      {
-        "unit": "Unit 9",
-        "title": "Memory Unit and ALU",
-        "sub_topics": [
-          "Random access memory",
-          "Design of arithmetic logic unit",
-          "Accumulator",
-          "Shifter and status register",
-          "Processor unit"
-        ],
-        "hours": "6 hrs"
-      }
-    ]
-  }
-},
-    "Data Communication (3-0-2)": {
-      "credits": "3-0-2",
-      "units": [
-        {
-          "unit": "Unit 1",
-          "title": "Introduction",
-          "sub_topics": [
-          "Evolution of Data Communication systems",
-          "Analog and Digital Data Transmission, Data Communication Terminology",
-          "Standards Organizations, Applications"
-          ],
-          "hours": "2 hrs"
-          
-        },
-        {
-          "unit": "Unit 2",
-          "title": "Data Transmission",
-          "sub_topics": [
-          "Data Transmission Techniques - Parallel Transmission, Serial Transmission (Synchronous, Asynchronous and Isochronous Communication), Modes of Data Transmission",
-          "Line Configuration, Bit Rate/ Baud rate, Transmission Channel, Data Rate Limits - Shannon Capacity Theorem and Nyquist Bit Rate, RS-232C (DTE-DCE, DTE-DTE)"
-        ],
-          "hours": "3 hrs"
-        },
-        {
-          "unit": "Unit 3",
-          "title": "Signals and Systems",
-           "sub_topics": [
-          "Signals and their classification: Periodic and non-periodic signals; Deterministic and Random signals; Energy and Power signals; Continuous and Discrete time signals",
-          "Basic Elementary Signals - Unit Step Signal, Ramp Signal, Impulse Signal, Sinusoidal Signal, Signum Signal",
-          "System - Continuous and Discrete time system",
-          "Basic system properties: Linearity, Causality, Stability, Static & Dynamic, and Time Invariance, Introduction to LTI System"
-        ],
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit 4",
-          "title": "Overview of Data Communication Networking and Protocols",
-          "sub_topics": [
-          "Network Types, Topology",
-          "OSI layers and Functions, TCP/IP layer, Local Area Networks (LAN) Architecture, LLC/MAC & Routing",
-          "IEEE Standards, Ethernet (Aloha, CSMA), Wide Area Networks (WAN): X.25, Frame Relay, ATM"
-        ],
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 5",
-          "title": "Transmission Media",
-          "sub_topics": [
-          "Electromagnetic Spectrum for Telecommunication",
-          "Type of Propagation",
-          "Guided Transmission Media: Twisted Pair Cable, Coaxial Cable, Optical Fiber, Characteristics of Unguided Communication Bands, Antennas",
-          "Unguided Transmission Media: Terrestrial Microwave, Satellite Communication, VSAT, and Cellular Telephony"
-        ],
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit 6",
-          "title": "Impairments, Error Handling and Compression Techniques",
-          "sub_topics": [
-          "Attenuation & Distortion, Delay Distortion, Noise & Types, interference, crosstalk",
-          "Types of error & its Detection and Correction Methods",
-          "Data Compression, Lossless Compression - Run Length Coding, Dictionary Coding and Huffman Coding",
-          "Lossy Compression - Predictive Coding and Transform Coding"
-        ],
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit 7",
-          "title": "Data Link Control and Protocol",
-          "sub_topics": [
-          "Framing",
-          "Flow Control: Stop - & - Wait, Sliding Window, Error Control: Automatic Repeat Request (ARQ), Stop- and Wait ARQ, Sliding Window (ARQ)",
-          "HDLC protocol",
-          "Point- to- Point protocol"
-        ],
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit 8",
-          "title": "Multiplexing & Switching",
-          "sub_topics": [
-          "Multiplexing types and Application",
-          "Multiplexing Vs Non- Multiplexing",
-          "The Telephone System: Analog services and its Hierarchy",
-          "Digital services and Hierarchy Circuit Switching, Packet Switching, Message Switching, and Private Branch Exchange"
-        ],
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit 9",
-          "title": "Data Encoding & Modulation",
-          "sub_topics": [
-          "Line coding - Unipolar, Polar and Bipolar signaling",
-          "Digital Modulation Techniques - Amplitude, Frequency, and Phase Shift Keying",
-          "Analog to Digital Conversion - Pulse Code and Delta Modulation",
-          "Analog Modulation Techniques - Amplitude, Frequency, and Phase Modulation",
-          "Multilevel Modulation- QPSK, QAM",
-          "Introduction to Modem"
-        ],
-          "hours": "9 hrs"
-        }
-      ]
-    },
-    "Calculus II (3-2-0)": {
-      "credits": "3-2-0",
+    "Calculus I (3-1-0)": {
+      "credits": "3-1-0",
+      "Semester": "1",
       "units": [
         {
           "unit": "Unit I",
-          "title": "Multiple Integrals",
+          "title": "Limit Continuity and Derivatives",
           "sub_topics": [
-          "Introduction",
-          "Double integrals in Cartesian and polar form, Fubini's theorem (statement only), change of order of integration, change of variable from in double integral Jacobian matrix and reduction into Polar",
-          "Triple integrals in Cartesian form and Dirichlet's Integral, use of cylindrical and spherical coordinates to evaluate triple integral",
-          "Application of double and triple integrals to find Area and volume"
-        ],
+            "1.1 Introduction",
+            " 1.2 Limit, continuity and differentiability",
+            "Higher order derivatives by Leibnitz method"
+          ],
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "Applications of Derivatives",
+          "sub_topics": [
+            "2.1 Mean value theorems: Rolle's theorem, Lagrange's Theorem (Geometrical interpretation and verification) and applications",
+            "2.2 Higher order mean value theorem: Taylor's Series, Maclaurin's Series expansion of function",
+            "2.3 Asymptotes to Cartesian curves up to four degrees",
+            "2.4 Curve tracing in Cartesian form and parametric form",
+            "2.5 Curvature"
+          ],
+          "hours": "8 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Integral Calculus",
+          "sub_topics": [
+            "3.1 Introduction",
+            "3.2 Review on Indefinite Integral and fundamental theorem of integral calculus",
+            "3.3 Definite integral and its properties",
+            "3.4 Improper Integrals; comparison test",
+            "3.5 Reduction formula, Beta Gamma functions"
+          ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Application of Integral",
+          "sub_topics": [
+            "4.1 Application of integrals for finding area beneath a curve and between two curves and arc length",
+            "4.2 Surface and volume of solid of revolution in the plane for Cartesian and parametric curves"
+          ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit V",
+          "title": "Partial Differentiation",
+          "sub_topics": [
+            "5.1 Introduction",
+            "5.2 Partial Derivatives",
+            "5.3 Homogeneous function and Euler's theorem for the function of two and three variables",
+            "5.4 Total Derivatives and Differentiation of Implicit functions"
+          ],
+          "hours": "3 hrs"
+        },
+        {
+          "unit": "Unit VI",
+          "title": "Application of Partial Differentiation",
+          "sub_topics": [
+            "6.1 Extrema of functions of two and three variables",
+            "6.2 Lagrange's method of undetermined Multipliers (up to 2 multipliers)"
+          ],
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit VII",
+          "title": "First Order Ordinary Differential Equations",
+          "sub_topics": [
+            "7.1 Review of separable, homogeneous and exact differential equation with engineering applications",
+            "7.2 Linear, Bernoulli equation and Riccati's equation with engineering application",
+            "7.3 Mathematical modeling of engineering problems using first order equation"
+          ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit VIII",
+          "title": "Second Order Ordinary Differential Equations",
+          "sub_topics": [
+            "8.1 Second order Homogeneous ODE with constant and variable coefficients, Euler-Cauchy equation",
+            "8.2 Existence and uniqueness of solutions, Wronskian and general solutions for solving ODE",
+            "8.3 Non-homogeneous second order ODE and Solution by undetermined coefficients and variation of parameters and engineering application"
+          ],
+          "hours": "7 hrs"
+        }
+      ]
+    },
+    "Basic Electrical Engineering (3-1-2)": {
+      "credits": "3-1-2",
+      "Semester": "1",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Introduction",
+          "sub_topics": [
+            "1.1 Role of electricity in modern society",
+            "1.2 Energy sources and production",
+            "1.3 Alphabets and language",
+            "1.4 Consumption of electricity"
+          ],
+          "hours": "2 hrs"
+        },
+        {
+          "unit": "Unit II",
+          "title": "DC Circuit Analysis",
+          "sub_topics": [
+            "2.1 Circuits concepts (lumped and distributed parameters), linear and nonlinear parameter, passive and active circuits",
+            "2.2 Circuit elements (Resistance, capacitance and inductance), their properties and characteristics",
+            "2.3 Color coding, Series of parallel compilation of resistances, Equivalent resistance, star-delta transformation",
+            "2.4 Concept of power, energy and its calculations",
+            "2.5 Short and open circuit",
+            "2.6 Ideal and non-ideal sources, source conversion",
+            "2.7 Voltage divider and current divider formula",
+            "2.8 Kirchhoff's current and voltage laws",
+            "2.9 Nodal method and mesh method of network analysis (without dependent source)",
+            "2.10 Network theorem (Superposition, Thevenin's, Norton's, maximum power transfer theorem)"
+          ],
+          "hours": "15 hrs"
+        },
+        {
+          "unit": "Unit III",
+          "title": "Single Phase AC Circuits Analysis",
+          "sub_topics": [
+            "3.1 Generation of EMF by electromagnetic induction, Generation of alternating voltage",
+            "3.2 Sinusoidal functions-terminology (phase, phase angle, amplitude, frequency, peak to peak value), average values and RMS or effective value",
+            "3.3 Phase algebra, power triangle, impedance triangle, steady state response of circuits (RL, RC, RLC series and parallel)",
+            "3.4 Instantaneous power, average real power, reactive power, power factor and significance",
+            "3.5 Resonance in series and parallel RLC circuit, bandwidth, effect of Q factor"
+          ],
+          "hours": "10 hrs"
+        },
+        {
+          "unit": "Unit IV",
+          "title": "Poly-phase AC Circuit Analysis",
+          "sub_topics": [
+            "4.1 Application of integrals for finding area beneath a curve and between two curves and arc length",
+            "4.2 Differences between single phase and three phase system",
+            "4.3 Star and delta connected supply and load circuits, Line and phase voltage/current relations",
+            "4.4 Concept of three phase power and its measurement by single and two wattmeter methods"
+          ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit V",
+          "title": "Electrical Machines",
+          "sub_topics": [
+            "5.1 Differences and similarities between electric circuit and magnetic circuit",
+            "5.2 Transformers: Principle of operations, features, equivalent circuits, efficiency & regulation, open circuit & short circuit tests",
+            "5.3 DC generator: Construction features, working principles, basic characteristics",
+            "5.4 DC motors: Performance & operation, basic characteristics, speed control & selection of motors",
+            "5.5 AC machines: Single phase and three phase induction motors (working principles, construction features and uses)"
+          ],
+          "hours": "12 hrs"
+        }
+      ]
+    },
+    "Communication Techniques (2-2-0)": {
+      "credits": "3-0-0",
+      "Semester": "1",
+      "units": [
+        {
+          "unit": "Unit 1",
+          "title": "Audience, Ethics, and Research",
+          "sub_topics": [
+            "Thinking about audience, purpose, and genre",
+            "Leading and misleading the reader: ethics at work, ethics for students",
+            "How is ethics related to technical communication?",
+            "Researching technical subjects"
+          ],
+          "hours": "Not specified"
+        },
+        {
+          "unit": "Unit 2",
+          "title": "Workplace Writing and Style",
+          "sub_topics": [
+            "Writing email and letters for the workplace: informative, positive, negative, persuasive",
+            "How is ethics related to technical communication",
+            "Writing technical prose: clarity, cohesion, conciseness, parallelism"
+          ],
+          "hours": "Not specified"
+        },
+        {
+          "unit": "Unit 3",
+          "title": "Document Design and Visuals",
+          "sub_topics": [
+            "Designing documents and page layout",
+            "Communicating through visuals"
+          ],
+          "hours": "Not specified"
+        },
+        {
+          "unit": "Unit 4",
+          "title": "Proposals and Instructional Documents",
+          "sub_topics": [
+            "Writing winning proposals",
+            "Writing how-to documents: instructions, procedures, and manuals"
+          ],
+          "hours": "Not specified"
+        },
+        {
+          "unit": "Unit 5",
+          "title": "Usability Testing",
+          "sub_topics": [
+            "Testing instructional documents",
+            "Testing and reporting document usability"
+          ],
+          "hours": "Not specified"
+        },
+        {
+          "unit": "Unit 6",
+          "title": "Reporting Information and Online Access",
+          "sub_topics": [
+            "Reporting technical information: white papers or information reports",
+            "Taking technical communication online: sharing documents electronically"
+          ],
+          "hours": "Not specified"
+        },
+        {
+          "unit": "Unit 7",
+          "title": "Online Documents and Progress Reports",
+          "sub_topics": [
+            "Taking technical communication online: writing online documents",
+            "Reporting technical information: status or progress reports"
+          ],
+          "hours": "Not specified"
+        },
+        {
+          "unit": "Unit 8",
+          "title": "Oral Presentations",
+          "sub_topics": [
+            "Oral presentation of technical reports",
+            "Student presentations of major project"
+          ],
+          "hours": "Not specified"
+        }
+      ]
+    },
+    "Programming in C (3-1-3)": {
+      "credits": "3-1-3",
+      "Semester": "1",
+      "units": [
+        {
+          "unit": "Unit I",
+          "title": "Programming Languages and Problem Solving",
+          "sub_topics": [
+            "1.1 Programming Languages: machine-level, assembly, high-level",
+            "1.2 Software and its types",
+            "1.3 Generations of programming languages",
+            "1.4 Structured programming",
+            "1.5 Problem solving using computer: Problem Analysis (feasibility, requirement), Design (Algorithm, flowchart), Coding (compilation/interpretation, execution)"
+          ],
           "hours": "6 hrs"
         },
         {
           "unit": "Unit II",
-          "title": "Series Solution of Differential Equations and Special Functions",
+          "title": "Introduction to C",
           "sub_topics": [
-          "Power series method of solution of differential equations",
-          "Legendre's Equation, Legendre's polynomials P_n(x) of x. Graph of P_1(x), P_2(x), P_3(x)",
-          "Frobenius method. Bessel's equation, Bessel's function J_v(x) and its properties. Graph of J_v(x) for v=1 2"
-        ],
+            "2.1 History of C language",
+            "2.2 Features of C",
+            "2.3 Operators and Expressions",
+            "2.4 Input/output statements",
+            "2.5 Decision making and branching (if, if-else, nested, switch)",
+            "2.6 Looping (for, while, do-while)",
+            "2.7 Keywords and Identifiers",
+            "2.8 Constants and Variables and their Declaration",
+            "2.9 Formatted Input and Output",
+            "2.10 The C operators"
+          ],
           "hours": "6 hrs"
         },
         {
           "unit": "Unit III",
-          "title": "Laplace Transform and Its Application",
+          "title": "Control Structures",
           "sub_topics": [
-          "Laplace Transform (LT), Inverse LT, Linearity of LT, LT of elementary functions, inverses and first shifting (shifting) theorem. Existence theorem of Laplace transform (without proof) and uniqueness",
-          "Transform of Derivative and Integrals of a function",
-          "Differentiation and Integration of Laplace transform",
-          "Unit step function, periodic function and LT, second shifting (t-shifting) theorem",
-          "Convolution theorem and its application to find inverse",
-          "Application of Laplace transform to find the solutions of ordinary differential equations (IVP)"
-        ],
-          "hours": "8 hrs"
+            "3.1 Introduction and types of control statements-sequential, branching and looping statements",
+            "3.2 Branching statements- simple if statement, if-else, nested if, if-else-if ladder and switchstatement",
+            "3.3 Looping statements- for loop, while loop, do-while loop, nested loops",
+            "3.4 The break and continue statements"
+          ],
+          "hours": "6 hrs"
         },
         {
           "unit": "Unit IV",
-          "title": "Advanced Vector Calculus",
+          "title": "Arrays and Strings",
           "sub_topics": [
-          "Differentiation of vector function of scalar variable",
-          "Point functions, Gradient, directional derivative, divergence and curl with properties (without proof)",
-          "Line integral with physical interpretation and evaluation of line integrals on various path",
-          "Line integral, potential function and independence of path",
-          "Green's theorem in plane (without proof) and its various applications",
-          "Surface integral and evaluation of surface integrals",
-          "Stoke's theorem (without proof) and its applications",
-          "Gauss Divergence theorem (without proof) and its applications"
-        ],
-          "hours": "15 hrs"
+            "4.1 Application of integrals for finding area beneath a curve and between two curves and arc length",
+            "4.2 One and Two dimensional arrays",
+            "4.3 Initialization of arrays",
+            "4.4 Strings - the character array",
+            "4.5 Functions related to strings"
+          ],
+          "hours": "6 hrs"
         },
         {
           "unit": "Unit V",
-          "title": "Fourier Series",
+          "title": "Functions",
           "sub_topics": [
-          "Periodic Functions, odd and even functions",
-          "Fourier series of 2 π periodic functions in the interval (α, α + 2 π)",
-          "Fourier series of 2 1 periodic functions",
-          "Fourier series of odd and even functions, sine and cosine series"
-        ],
-          "hours": "5 hrs"
+            "5.1 Introduction to functions",
+            "5.2 Importance of Functions",
+            "5.3 Returning a value from a function and sending avalue to a funct",
+            "5.4 Function prototype",
+            "5.5 Call by value and call by reference",
+            "5.6 Recursive functions and their applications",
+            "5.7 Passing array to a function",
+            "5.8 Local variables, formal parameters and global",
+            "5.9 Storage classes",
+            "5.10 Preprocessor directives C libraries , macros and header files"
+          ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit VI",
+          "title": "Pointers",
+          "sub_topics": [
+            "6.1 Introduction",
+            "6.2 Pointer operators",
+            "6.3 Display Interfacing: LCD, and Seven Segment Displays",
+            "6.4 Returning multiple values from functions using pointers",
+            "6.5 Pointers and Arrays",
+            "6.6 Double indirection",
+            "6.7 Dynamic memory allocation"
+          ],
+          "hours": "6 hrs"
         },
         {
           "unit": "Unit VII",
-          "title": "Partial Differential Equations","sub_topics": [
-          "Introduction",
-          "Linear constant coefficient equation",
-          "Applications in conservation laws, the breaking time, shock waves, nonlinear advection equations, and traffic flow"
-        ],
+          "title": "Structure and Union",
+          "sub_topics": [
+            "7.1 Definition of Structure",
+            "7.2 Architecture of Expert Systems",
+            "7.3 Array of Structure",
+            "7.4 Structures and Pointers",
+            "7.5 Union",
+            "7.6 Self-referential structure"
+          ],
           "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit VIII",
+          "title": "Files and File Handling",
+          "sub_topics": [
+            "8.1 FILE pointer, File opening modes (read, write, append)",
+            "8.2 File handling functions",
+            "8.3 Creating and operating a file in different modes"
+          ],
+          "hours": "4 hrs"
         }
       ]
     },
-    "Computer Graphics (3-1-2)": {
+    "Electronic Device and Circuit (3-1-2)": {
       "credits": "3-1-2",
+      "Semester": "1",
       "units": [
         {
-          "unit": "Unit 1",
-          "title": "Overview of Computer Graphics and Graphics Systems",
+          "unit": "Unit I",
+          "title": "Semiconductor diode",
           "sub_topics": [
-          "Introduction, Applications and Recent trends of Computer Graphics",
-          "Interactive Input Devices",
-          "Display Devices, Color Monitors, Hard Copy Devices",
-          "Raster and Random Scan Systems and Architectures",
-          "Video Controller",
-          "Use of Digital to Analog Converter and Frame Buffer Organization",
-          "Graphics Software, Modern Graphics Hardware (GPU)"
-        ],
-
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Unit 2",
-          "title": "Scan Conversion Algorithms",
-          "sub_topics": [
-          "Scan Conversion",
-          "Line Drawing Algorithms: Digital Differential Analyzer, Bresenham's Algorithm",
-          "Circle Generation Algorithm",
-          "Ellipse Generation Algorithm",
-          "Filled Area Primitives: Scan Line Polygon Fill Algorithm, Boundary Fill Algorithm, Flood Fill Algorithm"
-        ],
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Unit 3",
-          "title": "Two Dimensional Geometric Transformations and Viewing",
-           "sub_topics": [
-          "Two Dimensional Transformations: Translation, Rotation, Scaling, Shearing, Reflection",
-          "Matrix Representations of Transformations",
-          "Homogeneous Coordinate System",
-          "Composite Transformations",
-          "Windowing Concepts, Two Dimensional Viewing Pipeline",
-          "Window to Viewport Transformation",
-          "Line Clipping Algorithm: Cohen-Sutherland",
-          "Polygon Clipping: Sutherland-Hodgeman"
-        ],
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Unit 4",
-          "title": "Graphics in Three Dimensions",
-          "sub_topics": [
-          "Three Dimensional Coordinate Systems",
-          "Three Dimensional Transformations: Translation, Rotation, Scaling, Reflection",
-          "Three Dimensional Representations: Polygon Surfaces, Cubic Spline and Beizer Curve, Non-Planer Surface: Beizer Surface, Fractal Geometry Method",
-          "Three Dimensional Viewing Transformation and Pipeline",
-          "Projections: Parallel Projection, Perspective Projection",
-          "Clipping in Three Dimensions"
-        ],
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Unit 5",
-          "title": "Visual Realism",
-          "sub_topics": [
-          "Hidden Surfaces and Hidden Surface Removal Approaches: Back-Face Detection, Depth Buffer Method, A-buffer method, Scan Line Method, Depth Sorting Method",
-          "Illumination and Shading Methods: Illumination Theory and Models (Ambient Light, Diffuse Reflection, Specular Reflection (Phong Model)), Polygon Surface Shading Methods (Constant Shading (Flat Shading), Gouraud Shading, Phong Shading, Fast Phong Shading)",
-          "Color Models: RGB, CMYK"
-        ],
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Unit 6",
-          "title": "Graphical Standards",
-          "sub_topics": [
-          "Need for Machine Independent Graphical Languages",
-          "Graphical Standards: PHIGS, GKS",
-          "Graphics Software Standards and Language Binding",
-          "Overview of Graphics File Formats",
-          "Visualization of Data Sets"
-        ],
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 7",
-          "title": "Introduction to OpenGL",
-          "sub_topics": [
-          "Overview and Basic Architecture of OpenGL",
-          "GL Related Libraries: Drawing Basic Output Primitives and Polygons, Call Back Functions and Input Handling, Basic Transformations, Projections and Lighting"
-        ],
-          "hours": "4 hrs"
-        }
-      ]
-    },
-    "Database Management System (3-1-3)": {
-      "credits": "3-1-3",
-      "units": [
-        {
-          "unit": "Unit 1",
-          "title": "Introduction",
-          "sub_topics": [
-          "Database Management System purpose and applications",
-          "Database Systems vs File Systems",
-          "View of Data-Data Abstraction (Physical, logical and view level, Data Independence)",
-          "Instances and Schemas",
-          "Database Languages (DDL, DML and DCL)",
-          "Database and Application Architecture- Database System Architecture and Database Application Architecture (two-tier and three-tier)"
-        ],
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 2",
-          "title": "ER and Relational Model",
-          "sub_topics": [
-          "Introduction to ER Model",
-          "Entity sets, attributes and values, Relationship sets-participation, entity's role, descriptive attributes, degree of relationship set, Mapping Cardinalities, Attributes-simple, composite, single-valued, multi-valued, derived, Entity-Relationship (ER) Diagram, Specialization, Generalization, and Aggregation",
-          "Key-Super key, Candidate key and Primary key, Strong and Weak Entity Sets",
-          "Introduction to Relational Model",
-          "Reducing ER diagrams to Relational Schema",
-          "Structure of Relational Databases, Database Schema, Keys, Schema Diagrams",
-          "Relational Algebra"
-        ],
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Unit 3",
-          "title": "Structured Query Language",
-          "sub_topics": [
-          "Structured Query Language (SQL)-SQL DDL and DML",
-          "Basic Structure of SQL Queries, DDL queries, Basic Operations (Rename, String, Attribute Specification in the select clause, order by, where-clause), Set Operations, Null values, Aggregate Functions",
-          "Nested Queries",
-          "Join Expressions (Natural Join, Join Conditions, Outer Joins)",
-          "Modification of Database (delete, insert into, update)",
-          "Views, Stored Procedures"
-        ],
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit 4",
-          "title": "Relational Database Design",
-          "sub_topics": [
-          "Integrity constraints- Domain Constraints, Entity Integrity Constraints, Referential Integrity Constraints, Assertions and Triggers",
-          "Features of Good Relational Designs",
-          "Functional dependencies and Armstrong's Axioms",
-          "Closure of a Set of Functional Dependencies and Closure of Attribute Sets",
-          "Database Normalization and Normal Forms- 1NF, 2NF, 3NF and BCNF",
-          "Denormalization for Performance"
-        ],
+            "1.1 Review of insulator, semiconductor and conductors",
+            "1.2 Conduction in semiconductors",
+            "1.3 Theory of p-n junction",
+            "1.4 Forward and reverse biasing of diode",
+            "1.5 Diode as a nonlinear device",
+            "1.6 Ideal and piecewise linear model of diode",
+            "1.7 The effects of temperature in V-I characteristic curves",
+            "1.8 Junction capacitances and its effects",
+            "1.9 Diode switching times",
+            "1.10 Junction breakdown",
+            "1.11 Construction, characteristics and applications of Zener diode, Schottky diode"
+          ],
           "hours": "6 hrs"
         },
         {
-          "unit": "Unit 5",
-          "title": "Security",
+          "unit": "Unit II",
+          "title": "Bi-polar Junction Transistor",
           "sub_topics": [
-          "Security and integrity violations",
-          "Access control",
-          "Authorization",
-          "Security and Views"
-        ],
-          "hours": "3 hrs"
+            "2.1 Introduction of bipolar junction transistor",
+            "2.2 Current flow mechanism in PNP and NPN transistors",
+            "2.3 Input and output characteristics of CE and CB transistor amplifiers",
+            "2.4 Reach through and punch through effects",
+            "2.5 Active, cut off, saturation modes of operations and BJT switching times",
+            "2.6 The transistor as an amplifier and switch",
+            "2.7 Comparison of CB, CE and CC configurations",
+            "2.8 BJT biasing, dc load line, ac load line and Q point",
+            "2.9 Stability factor"
+          ],
+          "hours": "6 hrs"
         },
         {
-          "unit": "Unit 6",
-          "title": "Query Processing and Optimization",
-           "sub_topics": [
-          "Introduction to Query Processing",
-          "Equivalence of Expressions",
-          "Query Cost Estimation",
-          "Query Optimization",
-          "Query evaluation and execution plan"
-        ],
+          "unit": "Unit III",
+          "title": "DC Power supply",
+          "sub_topics": [
+            "3.1 Half wave and full wave rectifiers",
+            "3.2 Average value, RMS value ripple factor of half and full wave rectifiers",
+            "3.3 Filtering process: Shunt capacitor, LC filter and pi filter",
+            "3.4 Series, Shunt and biased clipper circuits",
+            "3.5 Clamping circuits",
+            "3.6 Regulated and unregulated power supplies",
+            "3.7 Transistor series and transistor shunt regulators"
+          ],
           "hours": "5 hrs"
         },
         {
-          "unit": "Unit 7",
-          "title": "Storage Management and Indexing",
+          "unit": "Unit IV",
+          "title": "The Field Effect Transistor (FET)",
           "sub_topics": [
-          "File Organization- fixed length records, variable length records",
-          "Organization of Records in File- Heap, Sequential and Indexed sequential file organizations",
-          "B+ Tree Index Files",
-          "Hash Indices"
-        ],
-          "hours": "3 hrs"
+            "4.1 Comparison between FET and BJT",
+            "4.2 Construction and working principle of JFET",
+            "4.3 Biasing and load line",
+            "4.4 Drain and transfer characteristics of JFET and JFET parameters",
+            "4.5 Construction and working principles of DMOSFET and EMOSFET"
+          ],
+          "hours": "5 hrs"
         },
         {
-          "unit": "Unit 8",
-          "title": "Transactions and Concurrency Control",
+          "unit": "Unit V",
+          "title": "Small Signal Low Frequency Analysis Model of BJT",
           "sub_topics": [
-          "Transaction Concepts",
-          "Transaction Model and State Diagram",
-          "ACID properties of transaction",
-          "Serializability- conflict and view serializability",
-          "SQL Standard Isolation Levels",
-          "Concurrency Control- Lock-Based Protocols and Graph-Based Protocols"
-        ],
+            "5.1 Low frequency hybrid model",
+            "5.2 Transistor configurations and their hybrid model",
+            "5.3 Low frequency re model, amplifier configuration for voltage gain, current gain, input and output impedance",
+            "5.4 Analysis of transistor amplifier circuit using re model",
+            "5.5 Emitter follower"
+          ],
+          "hours": "5 hrs"
+        },
+        {
+          "unit": "Unit VI",
+          "title": "Multistage Amplifiers",
+          "sub_topics": [
+            "6.1 Multistage amplifier and Gain calculation of n-stages cascaded amplifiers",
+            "6.2 Methods of coupling",
+            "6.3 Expression of voltage gains, Current gains, input and output impedance for two stages RC coupled amplifier",
+            "6.4 Choice of configuration in a cascade",
+            "6.5 Darlington-pair amplifier and its effective beta"
+          ],
           "hours": "4 hrs"
         },
         {
-          "unit": "Unit 9",
-          "title": "Crash Recovery",
+          "unit": "Unit VII",
+          "title": "Large Signal Amplifiers",
           "sub_topics": [
-          "Failure classification",
-          "Recovery and Atomicity-log records, database modification, concurrency control and recovery, transaction commit, Redo and Undo Transactions using Log, Check Points",
-          "Recovery Algorithm Using Log Records-Transaction Rollback, Recovery After a System Crash, Optimizing Commit Processing",
-          "High Availability Using Remote Backup System"
-        ],
+            "7.1 Analysis of large signal model",
+            "7.2 Class A, B, AB and Class C amplifiers",
+            "7.3 Push-pull amplifiers",
+            "7.4 Cross over distortion",
+            "7.5 Transformer coupled push-pull stages",
+            "7.6 Amplifier efficiency, power dissipation and heat sinks"
+          ],
+          "hours": "4 hrs"
+        },
+        {
+          "unit": "Unit VIII",
+          "title": "Feedback Amplifiers",
+          "sub_topics": [
+            "8.1 Negative feedback amplifiers and advantages",
+            "8.2 Gain stability, extension of bandwidth",
+            "8.3 Importance of positive feedback on oscillation"
+          ],
           "hours": "3 hrs"
         },
         {
-          "unit": "Unit 10",
-          "title": "Emerging Trend in Databases",
+          "unit": "Unit IX",
+          "title": "Operational Amplifier and Oscillator",
           "sub_topics": [
-          "NoSQL Databases-Characteristics, Categories, Advantages",
-          "Object Oriented Database and ORM",
-          "Distributed Databases-",
-          "Distributed Ledger Technology: Blockchain, Cryptocurrency, Blockchain Properties"
-        ],
-          "hours": "4 hrs"
+            "Basic Model",
+            "9.1 Ideal and non-ideal properties",
+            "9.2 Virtual ground concept, offset voltage, input bias current, slew rate and CMRR",
+            "9.3 Inverting and non-inverting amplifier",
+            "9.4 Integrator, differentiator and summing amplifier and their applications",
+            "9.5 Astable and monostable multivibrators",
+            "9.6 Barkhausen criteria for oscillation",
+            "9.7 RC phase shift and Wein bridge oscillator using Op-amp"
+          ],
+          "hours": "7 hrs"
         }
       ]
     },
-    "Operating Systems (3-1-2)": {
+    "Digital Logic (3-1-2)": {
       "credits": "3-1-2",
+      "Semester": "1",
       "units": [
         {
           "unit": "Unit 1",
           "title": "Introduction",
-           "sub_topics": [
-          "Concept and function of operating systems",
-          "Operating systems concept and functionality - Processes, Files, System Calls, The Shell",
-          "Operating System Structure - Monolithic System, Layered, Virtual Machines, Client-server. Microkernel and exokernel",
-          "Types and Evolution of Operating Systems"
-        ],
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 2",
-          "title": "Processes and Threads",
           "sub_topics": [
-          "Process: Definition, states and transition diagram, Process control block (PCB), Concurrent and Parallel processes",
-          "Interprocess Communication and Synchronization: Introduction, Race Condition, Critical Regions and condition, Avoiding critical region, Mutual exclusion conditions, mutual exclusion (disabling interrupts, lock variable, strict alteration (Dekker's algorithms, Peterson's algorithms), The TSL instruction, sleep and wakeup, producer and consumer problem), Types of mutual exclusion (Semaphore, Monitors, Bounded buffer, Message passing), Classical IPC Problems (The Dining Philosophers problem, The Readers and Writers problem, The Sleeping Barber Problem), Serializability: Locking Protocols and Time Stamp Protocols",
-          "Process Scheduling: Basic Concept, Type of scheduling (Preemptive scheduling, Non-preemptive scheduling, Batch, Interactive, Real time scheduling), Scheduling criteria and performance analysis, scheduling algorithm with examples (First come first served, Shortest-job-first, Round-robin, Shortest process next, Shortest remaining time next, Real time, Priority fair share, guaranteed, Lottery scheduling)",
-          "Threads: Definitions of Threads, Types of thread process (Single and multithreaded process), Benefits of Multithreading, Threads Models (Many-to-one model, One-to-one Model, Many-to-many model), User Space and Kernel Space Threads, Difference between Processes and Threads"
-        ],
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Unit 3",
-          "title": "Memory Management",
-          "sub_topics": [
-          "Storage organization, Memory hierarchy",
-          "Storage allocation, Contiguous verses non-contiguous store allocation, logical and physical memory",
-          "Fragmentation, fixed partition and variable partition for multiprogramming, Logical versus physical address space",
-          "Relocation and Protection",
-          "Memory management with swapping: Memory management with bitmaps and linked list, Memory management without swapping",
-          "Contiguous-memory allocation: memory protection, memory allocation, Fragmentation (Inter fragmentation and external fragmentation)",
-          "Paging, Structure of page table: Hierarchical page table, Hashed page table, Inverted page table, Shared page table",
-          "Virtual memory- Introduction, Paging, Page Table, Block mapping, Direct mapping, Translation Look Aside Buffers) Demand paging, Thrashing",
-          "Page replacement, Page replacement algorithms: First-in-first-out, Not recently used, Optimal page replacement, Second chance page replacement, Least Recently used, Clock page replacement, Working set page replacement, WS clock page replacement",
-          "Segmentation, Segmentation with paging",
-          "Coalescing and Compaction"
-        ],
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Unit 4",
-          "title": "Kernel",
-          "sub_topics": [
-          "Introduction, Architecture of the Kernel, Types of Kernels",
-          "Context Switching (Kernel and User mode), Kernel implementation processes"
-        ],
+            "1.1 Analog and digital signal",
+            "1.2 Analog and digital system",
+            "1.3 Numerical representation",
+            "1.4 Digital number system"
+          ],
           "hours": "2 hrs"
         },
         {
-          "unit": "Unit 5",
-          "title": "Input/Output Management",
-          "sub_topics": [
-          "Introduction, Interrupts Handlers",
-          "Principles of I/O Hardware (I/O Device, Device Controller, Memory Mapped I/O, Direct Memory Access)",
-          "Principles of I/O Software (Goals of I/O Software, Polled I/O verses Interrupt Driven I/O, Character User Interface and Graphical User Interface, Device Driver, Device Independent I/O Software, User-space I/O Software",
-          "System Resources: Preemptable and Non-preempable, Method of handling Deadlocks, Deadlock prevention",
-          "Deadlock avoidance: Banker's Algorithm, Deadlock detection: Resource allocation graph, Recovery from Deadlock",
-          "Redundant Array of Inexpensive Disks",
-          "RAM Disks"
-        ],
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit 6",
-          "title": "File Systems",
-          "sub_topics": [
-          "File and File Organization (Blocking and Buffering, File Descriptor, file Naming, File Structure, File Types, File Attributes, File Operations, File Access Methods)",
-          "Directories Management (Single-level directory systems, Hierarchical Directory systems, Path names, Directory operation)",
-          "Access Methods: Sequential, Direct, other access methods, Protection: Types of access, Access Control List",
-          "File System Implementation: Contiguous allocation, Linked list allocation, linked list allocation using an Index nodes",
-          "Security and Multi-media files"
-        ],
-          "hours": "3 hrs"
-        },
-        {
-          "unit": "Unit 7",
-          "title": "New Trends in Operating System",
-          "sub_topics": [
-          "Concept, character and role of Real-time Operating System, Distributed Operating System, Cloud Operating System, Mobile Operating System",
-          "Security issues and method of deployment",
-          "Memory wall and bottleneck for Operating system"
-        ],
-          "hours": "11 hrs"
-        }
-      ]
-    },
-    "Microprocessor and ALP (3-1-2)": {
-      "credits": "3-1-2",
-      "units": [
-        {
-          "unit": "Unit 1",
-          "title": "Introduction to Microprocessor",
-          "sub_topics": [
-          "Microcomputer System",
-          "Microprocessor Operations: Microprocessor initiated operations, Internal operations, Peripheral initiated operations",
-          "Evolution of Microprocessor",
-          "Microcontroller and Microcontroller",
-          "Von Neumann and Harvard Architecture",
-          "Concept of Instruction Execution Cycle"
-        ],
-          "hours": "4 hrs"
-        },
-        {
           "unit": "Unit 2",
-          "title": "8085 Microprocessor Architecture",
+          "title": "Number Systems and Codes",
           "sub_topics": [
-          "Internal Architecture and features of 8085 Microprocessor",
-          "Addressing Modes of 8085 and its types",
-          "Instruction Cycle, Machine Cycle and T-State",
-          "Timing Diagram: Opcode fetch Cycle, Memory Read Cycle, Memory Write Cycle, I/O Read Cycle, I/O Write Cycle"
-        ],
+            "2.1 Number systems: Decimal, Binary, Octal, Hexadecimal",
+            "2.2 Number system conversion",
+            "2.3 Complements (radix and diminished-radix)",
+            "2.4 Subtraction using complements",
+            "2.5 Binary coding systems:2.5.1 Weighted codes (BCD, 8 4 -2 -1, 2 4 2 1), 2.5.2 Non-weighted codes (Excess-3 and Gray)",
+            "2.6 Alphanumeric and instruction codes"
+          ],
           "hours": "6 hrs"
         },
         {
           "unit": "Unit 3",
-          "title": "Programming of 8085 Microprocessor",
+          "title": "Boolean Algebra and Logic Gates",
           "sub_topics": [
-          "Intel 8085 Instruction Set",
-          "Classification of Intel 8085 Instruction: Data Transfer Instruction, Arithmetic Instruction, Logical Instruction, Branching Instruction, Stack, I/O and Machine control Instruction",
-          "Assembly Language Program: Format of an Assembly Language Instruction, Simple Programs with Arithmetic and Logical Operations, Conditions and Loops"
-        ],
-          "hours": "5 hrs"
+            "3.1 Boolean algebra (definition, properties, postulates and theorems)",
+            "3.2 Logic gates, truth tables and Boolean function",
+            "3.3 Duality principle and complements",
+            "3.4 Gate implementation",
+            "3.5 Universality of NAND and NOR gates"
+          ],
+          "hours": "4 hrs"
         },
         {
           "unit": "Unit 4",
-          "title": "8086 Microprocessor Architectural Details and Programming",
-           "sub_topics": [
-          "Internal Architecture and features of 8086 Microprocessor: BIU and EU, Memory Segmentation, Segment and Offset Address",
-          "Intel 8086 Instruction Set",
-          "Classification of Intel 8085 Instruction: Data Transfer Instruction, Arithmetic Instruction, Logical Instruction, Branching Instruction, String manipulation Instruction, Machine control Instruction",
-          "Addressing Modes of 8086 and its types",
-          "Assembly Language program: Format of an assembly language Instruction, ALP Development Tools, Assembler Directives, DOS Interrupt function(Keyboard and display services), Simple Programs for Arithmetic, Logical, String Input/Output, Conditions and Loops, Stacks Procedures, Macros program design"
-        ],
-          "hours": "10 hrs"
+          "title": "Simplification of Boolean Function",
+          "sub_topics": [
+            "4.1 Venn diagram",
+            "4.2 Canonical forms and standard forms",
+            "4.3 Karnaugh map up to 5 variables",
+            "4.4 Minimum realization",
+            "4.5 Don't care conditions",
+            "4.6 Simplification in SOP and POS using K-map"
+          ],
+          "hours": "5 hrs"
         },
         {
           "unit": "Unit 5",
-          "title": "Bus Structure, Memory, I/O and Interfacing",
-           "sub_topics": [
-          "Bus Structure: Synchronous Bus, Asynchronous Bus",
-          "Memory Device Classification and Hierarchy",
-          "Interfacing I/O and Memory: Address Decoding, Unique and Non-Unique Address Decoding, I/O Mapped I/O and Memory mapped I/O, I/O Address Decoding (8085), Memory Address Decoding (8085)",
-          "Parallel Interface: Modes: Simple I/O, Strobe I/O, Single Handshaking and Double Handshaking, Programmable Peripheral Interface (PPI): Architecture of Intel (8255-PPI)",
-          "Serial Interface: Synchronous and Asynchronous Transmission, Programmable Communication Interface: USART (8251)",
-          "DMA and Intel 8237A DMA Controller"
-        ],
-          "hours": "12 hrs"
+          "title": "Combinational Circuit",
+          "sub_topics": [
+            "5.1 Design procedure",
+            "5.2 Adder and subtractor",
+            "5.3 Code conversion",
+            "5.4 Analysis procedure",
+            "5.5 NAND and NOR implementation",
+            "5.6 Multilevel NAND and NOR gates",
+            "5.7 Parity generator and checker"
+          ],
+          "hours": "4 hrs"
         },
         {
           "unit": "Unit 6",
-          "title": "Interrupt Operation",
-           "sub_topics": [
-          "Interrupt, sources of interrupt and its Classification",
-          "Interrupt Processing Sequence in 8085/8086",
-          "Interrupt Instruction: Interrupts pins and priorities, Interrupt Service procedure, Interrupt Vector Table, Multiple Interrupt Handling (Polled and Vectored interrupt)",
-          "Programmable Interrupt Controller (PIC) Intel (8259) and its Architecture"
-        ],
-          "hours": "8 hrs"
+          "title": "MSI and LSI Design",
+          "sub_topics": [
+            "6.1 Introduction to Integration technology",
+            "6.2 Parallel adder and subtractor",
+            "6.3 Decimal / BCD adder",
+            "6.4 Magnitude comparator",
+            "6.5 Multiplexer and demultiplexer",
+            "6.6 Encoder and Decoder",
+            "6.7 ROM and PLA"
+          ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 7",
+          "title": "Sequential Circuits",
+          "sub_topics": [
+            "7.1 Synchronous and asynchronous logic",
+            "7.2 Differences between Latch and flip-flop, Flip flops (RS, JK, D, T) and their truth table, excitation table and characteristic equation",
+            "7.3 Triggering of flip flops",
+            "7.4 State diagram and state table",
+            "7.5 State reduction and binary assignment",
+            "7.6 Design and analysis of clocked sequential circuit",
+            "7.7 Master-slave flip flops"
+          ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 8",
+          "title": "Registers and Counters",
+          "sub_topics": [
+            "8.1 Register, shift register and types of Shift register",
+            "8.2 Synchronous counters: up to 4-bit counters",
+            "8.3 Asynchronous counters: BCD ripple counter, Mod counter",
+            "8.4 Ring counter",
+            "8.5 Output hazard race"
+          ],
+          "hours": "6 hrs"
+        },
+        {
+          "unit": "Unit 9",
+          "title": "Memory Unit and ALU",
+          "sub_topics": [
+            "9.1 Random access memory",
+            "9.2 Design of arithmetic logic unit",
+            "9.3 Accumulator",
+            "9.4 Shifter and status register",
+            "9.5 Processor unit"
+          ],
+          "hours": "6 hrs"
         }
       ]
-    },
-    "Object Oriented Programming in C++ (3-1-3)": {
+    }
+  },
+  "Data Communication (3-0-2)": {
+    "credits": "3-0-2",
+    "Semester": "3",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction",
+        "sub_topics": [
+          "1.1 Evolution of Data Communication systems",
+          "1.2 Analog and Digital Data Transmission, Data Communication Terminology",
+          "1.3 Standards Organizations, Applications"
+        ],
+        "hours": "2 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Data Transmission",
+        "sub_topics": [
+          "2.1 Data Transmission Techniques - Parallel Transmission, Serial Transmission (Synchronous, Asynchronous and Isochronous Communication), Modes of Data Transmission",
+          "2.2 Line Configuration, Bit Rate/ Baud rate, Transmission Channel, Data Rate Limits - Shannon Capacity Theorem and Nyquist Bit Rate, RS-232C (DTE-DCE, DTE-DTE)"
+        ],
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Signals and Systems",
+        "sub_topics": [
+          "3.1 Signals and their classification: Periodic and non-periodic signals; Deterministic and Random signals; Energy and Power signals; Continuous and Discrete time signals",
+          "3.2 Basic Elementary Signals - Unit Step Signal, Ramp Signal, Impulse Signal, Sinusoidal Signal, Signum Signal",
+          "3.3 System - Continuous and Discrete time system",
+          "3.4 Basic system properties: Linearity, Causality, Stability, Static & Dynamic, and Time Invariance, Introduction to LTI System"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Overview of Data Communication Networking and Protocols",
+        "sub_topics": [
+          "4.1 Network Types, Topology",
+          "4.2 OSI layers and Functions, TCP/IP layer, Local Area Networks (LAN) Architecture, LLC/MAC & Routing",
+          "4.3 IEEE Standards, Ethernet (Aloha, CSMA), Wide Area Networks (WAN): X.25, Frame Relay, ATM"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Transmission Media",
+        "sub_topics": [
+          "5.1 Electromagnetic Spectrum for Telecommunication",
+          "5.2 Type of Propagation",
+          "5.3 Guided Transmission Media: Twisted Pair Cable, Coaxial Cable, Optical Fiber, Characteristics of Unguided Communication Bands, Antennas",
+          "5.4 Unguided Transmission Media: Terrestrial Microwave, Satellite Communication, VSAT, and Cellular Telephony"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Impairments, Error Handling and Compression Techniques",
+        "sub_topics": [
+          "6.1 Attenuation & Distortion, Delay Distortion, Noise & Types, interference, crosstalk",
+          "6.2 Types of error & its Detection and Correction Methods",
+          "6.3 Data Compression, Lossless Compression - Run Length Coding, Dictionary Coding and Huffman Coding",
+          "6.4 Lossy Compression - Predictive Coding and Transform Coding"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "Data Link Control and Protocol",
+        "sub_topics": [
+          "7.1 Framing",
+          "7.2 Flow Control: Stop - & - Wait, Sliding Window, Error Control: Automatic Repeat Request (ARQ), Stop- and Wait ARQ, Sliding Window (ARQ)",
+          "7.3 HDLC protocol",
+          "7.4 Point- to- Point protocol"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 8",
+        "title": "Multiplexing & Switching",
+        "sub_topics": [
+          "8.1 Multiplexing types and Application",
+          "8.2 Multiplexing Vs Non- Multiplexing",
+          "8.3 The Telephone System: Analog services and its Hierarchy",
+          "8.4 Digital services and Hierarchy Circuit Switching, Packet Switching, Message Switching, and Private Branch Exchange"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 9",
+        "title": "Data Encoding & Modulation",
+        "sub_topics": [
+          "9.2 Line coding - Unipolar, Polar and Bipolar signaling",
+          "9.3 Digital Modulation Techniques - Amplitude, Frequency, and Phase Shift Keying",
+          "9.4 Analog to Digital Conversion - Pulse Code and Delta Modulation",
+          "9.5 Analog Modulation Techniques - Amplitude, Frequency, and Phase Modulation",
+          "9.6 Multilevel Modulation- QPSK, QAM",
+          "9.7 Introduction to Modem"
+        ],
+        "hours": "9 hrs"
+      }
+    ]
+  },
+  "Calculus II (3-2-0)": {
+    "credits": "3-2-0",
+    "Semester": "3",
+    "units": [
+      {
+        "unit": "Unit I",
+        "title": "Multiple Integrals",
+        "sub_topics": [
+          "1.1 Introduction",
+          "1.2 Double integrals in Cartesian and polar form, Fubini's theorem (statement only), change of order of integration, change of variable from in double integral Jacobian matrix and reduction into Polar",
+          "1.3 Triple integrals in Cartesian form and Dirichlet's Integral, use of cylindrical and spherical coordinates to evaluate triple integral",
+          "1.4 Application of double and triple integrals to find Area and volume"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit II",
+        "title": "Series Solution of Differential Equations and Special Functions",
+        "sub_topics": [
+          "2.1 Power series method of solution of differential equations",
+          "2.2 Legendre's Equation, Legendre's polynomials P_n(x) of x. Graph of P_1(x), P_2(x), P_3(x)",
+          "2.3 Frobenius method. Bessel's equation, Bessel's function J_v(x) and its properties. Graph of J_v(x) for v=1 2"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit III",
+        "title": "Laplace Transform and Its Application",
+        "sub_topics": [
+          "3.1 Laplace Transform (LT), Inverse LT, Linearity of LT, LT of elementary functions, inverses and first shifting (shifting) theorem. Existence theorem of Laplace transform (without proof) and uniqueness",
+          "3.2 Transform of Derivative and Integrals of a function",
+          "3.3 Differentiation and Integration of Laplace transform",
+          "3.4 Unit step function, periodic function and LT, second shifting (t-shifting) theorem",
+          "3.5 Convolution theorem and its application to find inverse",
+          "3.6 Application of Laplace transform to find the solutions of ordinary differential equations (IVP)"
+        ],
+        "hours": "8 hrs"
+      },
+      {
+        "unit": "Unit IV",
+        "title": "Advanced Vector Calculus",
+        "sub_topics": [
+          "4.1 Differentiation of vector function of scalar variable",
+          "4.2 Point functions, Gradient, directional derivative, divergence and curl with properties (without proof)",
+          "4.3 Line integral with physical interpretation and evaluation of line integrals on various path",
+          "4.4 Line integral, potential function and independence of path",
+          "4.5 Green's theorem in plane (without proof) and its various applications",
+          "4.6 Surface integral and evaluation of surface integrals",
+          "4.7 Stoke's theorem (without proof) and its applications",
+          "4.8 Gauss Divergence theorem (without proof) and its applications"
+        ],
+        "hours": "15 hrs"
+      },
+      {
+        "unit": "Unit V",
+        "title": "Fourier Series",
+        "sub_topics": [
+          "5.1 Periodic Functions, odd and even functions",
+          "5.2 Fourier series of 2 π periodic functions in the interval (α, α + 2 π)",
+          "5.3 Fourier series of 2 1 periodic functions",
+          "5.4 Fourier series of odd and even functions, sine and cosine series"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit VII",
+        "title": "Partial Differential Equations",
+        "sub_topics": [
+          "7.1 Introduction",
+          "7.2 Linear constant coefficient equation",
+          "7.3 Applications in conservation laws, the breaking time, shock waves, nonlinear advection equations, and traffic flow"
+        ],
+        "hours": "5 hrs"
+      }
+    ]
+  },
+  "Computer Graphics (3-1-2)": {
+    "credits": "3-1-2",
+    "Semester": "3",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Overview of Computer Graphics and Graphics Systems",
+        "sub_topics": [
+          "1.1 Introduction, Applications and Recent trends of Computer Graphics",
+          "1.2 Interactive Input Devices",
+          "1.3 Display Devices, Color Monitors, Hard Copy Devices",
+          "1.4 Raster and Random Scan Systems and Architectures",
+          "1.5 Video Controller",
+          "1.6 Use of Digital to Analog Converter and Frame Buffer Organization",
+          "1.7 Graphics Software, Modern Graphics Hardware (GPU)"
+        ],
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Scan Conversion Algorithms",
+        "sub_topics": [
+          "2.1 Scan Conversion",
+          "2.2 Line Drawing Algorithms: Digital Differential Analyzer, Bresenham's Algorithm",
+          "2.3 Circle Generation Algorithm",
+          "2.4 Ellipse Generation Algorithm",
+          "2.5 Filled Area Primitives: 2.5.1 Scan Line Polygon Fill Algorithm, 2.5.2 Boundary Fill Algorithm, Flood Fill Algorithm"
+        ],
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Two Dimensional Geometric Transformations and Viewing",
+        "sub_topics": [
+          "3.1 Two Dimensional Transformations: 3.1.1 Translation, Rotation, Scaling, Shearing, Reflection",
+          "3.2 Matrix Representations of Transformations",
+          "3.3 Homogeneous Coordinate System",
+          "3.4 Composite Transformations",
+          "3.5 Windowing Concepts, Two Dimensional Viewing Pipeline",
+          "3.6 Window to Viewport Transformation",
+          "3.7 Line Clipping Algorithm: Cohen-Sutherland",
+          "3.8 Polygon Clipping: Sutherland-Hodgeman"
+        ],
+        "hours": "8 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Graphics in Three Dimensions",
+        "sub_topics": [
+          "4.1 Three Dimensional Coordinate Systems",
+          "4.2 Three Dimensional Transformations: 4.2.1 Translation, 4.2.2 Rotation, 4.2.3 Scaling, 4.2.4 Reflection",
+          "4.3 Three Dimensional Representations: 4.3.1 Polygon Surfaces, 4.3.2 Cubic Spline and Beizer Curve, 4.3.3 Non-Planer Surface: Beizer Surface, 4.3.4 Fractal Geometry Method",
+          "4.4 Three Dimensional Viewing Transformation and Pipeline",
+          "4.5 Projections: Parallel Projection, Perspective Projection",
+          "4.6 Clipping in Three Dimensions"
+        ],
+        "hours": "8 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Visual Realism",
+        "sub_topics": [
+          "5.1 Hidden Surfaces and Hidden Surface Removal Approaches: 5.1.1 Back-Face Detection, 5.1.2 Depth Buffer Method, 5.1.3 A-buffer method, Scan Line Method, Depth Sorting Method",
+          "5.2 Illumination and Shading Methods: Illumination Theory and Models (Ambient Light, Diffuse Reflection, Specular Reflection (Phong Model)), Polygon Surface Shading Methods (Constant Shading (Flat Shading), Gouraud Shading, Phong Shading, Fast Phong Shading)",
+          "5.3 Color Models: 5.3.1 RGB, 5.3.2 CMYK"
+        ],
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Graphical Standards",
+        "sub_topics": [
+          "6.1 Need for Machine Independent Graphical Languages",
+          "6.2 Graphical Standards: PHIGS, GKS",
+          "6.3 Graphics Software Standards and Language Binding",
+          "6.4 Overview of Graphics File Formats",
+          "6.5 Visualization of Data Sets"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "Introduction to OpenGL",
+        "sub_topics": [
+          "7.1 Overview and Basic Architecture of OpenGL",
+          "7.2 GL Related Libraries: 7.2.1 Drawing Basic Output Primitives and Polygons, 7.2.2 Call Back Functions and Input Handling, 7.2.3 Basic Transformations, 7.2.4 Projections and Lighting"
+        ],
+        "hours": "4 hrs"
+      }
+    ]
+  },
+  "Database Management System (3-1-3)": {
     "credits": "3-1-3",
+    "Semester": "3",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction",
+        "sub_topics": [
+          "1.1 Database Management System purpose and applications",
+          "1.2 Database Systems vs File Systems",
+          "1.3 View of Data-Data Abstraction (Physical, logical and view level, Data Independence)",
+          "1.4 Instances and Schemas",
+          "1.5 Database Languages (DDL, DML and DCL)",
+          "1.6 Database and Application Architecture- Database System Architecture and Database Application Architecture (two-tier and three-tier)"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "ER and Relational Model",
+        "sub_topics": [
+          "2.1 Introduction to ER Model",
+          "2.2 Entity sets, attributes and values, Relationship sets-participation, entity's role, descriptive attributes, degree of relationship set, Mapping Cardinalities, Attributes-simple, composite, single-valued, multi-valued, derived, Entity-Relationship (ER) Diagram, Specialization, Generalization, and Aggregation",
+          "2.3 Keys-Super key, Candidate key and Primary key, Strong and Weak Entity Sets",
+          "2.4 Introduction to Relational Model",
+          "2.5 Reducing ER diagrams to Relational Schema",
+          "2.6 Structure of Relational Databases, Database Schema, Keys, Schema Diagrams",
+          "2.7 Relational Algebra"
+        ],
+        "hours": "8 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Structured Query Language",
+        "sub_topics": [
+          "3.1 Structured Query Language (SQL)-SQL DDL and DML",
+          "3.2 Basic Structure of SQL Queries, DDL queries, Basic Operations (Rename, String, Attribute Specification in the select clause, order by, where-clause), Set Operations, Null values, Aggregate Functions",
+          "3.3 Nested Queries",
+          "3.4 Join Expressions (Natural Join, Join Conditions, Outer Joins)",
+          "3.5 Modification of Database (delete, insert into, update)",
+          "3.6 Views, Stored Procedures"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Relational Database Design",
+        "sub_topics": [
+          "4.1 Application of integrals for finding area beneath a curve and between two curves and arc length",
+          "4.2 Features of Good Relational Designs",
+          "4.3 Functional dependencies and Armstrong's Axioms",
+          "4.4 Closure of a Set of Functional Dependencies and Closure of Attribute Sets",
+          "4.5 Database Normalization and Normal Forms- 1NF, 2NF, 3NF and BCNF",
+          "4.6 Denormalization for Performance"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Security",
+        "sub_topics": [
+          "5.1 Security and integrity violations",
+          "5.2 Access control",
+          "5.3 Authorization",
+          "5.4 Security and Views"
+        ],
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Query Processing and Optimization",
+        "sub_topics": [
+          "6.1 Introduction to Query Processing",
+          "6.2 Equivalence of Expressions",
+          "6.3 Query Cost Estimation",
+          "6.4 Query Optimization",
+          "6.5 Query evaluation and execution plan"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "Storage Management and Indexing",
+        "sub_topics": [
+          "7.1 File Organization- fixed length records, variable length records",
+          "7.2 Organization of Records in File- Heap, Sequential and Indexed sequential file organizations",
+          "7.3 B+ Tree Index Files",
+          "7.4 Hash Indices"
+        ],
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit 8",
+        "title": "Transactions and Concurrency Control",
+        "sub_topics": [
+          "8.1 Transaction Concepts",
+          "8.2 Transaction Model and State Diagram",
+          "8.3 ACID properties of transaction",
+          "8.4 Serializability- conflict and view serializability",
+          "8.5 SQL Standard Isolation Levels",
+          "8.6 Concurrency Control- Lock-Based Protocols and Graph-Based Protocols"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 9",
+        "title": "Crash Recovery",
+        "sub_topics": [
+          "9.1 Failure classification",
+          "9.2 Recovery and Atomicity-log records, database modification, concurrency control and recovery, transaction commit, Redo and Undo Transactions using Log, Check Points",
+          "9.3 Recovery Algorithm Using Log Records-Transaction Rollback, Recovery After a System Crash, Optimizing Commit Processing",
+          "9.4 High Availability Using Remote Backup System"
+        ],
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit 10",
+        "title": "Emerging Trend in Databases",
+        "sub_topics": [
+          "10.1 NoSQL Databases-Characteristics, Categories, Advantages",
+          "10.2 Object Oriented Database and ORM",
+          "10.3 Distributed Databases",
+          "10.4 Distributed Ledger Technology: Blockchain, Cryptocurrency, Blockchain Properties"
+        ],
+        "hours": "4 hrs"
+      }
+    ]
+  },
+  "Operating Systems (3-1-2)": {
+    "credits": "3-1-2",
+    "Semester": "3",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction",
+        "sub_topics": [
+          "1.1 Concept and function of operating systems",
+          "1.2 Operating systems concept and functionality - Processes, Files, System Calls, The Shell",
+          "1.3 Operating System Structure - Monolithic System, Layered, Virtual Machines, Client-server. Microkernel and exokernel",
+          "1.4 Types and Evolution of Operating Systems"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Processes and Threads",
+        "sub_topics": [
+          "2.1 Process: Definition, states and transition diagram, Process control block (PCB), Concurrent and Parallel processes",
+          "2.2 Interprocess Communication and Synchronization: Introduction, Race Condition, Critical Regions and condition, Avoiding critical region, Mutual exclusion conditions, mutual exclusion (disabling interrupts, lock variable, strict alteration (Dekker's algorithms, Peterson's algorithms), The TSL instruction, sleep and wakeup, producer and consumer problem), Types of mutual exclusion (Semaphore, Monitors, Bounded buffer, Message passing), Classical IPC Problems (The Dining Philosophers problem, The Readers and Writers problem, The Sleeping Barber Problem), Serializability: Locking Protocols and Time Stamp Protocols",
+          "2.3 Process Scheduling: Basic Concept, Type of scheduling (Preemptive scheduling, Non-preemptive scheduling, Batch, Interactive, Real time scheduling), Scheduling criteria and performance analysis, scheduling algorithm with examples (First come first served, Shortest-job-first, Round-robin, Shortest process next, Shortest remaining time next, Real time, Priority fair share, guaranteed, Lottery scheduling)",
+          "2.4 Threads: Definitions of Threads, Types of thread process (Single and multithreaded process), Benefits of Multithreading, Threads Models (Many-to-one model, One-to-one Model, Many-to-many model), User Space and Kernel Space Threads, Difference between Processes and Threads"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Memory Management",
+        "sub_topics": [
+          "3.1 Storage organization and memory hierarchy",
+          "3.2 Storage allocation: Contiguous versus non-contiguous allocation",
+          "3.3 Logical versus physical memory and address spaces",
+          "3.4 Fragmentation: Internal versus external fragmentation",
+          "3.5 Fixed partition and variable partition for multiprogramming",
+          "3.6 Memory relocation and protection",
+          "3.7 Memory management without swapping",
+          "3.8 Memory management with swapping: Bitmaps and linked lists",
+          "3.9 Contiguous-memory allocation and protection strategies",
+          "3.10 Coalescing and compaction",
+          "3.11 Paging concepts and principles",
+          "3.12 Structure of page tables: Hierarchical, Hashed, Inverted, and Shared page tables",
+          "3.13 Virtual memory: Introduction and core principles",
+          "3.14 Mapping techniques: Block mapping and direct mapping",
+          "3.15 Translation Lookaside Buffers (TLB)",
+          "3.16 Demand paging and Thrashing",
+          "3.17 Page replacement algorithms: First-In-First-Out (FIFO) and Not Recently Used (NRU)",
+          "3.18 Page replacement algorithms: Optimal and Second-Chance / Clock",
+          "3.19 Page replacement algorithms: Least Recently Used (LRU)",
+          "3.20 Working Set and WSClock page replacement algorithms",
+          "3.21 Segmentation",
+          "3.22 Segmentation with paging",
+          "3.23 Coalescing and compaction"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Kernel",
+        "sub_topics": [
+          "4.1 Introduction, Architecture of the Kernel, Types of Kernels",
+          "4.2 Context Switching (Kernel and User mode), Kernel implementation processes"
+        ],
+        "hours": "2 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Input/Output Management",
+        "sub_topics": [
+          "5.1 Introduction, Interrupts Handlers",
+          "5.2 Principles of I/O Hardware (I/O Device, Device Controller, Memory Mapped I/O, Direct Memory Access)",
+          "5.3 Principles of I/O Software (Goals of I/O Software, Polled I/O verses Interrupt Driven I/O, Character User Interface and Graphical User Interface, Device Driver, Device Independent I/O Software, User-space I/O Software",
+          "5.4 System Resources: Preemptable and Non-preempable, Method of handling Deadlocks, Deadlock prevention",
+          "5.5 Deadlock avoidance: Banker's Algorithm, Deadlock detection: Resource allocation graph, Recovery from Deadlock",
+          "5.6 Redundant Array of Inexpensive Disks",
+          "5.7 RAM Disks"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "File Systems",
+        "sub_topics": [
+          "6.1 File and File Organization (Blocking and Buffering, File Descriptor, file Naming, File Structure, File Types, File Attributes, File Operations, File Access Methods)",
+          "6.2 Directories Management (Single-level directory systems, Hierarchical Directory systems, Path names, Directory operation)",
+          "6.3 Access Methods: Sequential, Direct, other access methods, Protection: Types of access, Access Control List",
+          "6.4 File System Implementation: Contiguous allocation, Linked list allocation, linked list allocation using an Index nodes",
+          "6.5 Security and Multi-media files"
+        ],
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "New Trends in Operating System",
+        "sub_topics": [
+          "7.1 Concept, character and role of Real-time Operating System, Distributed Operating System, Cloud Operating System, Mobile Operating System",
+          "7.2 Security issues and method of deployment",
+          "7.3 Memory wall and bottleneck for Operating system"
+        ],
+        "hours": "11 hrs"
+      }
+    ]
+  },
+  "Microprocessor and ALP (3-1-2)": {
+    "credits": "3-1-2",
+    "Semester": "3",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction to Microprocessor",
+        "sub_topics": [
+          "1.1 Microcomputer System",
+          "1.2 Microprocessor Operations: Microprocessor initiated operations, Internal operations, Peripheral initiated operations",
+          "1.3 Evolution of Microprocessor",
+          "1.4 Microcontroller and Microcontroller",
+          "1.5 Von Neumann and Harvard Architecture",
+          "1.6 Concept of Instruction Execution Cycle"
+        ],
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "8085 Microprocessor Architecture",
+        "sub_topics": [
+          "2.1 Internal Architecture and features of 8085 Microprocessor",
+          "2.2 Addressing Modes of 8085 and its types",
+          "2.3 Instruction Cycle, Machine Cycle and T-State",
+          "2.4 Timing Diagram: 2.4.1 Opcode fetch Cycle, 2.4.2 Memory Read Cycle, 2.4.3 Memory Write Cycle, 2.4.4 I/O Read Cycle, 2.4.5 I/O Write Cycle"
+        ],
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Programming of 8085 Microprocessor",
+        "sub_topics": [
+          "3.1 Intel 8085 Instruction Set",
+          "3.2 Average value, RMS value ripple factor of half and full wave rectifiers",
+          "3.4 Assembly Language Program: Format of an Assembly Language Instruction, Simple Programs with Arithmetic and Logical Operations, Conditions and Loops"
+        ],
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "8086 Microprocessor Architectural Details and Programming",
+        "sub_topics": [
+          "4.1 Internal Architecture and features of 8086 Microprocessor: BIU and EU, Memory Segmentation, Segment and Offset Address",
+          "4.2 Intel 8086 Instruction Set",
+          "4.3 Classification of Intel 8085 Instruction: Data Transfer Instruction, Arithmetic Instruction, Logical Instruction, Branching Instruction, String manipulation Instruction, Machine control Instruction",
+          "4.4 Addressing Modes of 8086 and its types",
+          "4.5 Assembly Language program: Format of an assembly language Instruction, ALP Development Tools, Assembler Directives, DOS Interrupt function(Keyboard and display services), Simple Programs for Arithmetic, Logical, String Input/Output, Conditions and Loops, Stacks Procedures, Macros program design"
+        ],
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Bus Structure, Memory, I/O and Interfacing",
+        "sub_topics": [
+          "4.1 Bus Structure: Synchronous Bus, Asynchronous Bus",
+          "4.2 Memory Device Classification and Hierarchy",
+          "4.3 Interfacing I/O and Memory: Address Decoding, Unique and Non-Unique Address Decoding, I/O Mapped I/O and Memory mapped I/O, I/O Address Decoding (8085), Memory Address Decoding (8085)",
+          "4.4 Parallel Interface: Modes: Simple I/O, Strobe I/O, Single Handshaking and Double Handshaking, Programmable Peripheral Interface (PPI): Architecture of Intel (8255-PPI)",
+          "4.5 Serial Interface: Synchronous and Asynchronous Transmission, Programmable Communication Interface: USART (8251)",
+          "4.6 DMA and Intel 8237A DMA Controller"
+        ],
+        "hours": "12 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Interrupt Operation",
+        "sub_topics": [
+          "5.1 Interrupt, sources of interrupt and its Classification",
+          "5.2 Interrupt Processing Sequence in 8085/8086",
+          "5.3 Interrupt Instruction: Interrupts pins and priorities, Interrupt Service procedure, Interrupt Vector Table, Multiple Interrupt Handling (Polled and Vectored interrupt)",
+          "5.4 Programmable Interrupt Controller (PIC) Intel (8259) and its Architecture"
+        ],
+        "hours": "8 hrs"
+      }
+    ]
+  },
+  "Object Oriented Programming in C++ (3-1-3)": {
+    "credits": "3-1-3",
+    "Semester": "2",
     "units": [
       {
         "unit": "Unit 1",
         "title": "Object Oriented Concepts",
         "sub_topics": [
-          "Object Oriented Programming Paradigm",
-          "A way of viewing World Agent",
-          "Procedure Oriented vs Object-Oriented Programming",
-          "Features of Object Oriented Programming: Class and Object, Data Abstraction, Encapsulation, Inheritance, Polymorphism, Message passing",
-          "Computation as Simulation, Coping with Complexity and Abstraction Mechanisms",
-          "Object Oriented Analysis and Design: Introduction, Responsibility Driven Design (RDD), Component Responsibility and Collaborator (CRC) Cards, Responsibility Implies Non-Interference, Programming in Small and Programming in Large"
+          "1.1 Object Oriented Programming Paradigm",
+          "1.2 A way of viewing World Agent",
+          "1.3 Procedure Oriented vs Object-Oriented Programming",
+          "1.4 Features of Object Oriented Programming: Class and Object, Data Abstraction, Encapsulation, Inheritance, Polymorphism, Message passing",
+          "1.5 Computation as Simulation, Coping with Complexity and Abstraction Mechanisms",
+          "1.6 Object Oriented Analysis and Design: Introduction, Responsibility Driven Design (RDD), Component Responsibility and Collaborator (CRC) Cards, Responsibility Implies Non-Interference, Programming in Small and Programming in Large"
         ],
         "hours": "8 hrs"
       },
@@ -1176,22 +1199,22 @@
         "unit": "Unit 2",
         "title": "Classes and Objects",
         "sub_topics": [
-          "Introduction to C++: Origin of C++, Basic C++ Program Structure, Console Input/output Streams and Manipulators",
-          "Structure in C and C++",
-          "Classes and Objects",
-          "Array of Objects",
-          "Class Diagram and Object Diagram",
-          "Access Specifiers and Visibility Mode",
-          "State and Behavior, Methods and Responsibilities",
-          "Implementation of Data Abstraction, Encapsulation, Message Passing and Data Hiding",
-          "Memory Allocation for Objects",
-          "Constructor: Default Constructor, Parameterized Constructor, Copy Constructor",
-          "Constructor Overloading",
-          "Destructors",
-          "Dynamic Memory Allocation: new and delete",
-          "Dynamic Constructor",
-          "Functions: Inline function, Default argument, Passing and Returning by Value, Pointer and Reference, Static Data Member and Static Member Function",
-          "Friend Function and Friend Class"
+          "2.1 Introduction to C++: Origin of C++, Basic C++ Program Structure, Console Input/output Streams and Manipulators",
+          "2.2 Structure in C and C++",
+          "2.3 Classes and Objects",
+          "2.4 Array of Objects",
+          "2.5 Class Diagram and Object Diagram",
+          "2.6 Access Specifiers and Visibility Mode",
+          "2.7 State and Behavior, Methods and Responsibilities",
+          "2.8 Implementation of Data Abstraction, Encapsulation, Message Passing and Data Hiding",
+          "2.9 Memory Allocation for Objects",
+          "2.10 Constructor: Default Constructor, Parameterized Constructor, Copy Constructor",
+          "2.11 Constructor Overloading",
+          "2.12 Destructors",
+          "2.13 Dynamic Memory Allocation: new and delete",
+          "2.14 Dynamic Constructor",
+          "2.15 Functions: Inline function, Default argument, Passing and Returning by Value, Pointer and Reference, Static Data Member and Static Member Function",
+          "2.16 Friend Function and Friend Class"
         ],
         "hours": "8 hrs"
       },
@@ -1199,17 +1222,17 @@
         "unit": "Unit 3",
         "title": "Inheritance",
         "sub_topics": [
-          "Introduction to Inheritance",
-          "Inheritance Relationship Diagram",
-          "Inheritance Mode: Public, Private & Protected",
-          "Types of Inheritance: Single, Multilevel, Hierarchical, Multiple and Hybrid",
-          "Ambiguity Resolution",
-          "Multipath Inheritance and Virtual Base Class",
-          "Constructor and Destructor in Derived Class",
-          "Subclass, Subtype and Principle of Substitutability",
-          "Composition and its Implementation",
-          "Composition Relationship Diagram",
-          "Software Reusability"
+          "3.1 Introduction to Inheritance",
+          "3.2 Inheritance Relationship Diagram",
+          "3.3 Inheritance Mode: Public, Private & Protected",
+          "3.4 Types of Inheritance: Single, Multilevel, Hierarchical, Multiple and Hybrid",
+          "3.5 Ambiguity Resolution",
+          "3.6 Multipath Inheritance and Virtual Base Class",
+          "3.7 Constructor and Destructor in Derived Class",
+          "3.8 Subclass, Subtype and Principle of Substitutability",
+          "3.9 Composition and its Implementation",
+          "3.10 Binomial distribution",
+          "3.11 Software Reusability"
         ],
         "hours": "8 hrs"
       },
@@ -1217,14 +1240,14 @@
         "unit": "Unit 4",
         "title": "Polymorphism",
         "sub_topics": [
-          "Introduction to Polymorphism",
-          "Types of Polymorphism: Compile Time Polymorphism: Function Overloading, Operator Overloading; Runtime Polymorphism: Virtual Function",
-          "Overloading Unary and Binary Operators",
-          "Function Overriding",
-          "this Pointer and Object Pointer",
-          "Pure Virtual Function, Abstract Class",
-          "Virtual Destructor",
-          "Type Conversion: Basic to User-Defined, User-Defined to Basic, User-defined to User-Defined"
+          "4.1 Introduction to Polymorphism",
+          "4.2 Types of Polymorphism: Compile Time Polymorphism: Function Overloading, Operator Overloading; Runtime Polymorphism: Virtual Function",
+          "4.3 Overloading Unary and Binary Operators",
+          "4.4 Function Overriding",
+          "4.5 this Pointer and Object Pointer",
+          "4.6 Pure Virtual Function, Abstract Class",
+          "4.7 Virtual Destructor",
+          "4.8 Type Conversion: Basic to User-Defined, User-Defined to Basic, User-defined to User-Defined"
         ],
         "hours": "9 hrs"
       },
@@ -1232,9 +1255,9 @@
         "unit": "Unit 5",
         "title": "Templates",
         "sub_topics": [
-          "Generic Programming",
-          "Class Template and Function Template",
-          "Standard Template Library (STL): Container, Algorithm, Iterator"
+          "5.1 Generic Programming",
+          "5.2 Class Template and Function Template",
+          "5.3 Standard Template Library (STL): Container, Algorithm, Iterator"
         ],
         "hours": "5 hrs"
       },
@@ -1242,8 +1265,8 @@
         "unit": "Unit 6",
         "title": "Exception Handling and Stream I/O",
         "sub_topics": [
-          "Exception Handling: Error and Exception, Exception Handling Mechanism (try, throw, and catch), Multiple Exception Handling",
-          "File Handling: Stream Class Hierarchy, Opening and Closing a File, Reading and Writing Object"
+          "6.1 Exception Handling: Error and Exception, Exception Handling Mechanism (try, throw, and catch), Multiple Exception Handling",
+          "6.2 File Handling: Stream Class Hierarchy, Opening and Closing a File, Reading and Writing Object"
         ],
         "hours": "7 hrs"
       }
@@ -1251,22 +1274,23 @@
   },
   "Instrumentation (3-1-2)": {
     "credits": "3-1-2",
+    "Semester": "2",
     "units": [
       {
         "unit": "Unit 1",
         "title": "Introduction to Instrumentation System",
         "sub_topics": [
-          "Typical applications of Instrument systems",
-          "Functional elements of Instrumentation and Measuring systems i.e., Input elements (Transducers and Electrodes), intermediate elements (signal conditioning) and output elements (Data display and storage)",
-          "Errors and uncertainties in Measurements and Static performance characteristics of instruments: Introduction to errors and uncertainties; Static performance parameters: Accuracy, Precision, Resolution, Threshold, Sensitivity, Linearity, Hysteresis, Dead band, Backlash, Drift, Span; Impedance loading and matching; Statistical analysis of error in measurement; Standards of measurement",
-          "Bridge Measurement: DC bridges- Wheatstone bridge; AC bridges - Kelvin, Hay, Maxwell, Schering and Wien bridges; Wagner ground Connection",
-          "Physical Variable and Transducer: Physical Variable and their types (Electrical, Mechanical, Process and Biophysical); Transducer principle and operation; Input and output characteristics and application of transducers: Resistive, Capacitive, Inductive",
-          "Measurement of mechanical variables: displacement, strain, velocity, acceleration and vibration",
-          "Measurement of process variables: temperature, pressure, level, fluid flow, chemical constituents in gases or liquids, pH and humidity",
-          "Measurement of bio-physical variables: blood pressure and myoelectric potentials",
-          "Calibration and error in transducers",
-          "Measurement of voltage & current (moving coil & moving iron instruments)",
-          "Measurement of low, high & medium resistances"
+          "1.1 Typical applications of Instrument systems",
+          "1.2 Functional elements of Instrumentation and Measuring systems i.e., Input elements (Transducers and Electrodes), intermediate elements (signal conditioning) and output elements (Data display and storage)",
+          "1.3 Errors and uncertainties in Measurements and Static performance characteristics of instruments: Introduction to errors and uncertainties; Static performance parameters: Accuracy, Precision, Resolution, Threshold, Sensitivity, Linearity, Hysteresis, Dead band, Backlash, Drift, Span; Impedance loading and matching; Statistical analysis of error in measurement; Standards of measurement",
+          "1.4 Bridge Measurement: DC bridges- Wheatstone bridge; AC bridges - Kelvin, Hay, Maxwell, Schering and Wien bridges; Wagner ground Connection",
+          "1.5 Physical Variable and Transducer: Physical Variable and their types (Electrical, Mechanical, Process and Biophysical); Transducer principle and operation; Input and output characteristics and application of transducers: Resistive, Capacitive, Inductive",
+          "1.6 Measurement of mechanical variables: displacement, strain, velocity, acceleration and vibration",
+          "1.7 Measurement of process variables: temperature, pressure, level, fluid flow, chemical constituents in gases or liquids, pH and humidity",
+          "1.8 Measurement of bio-physical variables: blood pressure and myoelectric potentials",
+          "1.9 Calibration and error in transducers",
+          "1.10 Measurement of voltage & current (moving coil & moving iron instruments)",
+          "1.11 Measurement of low, high & medium resistances"
         ],
         "hours": "10 hrs"
       },
@@ -1274,17 +1298,18 @@
         "unit": "Unit 2",
         "title": "Principle of Analog Instruments",
         "sub_topics": [
-          "Review of DC/AC voltmeter and Ammeter: The D'Arsonval Principle",
-          "DC Multirange Ammeters and Extending Ammeter ranges",
-          "DC Multirange Voltmeters and Extending Voltmeters ranges",
-          "AC voltmeter and multi range voltmeter",
-          "Ohm Meter and Multirange",
-          "Electronic Multimeter",
-          "Multimeter as a micro ammeter and dc ammeter; Types of voltmeter: Differential type and True rms",
-          "Wattmeter: Types and Working principles",
-          "Energy Meter: Types and Working Principle",
-          "Power Factor Meter",
-          "Instrument Transformer"
+          "2.1 Review of DC/AC voltmeter and Ammeter: The D'Arsonval Principle",
+          "2.2 DC Multirange Ammeters and Extending Ammeter ranges",
+          "2.3 DC Multirange Voltmeters and Extending Voltmeters ranges",
+          "2.4 AC voltmeter and multi range voltmeter",
+          "2.5 Ohm Meter and Multirange",
+          "2.6 Electronic Multimeter",
+          "2.7 Multimeter as a micro ammeter and dc ammeter; Types of voltmeter: Differential type and True rms",
+          "2.8 Wattmeter: Types and Working principles",
+          "2.9 Energy Meter: Types and Working Principle",
+          "2.9 Formatted Input and Output",
+          "2.10 Power Factor Meter: Types and Working Principle",
+          "2.11 Instrument Transformer"
         ],
         "hours": "7 hrs"
       },
@@ -1292,13 +1317,13 @@
         "unit": "Unit 3",
         "title": "Electrical Signal Processing and Data Acquisition",
         "sub_topics": [
-          "Basic Op-amp characteristics",
-          "Instrumentation amplifier",
-          "Signal amplification, attenuation, integration, differentiation, network isolation, wave shaping",
-          "Effect of noise, analog filtering, digital filtering",
-          "Data Acquisition System: Analog Data Acquisition System, Digital Data Acquisition system, Single channel Data Acquisition system, Multi-channel Data Acquisition system, PC based Data acquisition system",
-          "Series and Parallel transmission: Features and application of RS232 cable, Features and application of IEEE 1248 B",
-          "Optical communication, fibre optics, electro-optic conversion devices"
+          "3.1 Basic Op-amp characteristics",
+          "3.2 Instrumentation amplifier",
+          "3.3 Signal amplification, attenuation, integration, differentiation, network isolation, wave shaping",
+          "3.4 Effect of noise, analog filtering, digital filtering",
+          "3.5 Data Acquisition System: Analog Data Acquisition System, Digital Data Acquisition system, Single channel Data Acquisition system, Multi-channel Data Acquisition system, PC based Data acquisition system",
+          "3.6 Series and Parallel transmission: Features and application of RS232 cable, Features and application of IEEE 1248 B",
+          "3.7 Optical communication, fibre optics, electro-optic conversion devices"
         ],
         "hours": "7 hrs"
       },
@@ -1306,11 +1331,11 @@
         "unit": "Unit 4",
         "title": "Data Converter and Connectors",
         "sub_topics": [
-          "Analog to Digital Converter (ADC) and Digital to analog Converter (DAC): Principle and Specification",
-          "Quantization Error",
-          "Types of ADC: Flash type ADC, Counter type ADC, Successive Approximation Type ADC, Dual Slope ADC, Introduction to Delta-Sigma ADC",
-          "Types of DAC: Weighted Resistor DAC, R-2R Ladder DAC, PWM Type DAC",
-          "Probes and Connectors: Test Leads: Twisted pair unshielded test leads; Shielded Cables; Connectors; Low Capacitive Probes; High Voltage Probes; Current Probes"
+          "4.1 Analog to Digital Converter (ADC) and Digital to analog Converter (DAC): Principle and Specification",
+          "4.2 Quantization Error",
+          "4.3 Types of ADC: Flash type ADC, Counter type ADC, Successive Approximation Type ADC, Dual Slope ADC, Introduction to Delta-Sigma ADC",
+          "4.4 Types of DAC: Weighted Resistor DAC, R-2R Ladder DAC, PWM Type DAC",
+          "4.5 Probes and Connectors: Test Leads: Twisted pair unshielded test leads; Shielded Cables; Connectors; Low Capacitive Probes; High Voltage Probes; Current Probes"
         ],
         "hours": "8 hrs"
       },
@@ -1318,17 +1343,17 @@
         "unit": "Unit 5",
         "title": "Wave Analyzers and Digital Instruments",
         "sub_topics": [
-          "Wave Analyzer: Frequency Selective Wave Analyzer, Heterodyne Wave Analyzer",
-          "Spectrum Analyzer: Basic Spectrum Analyzer using Swept Receiver Design, IRF Spectrum Analyzer",
-          "Distortion Analyzer: Harmonic Distortion Analyzer-Fundamental Suppression Type",
-          "Measurements of Frequency and Time: Decimal Count Assembles",
-          "Frequency Counter",
-          "Period Counter",
-          "Error: Counter Error and Signal Related Error",
-          "Digital Voltmeter: Ramp type, Integrating type, Servo Potentiometer type, Successive Approximation type",
-          "Vector Voltmeter",
-          "Digital Multimeter",
-          "Computer Based Digital Instruments: IEEE 488 GPIB Instrument"
+          "5.1 Wave Analyzer: Frequency Selective Wave Analyzer, Heterodyne Wave Analyzer",
+          "5.2 Spectrum Analyzer: Basic Spectrum Analyzer using Swept Receiver Design, IRF Spectrum Analyzer",
+          "5.3 Distortion Analyzer: Harmonic Distortion Analyzer-Fundamental Suppression Type",
+          "5.4 Measurements of Frequency and Time: Decimal Count Assembles",
+          "5.5 Frequency Counter",
+          "5.6 Period Counter",
+          "5.7 Error: Counter Error and Signal Related Error",
+          "5.8 Digital Voltmeter: Ramp type, Integrating type, Servo Potentiometer type, Successive Approximation type",
+          "5.9 Vector Voltmeter",
+          "5.10 Digital Multimeter",
+          "5.11 Computer Based Digital Instruments: IEEE 488 GPIB Instrument"
         ],
         "hours": "8 hrs"
       },
@@ -1336,13 +1361,13 @@
         "unit": "Unit 6",
         "title": "Recorders, Displays and Storage Devices",
         "sub_topics": [
-          "Oscilloscopes: Cathode Ray Tube, Vertical and Horizontal Deflection Systems, Delay lines, Probes and Transducers, Specification of an Oscilloscope, Oscilloscope measurement Techniques",
-          "Special Oscilloscopes – Storage Oscilloscope, Sampling Oscilloscope",
-          "Recorders: Basic recording systems, Strip chart recorders, Galvanometer and Potentiometer type recorders (direct and null type)",
-          "Indicators and display Devices - Nixie, LED, LCD and seven segment and dot matrix displays",
-          "Magnetic tape and disc recorders",
-          "Data loggers, Dot matrix and laser printers",
-          "Compact disc/Optical disc recorders"
+          "6.1 Attenuation & Distortion, Delay Distortion, Noise & Types, interference, crosstalk",
+          "6.2 Special Oscilloscopes – Storage Oscilloscope, Sampling Oscilloscope",
+          "6.3 Recorders: Basic recording systems, Strip chart recorders, Galvanometer and Potentiometer type recorders (direct and null type)",
+          "6.4 Indicators and display Devices - Nixie, LED, LCD and seven segment and dot matrix displays",
+          "6.5 Magnetic tape and disc recorders",
+          "6.6 Data loggers, Dot matrix and laser printers",
+          "6.7 Compact disc/Optical disc recorders"
         ],
         "hours": "5 hrs"
       }
@@ -1350,17 +1375,18 @@
   },
   "Applied Chemistry (3-0-3)": {
     "credits": "3-0-3",
+    "Semester": "2",
     "units": [
       {
         "unit": "Unit I",
         "title": "Electrochemistry and Battery Technology",
         "sub_topics": [
-          "Electrolytic cell and its application",
-          "Introduction to Galvanic cell and examples, electrode potential, EMF of the cell and cell representation",
-          "Electrochemical series & its application",
-          "Electrochemical theory of corrosion and its preventions",
-          "Batteries and their importance, Classification of batteries- primary, secondary and reserve batteries with examples",
-          "Construction, working and applications of: Zn-Cu, Ni-Cd, Lithium-ion and Sodium ion battery"
+          "1.1 Electrolytic cell and its application",
+          "1.2 Introduction to Galvanic cell and examples, electrode potential, EMF of the cell and cell representation",
+          "1.3 Electrochemical series & its application",
+          "1.4 Electrochemical theory of corrosion and its preventions",
+          "1.5 Batteries and their importance, Classification of batteries- primary, secondary and reserve batteries with examples",
+          "1.6 Construction, working and applications of: Zn-Cu, Ni-Cd, Lithium-ion and Sodium ion battery"
         ],
         "hours": "6 hrs"
       },
@@ -1368,8 +1394,8 @@
         "unit": "Unit II",
         "title": "Environmental Chemistry",
         "sub_topics": [
-          "Air, Water and Soil Pollution: causes, effects and control measures",
-          "Water Quality Analysis: Alkalinity, Hardness, Free Chlorine, Dissolved Oxygen, Chemical Oxygen Demand"
+          "2.1 Air, Water and Soil Pollution: causes, effects and control measures",
+          "2.2 Water Quality Analysis: Alkalinity, Hardness, Free Chlorine, Dissolved Oxygen, Chemical Oxygen Demand"
         ],
         "hours": "5 hrs"
       },
@@ -1377,9 +1403,9 @@
         "unit": "Unit III",
         "title": "Transition Elements and its Applications",
         "sub_topics": [
-          "Introduction to transition elements and its position in the periodic table",
-          "Characteristics of transition elements: Electronic Configuration, Atomic radii, Variable oxidation states, Complex formation, Colour and Magnetic Properties, Catalytic property",
-          "Applications of Transition metals in various engineering fields"
+          "3.1 Basic Op-amp characteristics",
+          "3.2 Characteristics of transition elements: Electronic Configuration, Atomic radii, Variable oxidation states, Complex formation, Colour and Magnetic Properties, Catalytic property",
+          "3.3 Applications of Transition metals in various engineering fields"
         ],
         "hours": "4 hrs"
       },
@@ -1387,8 +1413,8 @@
         "unit": "Unit IV",
         "title": "Types of Organic Reactions",
         "sub_topics": [
-          "Substitution reaction: SN1 and SN2 reactions, mechanism, kinetics, stereochemistry, reactivity, factors affecting",
-          "Elimination reaction: E1 and E2 reactions, mechanism, kinetics, orientation (Saytzeff's rule), reactivity, factors affecting"
+          "4.1 Substitution reaction: SN1 and SN2 reactions, mechanism, kinetics, stereochemistry, reactivity, factors affecting",
+          "4.2 Elimination reaction: E1 and E2 reactions, mechanism, kinetics, orientation (Saytzeff's rule), reactivity, factors affecting"
         ],
         "hours": "4 hrs"
       },
@@ -1396,11 +1422,11 @@
         "unit": "Unit V",
         "title": "Engineering Materials and its Applications",
         "sub_topics": [
-          "Explosives: Introduction, preparation, properties and applications of TNT and TNG",
-          "Cement: Types, manufacture of Portland cement, setting and hardening mechanism",
-          "Paints: Introduction, properties and constituents",
-          "Sensors: Introduction, basic principle and applications",
-          "Photovoltaic cells: Introduction, basic principle and applications"
+          "5.1 Definition and Evolution of Machine Learning",
+          "5.2 Cement: Types, manufacture of Portland cement, setting and hardening mechanism",
+          "5.3 Paints: Introduction, properties and constituents",
+          "5.4 Sensors: Introduction, basic principle and applications",
+          "5.5 Photovoltaic cells: Introduction, basic principle and applications"
         ],
         "hours": "7 hrs"
       },
@@ -1408,22 +1434,23 @@
         "unit": "Unit VI",
         "title": "Polymers and its Applications",
         "sub_topics": [
-          "Polymers: Addition, condensation and copolymerization; Preparation, properties and uses of PVC, Teflon, Silicone Rubber and Neoprene",
-          "Concept of conducting & non-conducting, biodegradable & non-biodegradable polymers, examples and their applications"
+          "6.1 Polymers: Addition, condensation and copolymerization; Preparation, properties and uses of PVC, Teflon, Silicone Rubber and Neoprene",
+          "6.2 Concept of conducting & non-conducting, biodegradable & non-biodegradable polymers, examples and their applications"
         ],
         "hours": "4 hrs"
       }
     ]
   },
-  "Engineering Physics (3-0-3)": {
+  "Applied Physics (3-0-3)": {
     "credits": "3-0-3",
+    "Semester": "2",
     "units": [
       {
         "unit": "Unit I",
         "title": "Mechanical Oscillation",
         "sub_topics": [
-          "Free oscillation, Damped oscillation and Forced oscillation (Physical meaning and equations)",
-          "Compound pendulum, Minimum and maximum time period in compound pendulum, Interchangeability of point of suspension and point of oscillation, Torsion pendulum, Determination of modulus of rigidity using torsion pendulum"
+          "1.1 Free oscillation, Damped oscillation and Forced oscillation (Physical meaning and equations)",
+          "1.2 Compound pendulum, Minimum and maximum time period in compound pendulum, Interchangeability of point of suspension and point of oscillation, Torsion pendulum, Determination of modulus of rigidity using torsion pendulum"
         ],
         "hours": "6 hrs"
       },
@@ -1431,8 +1458,8 @@
         "unit": "Unit II",
         "title": "Wave Motion",
         "sub_topics": [
-          "Introduction of wave, wave velocity and particle velocity, types of waves and their applications",
-          "Speed of wave in stretched string, energy, power and intensity of plane progressive wave, standing wave and resonance, sonometer"
+          "2.1 Introduction of wave, wave velocity and particle velocity, types of waves and their applications",
+          "2.2 Speed of wave in stretched string, energy, power and intensity of plane progressive wave, standing wave and resonance, sonometer"
         ],
         "hours": "4 hrs"
       },
@@ -1440,8 +1467,8 @@
         "unit": "Unit III",
         "title": "Acoustics",
         "sub_topics": [
-          "Classification of sound waves, Acoustics of building, Reverberation of sound, absorption coefficient, Noise pollution and its control, Sound insulation, Sabine equation",
-          "Introduction, production and applications of ultrasonic wave, Ultrasonic method in non-destructive testing"
+          "3.1 Classification of sound waves, Acoustics of building, Reverberation of sound, absorption coefficient, Noise pollution and its control, Sound insulation, Sabine equation",
+          "3.2 Introduction, production and applications of ultrasonic wave, Ultrasonic method in non-destructive testing"
         ],
         "hours": "4 hrs"
       },
@@ -1499,6 +1526,7 @@
   },
   "Algebra and Geometry (3-2-0)": {
     "credits": "3-2-0",
+    "Semester": "2",
     "units": [
       {
         "unit": "Unit I",
@@ -1579,6 +1607,7 @@
   },
   "Data Structure and Algorithms (3-1-3)": {
     "credits": "3-1-3",
+    "Semester": "2",
     "units": [
       {
         "unit": "Unit 1",
@@ -1665,7 +1694,7 @@
       }
     ]
   },
-    "Research Fundamentals": {
+  "Research Fundamentals": {
     "credits": "Not specified",
     "units": [
       {
@@ -2375,7 +2404,7 @@
       }
     ]
   },
-    "Engineering Management": {
+  "Engineering Management": {
     "credits": "Not specified",
     "units": [
       {
@@ -2681,199 +2710,199 @@
       }
     ]
   },
-    "Computer Networks (3-1-2)": {
-      "credits": "3-1-2",
-      "units": [
-        {
-          "unit": "Unit I",
-          "title": "Introduction to Computer Network",
-          "hours": "3 hrs"
-        },
-        {
-          "unit": "Unit II",
-          "title": "Reference Model",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit III",
-          "title": "Physical Layer",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit IV",
-          "title": "Data Link Layer",
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Unit V",
-          "title": "Network Layer Protocols and Addressing",
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Unit VI",
-          "title": "Transport Layer and Protocols",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit VII",
-          "title": "Congestion Control and Quality of Services",
-          "hours": "3 hrs"
-        },
-        {
-          "unit": "Unit VIII",
-          "title": "Application Layer, Servers and Protocols",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit IX",
-          "title": "Network Management and Security",
-          "hours": "7 hrs"
-        }
-      ]
-    },
-    "Simulation and Modeling": {
-      "credits": "N/A",
-      "units": [
-        {
-          "unit": "Unit 1",
-          "title": "Introduction to Simulation and Modeling",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 2",
-          "title": "System Simulation",
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Unit 3",
-          "title": "Continuous System",
-          "hours": "8 hrs"
-        },
-        {
-          "unit": "Unit 4",
-          "title": "Discrete System",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Unit 5",
-          "title": "Probability Concept and Random Numbers",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Unit 6",
-          "title": "Discrete System Languages",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit 7",
-          "title": "Output Analysis Method",
-          "hours": "5 hrs"
-        }
-      ]
-    },
-    "Image Processing and Pattern Recognition (3-1-2)": {
-      "credits": "3-1-2",
-      "units": [
-        {
-          "unit": "Unit 1",
-          "title": "Introduction to Digital Image Processing",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 2",
-          "title": "Image Enhancement in Spatial Domain",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Unit 3",
-          "title": "Image Enhancement in the Frequency Domain",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit 4",
-          "title": "Image Restoration",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit 5",
-          "title": "Image Compression and Coding",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Unit 6",
-          "title": "Image Analysis",
-          "hours": "9 hrs"
-        },
-        {
-          "unit": "Unit 7",
-          "title": "Pattern Recognition & Artificial Neural Network",
-          "hours": "8 hrs"
-        }
-      ]
-    },
-    "Machine Learning (3-1-2)": {
-      "credits": "3-1-2",
-      "units": [
-        {
-          "unit": "Chapter 1",
-          "title": "Introduction to Machine Learning",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Chapter 2",
-          "title": "Supervised Learning",
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Chapter 3",
-          "title": "Unsupervised Learning",
-          "hours": "10 hrs"
-        },
-        {
-          "unit": "Chapter 4",
-          "title": "Artificial Neural Network",
-          "hours": "12 hrs"
-        },
-        {
-          "unit": "Chapter 5",
-          "title": "Model Evaluation and Validation",
-          "hours": "8 hrs"
-        }
-      ]
-    },
-    "Compiler Design (2-2-2)": {
-      "credits": "2-2-2",
-      "units": [
-        {
-          "unit": "Unit I",
-          "title": "Overview of Compilation",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit II",
-          "title": "Scanners",
-          "hours": "7 hrs"
-        },
-        {
-          "unit": "Unit III",
-          "title": "Parsers",
-          "hours": "6 hrs"
-        },
-        {
-          "unit": "Unit IV",
-          "title": "Intermediate Representations",
-          "hours": "5 hrs"
-        },
-        {
-          "unit": "Unit V",
-          "title": "Code Generation",
-          "hours": "4 hrs"
-        },
-        {
-          "unit": "Unit VI",
-          "title": "Machine Independent Optimization",
-          "hours": "4 hrs"
-        }
-      ]
-    }
+  "Computer Networks (3-1-2)": {
+    "credits": "3-1-2",
+    "units": [
+      {
+        "unit": "Unit I",
+        "title": "Introduction to Computer Network",
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit II",
+        "title": "Reference Model",
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit III",
+        "title": "Physical Layer",
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit IV",
+        "title": "Data Link Layer",
+        "hours": "8 hrs"
+      },
+      {
+        "unit": "Unit V",
+        "title": "Network Layer Protocols and Addressing",
+        "hours": "8 hrs"
+      },
+      {
+        "unit": "Unit VI",
+        "title": "Transport Layer and Protocols",
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit VII",
+        "title": "Congestion Control and Quality of Services",
+        "hours": "3 hrs"
+      },
+      {
+        "unit": "Unit VIII",
+        "title": "Application Layer, Servers and Protocols",
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit IX",
+        "title": "Network Management and Security",
+        "hours": "7 hrs"
+      }
+    ]
+  },
+  "Simulation and Modeling": {
+    "credits": "N/A",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction to Simulation and Modeling",
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "System Simulation",
+        "hours": "8 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Continuous System",
+        "hours": "8 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Discrete System",
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Probability Concept and Random Numbers",
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Discrete System Languages",
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "Output Analysis Method",
+        "hours": "5 hrs"
+      }
+    ]
+  },
+  "Image Processing and Pattern Recognition (3-1-2)": {
+    "credits": "3-1-2",
+    "units": [
+      {
+        "unit": "Unit 1",
+        "title": "Introduction to Digital Image Processing",
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 2",
+        "title": "Image Enhancement in Spatial Domain",
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 3",
+        "title": "Image Enhancement in the Frequency Domain",
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit 4",
+        "title": "Image Restoration",
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit 5",
+        "title": "Image Compression and Coding",
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit 6",
+        "title": "Image Analysis",
+        "hours": "9 hrs"
+      },
+      {
+        "unit": "Unit 7",
+        "title": "Pattern Recognition & Artificial Neural Network",
+        "hours": "8 hrs"
+      }
+    ]
+  },
+  "Machine Learning (3-1-2)": {
+    "credits": "3-1-2",
+    "units": [
+      {
+        "unit": "Chapter 1",
+        "title": "Introduction to Machine Learning",
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Chapter 2",
+        "title": "Supervised Learning",
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Chapter 3",
+        "title": "Unsupervised Learning",
+        "hours": "10 hrs"
+      },
+      {
+        "unit": "Chapter 4",
+        "title": "Artificial Neural Network",
+        "hours": "12 hrs"
+      },
+      {
+        "unit": "Chapter 5",
+        "title": "Model Evaluation and Validation",
+        "hours": "8 hrs"
+      }
+    ]
+  },
+  "Compiler Design (2-2-2)": {
+    "credits": "2-2-2",
+    "units": [
+      {
+        "unit": "Unit I",
+        "title": "Overview of Compilation",
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit II",
+        "title": "Scanners",
+        "hours": "7 hrs"
+      },
+      {
+        "unit": "Unit III",
+        "title": "Parsers",
+        "hours": "6 hrs"
+      },
+      {
+        "unit": "Unit IV",
+        "title": "Intermediate Representations",
+        "hours": "5 hrs"
+      },
+      {
+        "unit": "Unit V",
+        "title": "Code Generation",
+        "hours": "4 hrs"
+      },
+      {
+        "unit": "Unit VI",
+        "title": "Machine Independent Optimization",
+        "hours": "4 hrs"
+      }
+    ]
   }
+}
