@@ -4,8 +4,10 @@ import fitz  # PyMuPDF
 from config import db
 from models.content import StudentUpload
 from services.auth_service import login_required
+from services.rag_service import embed_document, is_document_embedded
 import os
 import logging
+import threading
 
 upload_bp = Blueprint('upload', __name__)
 logger = logging.getLogger(__name__)
@@ -73,6 +75,23 @@ def upload_pdf(user):
             return jsonify({"error": "Failed to save record to database"}), 500
         
         # Truncating parse text for response
+        # Trigger background embedding into ChromaDB
+        def _bg_embed(app, uid, u_id, fname, ptext):
+            with app.app_context():
+                try:
+                    embed_document(uid, u_id, fname, ptext)
+                except Exception as e:
+                    logger.error(f"Background embedding failed for upload {uid}: {e}")
+
+        from flask import current_app
+        app = current_app._get_current_object()
+        t = threading.Thread(
+            target=_bg_embed,
+            args=(app, upload.id, user.id, filename, text),
+            daemon=True,
+        )
+        t.start()
+
         return jsonify({
             "message": "File uploaded and parsed successfully",
             "upload_id": upload.id,
@@ -91,8 +110,53 @@ def get_uploads(user):
             "filename": u.filename, 
             "size_bytes": u.size_bytes,
             "subject": u.subject,
+            "embedding_status": u.embedding_status or 'pending',
+            "embedding_error": u.embedding_error,
             "created_at": u.created_at
         } for u in uploads]), 200
     except Exception as e:
         logger.error(f"Database error fetching uploads: {e}")
         return jsonify({"error": "Failed to fetch uploads"}), 500
+
+@upload_bp.route('/retry-embedding', methods=['POST'])
+@login_required
+def retry_embedding(user):
+    data = request.get_json()
+    upload_id = data.get('upload_id')
+
+    if not upload_id:
+        return jsonify({"error": "upload_id required"}), 400
+
+    upload = StudentUpload.query.get(upload_id)
+    if not upload:
+        return jsonify({"error": "Upload not found"}), 404
+
+    if upload.user_id != user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    if not upload.parsed_text:
+        return jsonify({"error": "No parsed text available for this document"}), 400
+
+    # Reset status
+    upload.embedding_status = 'pending'
+    upload.embedding_error = None
+    db.session.commit()
+
+    # Trigger background embedding
+    def _bg_embed(app, uid, u_id, fname, ptext):
+        with app.app_context():
+            try:
+                embed_document(uid, u_id, fname, ptext)
+            except Exception as e:
+                logger.error(f"Background embedding failed for upload {uid}: {e}")
+
+    from flask import current_app
+    app = current_app._get_current_object()
+    t = threading.Thread(
+        target=_bg_embed,
+        args=(app, upload.id, user.id, upload.filename, upload.parsed_text),
+        daemon=True,
+    )
+    t.start()
+
+    return jsonify({"message": "Retry embedding started"}), 200

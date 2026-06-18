@@ -1,12 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, Loader2, MessageSquare, SendHorizontal, Sparkles, UserRound } from 'lucide-react';
+import { Bot, Loader2, MessageSquare, SendHorizontal, Sparkles, UserRound, ArrowLeft } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 
 const AIChat = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const subject = searchParams.get('subject') || '';
+  const unit = searchParams.get('unit') || '';
+  const unitLabel = searchParams.get('unitLabel') || '';
+
   const [messages, setMessages] = useState([
     {
       id: 1,
       role: 'assistant',
-      content: 'Hi, I am ready to help with concepts, revision, and questions from your uploaded materials.',
+      content: subject
+        ? `Hi! I'm ready to help you study **${unit || subject}**. Ask me to explain concepts, quiz you, create notes, or anything else about this topic.`
+        : 'Hi, I am ready to help with concepts, revision, and questions from your uploaded materials.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -73,6 +83,9 @@ const AIChat = () => {
         body: JSON.stringify({
           message: text,
           history: history,
+          subject: subject || undefined,
+          unit: unit || undefined,
+          unitLabel: unitLabel || undefined,
         }),
       });
 
@@ -105,22 +118,42 @@ const AIChat = () => {
     }
   };
 
-  const quickPrompts = [
-    'Explain the last topic in simple terms.',
-    'Turn my notes into 5 revision bullets.',
-    'Quiz me on the important concepts from my materials.',
-  ];
+  const quickPrompts = subject
+    ? [
+        `Explain the key concepts of ${unit || subject} in simple terms.`,
+        `Create 5 revision bullet points for ${unit || subject}.`,
+        `Quiz me on the important concepts from ${unit || subject}.`,
+      ]
+    : [
+        'Explain the last topic in simple terms.',
+        'Turn my notes into 5 revision bullets.',
+        'Quiz me on the important concepts from my materials.',
+      ];
 
   return (
     <div className="flex flex-col h-full min-h-[72vh] bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
       <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
+          {subject && (
+            <button
+              onClick={() => navigate('/dashboard/syllabus')}
+              className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
           <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
             <MessageSquare size={22} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-slate-800">AI Chat Assistant</h3>
-            <p className="text-sm text-slate-500">Connected to DeepSeek on the server, with your uploaded materials included when available.</p>
+            <h3 className="text-lg font-bold text-slate-800">
+              {subject ? `Study: ${unit || subject}` : 'AI Chat Assistant'}
+            </h3>
+            <p className="text-sm text-slate-500">
+              {subject
+                ? `Focused on ${subject}${unit ? ` — ${unit}` : ''}`
+                : 'Connected to Gemini on the server, with your uploaded materials included when available.'}
+            </p>
           </div>
         </div>
         <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500 bg-white/80 border border-slate-200 rounded-full px-3 py-1.5">
@@ -206,13 +239,19 @@ const ChatBubble = ({ role, content }) => {
         </div>
       )}
       <div
-        className={`max-w-[min(44rem,85%)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm border whitespace-pre-wrap ${
+        className={`max-w-[min(44rem,85%)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm border ${
           isUser
             ? 'bg-blue-600 text-white border-blue-500 rounded-br-md'
             : 'bg-white text-slate-700 border-slate-200 rounded-bl-md'
         }`}
       >
-        {content}
+        {isUser ? (
+          <span className="whitespace-pre-wrap">{content}</span>
+        ) : (
+          <div className="prose prose-sm prose-slate max-w-none prose-p:my-1 prose-pre:bg-slate-100 prose-pre:border prose-pre:border-slate-200 prose-code:text-pink-600 prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-normal prose-pre:code:bg-transparent prose-pre:code:p-0">
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
+        )}
       </div>
       {isUser && (
         <div className="w-10 h-10 rounded-full bg-slate-900 text-white border border-slate-800 flex items-center justify-center shadow-sm flex-shrink-0">

@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Book, Clock, ChevronRight, FileText, Layout, List } from 'lucide-react';
-import { useOutletContext } from 'react-router-dom';
+import { Search, Book, Clock, ChevronRight, FileText, Layout, List, MessageSquare } from 'lucide-react';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useFilteredSubjects } from '../hooks/useFilteredSubjects';
 
 const SyllabusExplorer = () => {
     const { user } = useOutletContext();
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedSubject, setSelectedSubject] = useState(null);
 
@@ -145,6 +146,16 @@ const SyllabusExplorer = () => {
                                                                 </p>
                                                             </div>
                                                         ))}
+                                                    </div>
+
+                                                    <div className="mt-4 pl-2">
+                                                        <button
+                                                            onClick={() => navigate(`/dashboard/chat?subject=${encodeURIComponent(selectedSubject)}&unit=${encodeURIComponent(unit.title)}&unitLabel=${encodeURIComponent(unit.unit)}`)}
+                                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200"
+                                                        >
+                                                            <MessageSquare size={14} />
+                                                            Study with AI
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </motion.div>

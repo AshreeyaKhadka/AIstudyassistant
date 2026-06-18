@@ -66,9 +66,17 @@ def _parse_response_body(response):
         return None
 
 
-def _build_gemini_contents(history, message, material_context):
+def _build_gemini_contents(history, message, material_context, subject=None, unit=None, unit_label=None):
+    topic_hint = ''
+    if subject:
+        topic_hint = f'The student is currently studying **{subject}**'
+        if unit:
+            topic_hint += f', specifically the chapter/unit: **{unit_label + ": " if unit_label else ""}{unit}**'
+        topic_hint += '. Focus your answers on this topic. '
+
     prompt = (
         'You are AiStudy, a precise and supportive study assistant for engineering students. '
+        + topic_hint +
         'Use the provided uploaded study materials when they are relevant. '
         'If the uploaded material does not contain enough information, say so clearly instead of inventing details. '
         'Keep answers concise, practical, and easy to revise.'
@@ -118,9 +126,12 @@ def send_message(user):
 
     history = _normalize_history(data.get('history', []))
     material_context = _build_material_context(user)
+    subject = data.get('subject') or None
+    unit = data.get('unit') or None
+    unit_label = data.get('unitLabel') or None
 
     payload = {
-        'contents': _build_gemini_contents(history, message, material_context),
+        'contents': _build_gemini_contents(history, message, material_context, subject, unit, unit_label),
         'generationConfig': {
             'temperature': 0.3,
             'maxOutputTokens': 900,
