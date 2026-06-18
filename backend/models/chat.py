@@ -6,10 +6,12 @@ class ChatSession(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=True)
+    title = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    messages = db.relationship('ChatMessage', backref='session', lazy=True)
+    messages = db.relationship('ChatMessage', backref='session', lazy=True, cascade='all, delete-orphan')
 
 
 class ChatMessage(db.Model):

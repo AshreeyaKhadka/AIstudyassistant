@@ -3,8 +3,9 @@ from werkzeug.utils import secure_filename
 import fitz  # PyMuPDF
 from config import db
 from models.content import StudentUpload
+from models.quiz import QuizSet
 from services.auth_service import login_required
-from services.rag_service import embed_document, is_document_embedded
+from services.rag_service import embed_document, is_document_embedded, delete_document_embeddings
 import os
 import logging
 import threading
@@ -112,6 +113,7 @@ def get_uploads(user):
             "subject": u.subject,
             "embedding_status": u.embedding_status or 'pending',
             "embedding_error": u.embedding_error,
+            "mcq_generation_count": u.mcq_generation_count or 0,
             "created_at": u.created_at
         } for u in uploads]), 200
     except Exception as e:
@@ -160,3 +162,37 @@ def retry_embedding(user):
     t.start()
 
     return jsonify({"message": "Retry embedding started"}), 200
+
+
+@upload_bp.route('/<int:upload_id>', methods=['DELETE'])
+@login_required
+def delete_upload(user, upload_id):
+    """Delete an uploaded document, its embeddings, and physical file."""
+    upload = StudentUpload.query.get(upload_id)
+    if not upload:
+        return jsonify({"error": "Upload not found"}), 404
+
+    if upload.user_id != user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    try:
+        # 1. Delete ChromaDB embeddings
+        delete_document_embeddings(upload.id)
+
+        # 2. Delete physical file
+        if upload.file_url and os.path.exists(upload.file_url):
+            os.remove(upload.file_url)
+
+        # 3. Delete associated quiz sets
+        QuizSet.query.filter_by(upload_id=upload.id).delete()
+
+        # 4. Delete DB record
+        db.session.delete(upload)
+        db.session.commit()
+
+        return jsonify({"message": "Document deleted successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to delete upload {upload_id}: {e}")
+        return jsonify({"error": "Failed to delete document"}), 500

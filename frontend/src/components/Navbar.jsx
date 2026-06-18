@@ -16,7 +16,7 @@ const Navbar = ({ user, scrolled }) => {
     if (path.includes('/exam-prep')) return 'Exam Preparation';
     if (path.includes('/mcq')) return 'MCQ Practice';
     if (path.includes('/progress')) return 'Progress Tracker';
-    if (path.includes('/revision')) return 'Revision Planner';
+    if (path.includes('/revision')) return 'Calendar';
     if (path.includes('/settings')) return 'Settings';
     if (path.includes('/profile')) return 'Profile';
     return 'Dashboard';
@@ -31,7 +31,7 @@ const Navbar = ({ user, scrolled }) => {
     if (path.includes('/exam-prep')) return 'Important questions, mock tests, and revision sheets.';
     if (path.includes('/mcq')) return 'Practice multiple-choice questions for your subjects.';
     if (path.includes('/progress')) return 'Track your learning journey and performance.';
-    if (path.includes('/revision')) return 'Schedule and plan your revision effectively.';
+    if (path.includes('/revision')) return 'Plan revisions, track exams, and manage your schedule.';
     if (path.includes('/settings')) return 'Manage your account and preferences.';
     if (path.includes('/profile')) return 'Manage your personal and academic information.';
     return '';

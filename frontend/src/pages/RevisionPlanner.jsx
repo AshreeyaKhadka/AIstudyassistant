@@ -17,18 +17,33 @@ import {
   SlidersHorizontal,
   X,
   CheckCircle2,
-  CalendarCheck
+  CalendarCheck,
+  GraduationCap,
+  BookOpen,
+  FileText
 } from 'lucide-react';
+
+const EXAM_TYPES = [
+  { value: 'ut', label: 'Unit Test', color: 'bg-amber-500', textColor: 'text-amber-600', bgLight: 'bg-amber-50', border: 'border-amber-200' },
+  { value: 'assessment', label: 'Assessment', color: 'bg-blue-500', textColor: 'text-blue-600', bgLight: 'bg-blue-50', border: 'border-blue-200' },
+  { value: 'final', label: 'Final Board', color: 'bg-rose-500', textColor: 'text-rose-600', bgLight: 'bg-rose-50', border: 'border-rose-200' },
+];
+
+const getExamStyle = (type) => EXAM_TYPES.find(e => e.value === type) || EXAM_TYPES[0];
 
 const RevisionPlanner = () => {
   // Calendar Navigation State
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState('month'); // 'month', 'week', 'day'
+  const [viewMode, setViewMode] = useState('month');
   
   // Plans & Data State
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Exams State
+  const [exams, setExams] = useState([]);
+  const [examsLoading, setExamsLoading] = useState(true);
   
   // Filters State
   const [subjectFilter, setSubjectFilter] = useState('All');
@@ -36,9 +51,19 @@ const RevisionPlanner = () => {
   
   // Modals & Active Plan State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState('create'); // 'create', 'edit'
+  const [modalMode, setModalMode] = useState('create');
   const [activePlan, setActivePlan] = useState(null);
   const [toast, setToast] = useState(null);
+
+  // Exam Modal State
+  const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [examForm, setExamForm] = useState({
+    title: '',
+    exam_type: 'ut',
+    subject: 'Operating Systems',
+    exam_date: '',
+    description: '',
+  });
 
   // Form State
   const [formData, setFormData] = useState({
@@ -55,13 +80,12 @@ const RevisionPlanner = () => {
   // Drag and Drop State
   const [draggedPlanId, setDraggedPlanId] = useState(null);
 
-  // Success Notification Helper
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Fetch Revision Plans from backend
+  // Fetch Revision Plans
   const fetchPlans = async () => {
     try {
       setLoading(true);
@@ -77,8 +101,24 @@ const RevisionPlanner = () => {
     }
   };
 
+  // Fetch Exams
+  const fetchExams = async () => {
+    try {
+      setExamsLoading(true);
+      const res = await fetch('/api/exams', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load exams');
+      const data = await res.json();
+      setExams(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setExamsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchPlans();
+    fetchExams();
   }, []);
 
   // Form Actions
@@ -114,7 +154,6 @@ const RevisionPlanner = () => {
     setIsModalOpen(true);
   };
 
-  // Save Revision Plan (Create or Update)
   const handleSavePlan = async (e) => {
     e.preventDefault();
     if (!formData.title || !formData.revision_date) {
@@ -122,7 +161,6 @@ const RevisionPlanner = () => {
       return;
     }
 
-    // Optimistic UI updates
     const tempId = Math.random();
     const optimisticPlan = {
       id: modalMode === 'edit' ? activePlan.id : tempId,
@@ -153,23 +191,20 @@ const RevisionPlanner = () => {
       if (!res.ok) throw new Error('Failed to save revision task');
       const savedPlan = await res.json();
 
-      // Replace optimistic entry with real DB object
       setPlans(prev => prev.map(p => (p.id === tempId || p.id === activePlan?.id) ? savedPlan : p));
       showToast(modalMode === 'create' ? 'Revision task created!' : 'Revision task updated!');
     } catch (err) {
       console.error(err);
       showToast('Failed to save revision task. Rolling back...', 'error');
-      fetchPlans(); // Rollback to DB state
+      fetchPlans();
     }
   };
 
-  // Toggle Completion Status (PATCH)
   const handleToggleStatus = async (plan) => {
     const nextStatus = plan.status === 'completed' ? 'pending' : 'completed';
     
-    // Optimistic Update
     setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, status: nextStatus } : p));
-    showToast(nextStatus === 'completed' ? 'Task marked complete! 🎓' : 'Task marked pending.');
+    showToast(nextStatus === 'completed' ? 'Task marked complete!' : 'Task marked pending.');
 
     try {
       const res = await fetch(`/api/revision-plans/${plan.id}/status`, {
@@ -185,15 +220,13 @@ const RevisionPlanner = () => {
     } catch (err) {
       console.error(err);
       showToast('Failed to update status. Rolling back...', 'error');
-      fetchPlans(); // Rollback
+      fetchPlans();
     }
   };
 
-  // Delete Revision Plan
   const handleDeletePlan = async (id) => {
     if (!window.confirm('Delete this revision task?')) return;
 
-    // Optimistic Update
     const planToDelete = plans.find(p => p.id === id);
     setPlans(prev => prev.filter(p => p.id !== id));
     showToast('Revision task deleted.');
@@ -208,7 +241,64 @@ const RevisionPlanner = () => {
     } catch (err) {
       console.error(err);
       showToast('Failed to delete task. Rolling back...', 'error');
-      setPlans(prev => [...prev, planToDelete]); // Rollback
+      setPlans(prev => [...prev, planToDelete]);
+    }
+  };
+
+  // Exam Handlers
+  const handleCreateExam = async (e) => {
+    e.preventDefault();
+    if (!examForm.title || !examForm.exam_date || !examForm.subject) {
+      showToast('Title, subject, and date are required!', 'error');
+      return;
+    }
+
+    const tempId = Math.random();
+    const optimisticExam = {
+      id: tempId,
+      ...examForm,
+      created_at: new Date().toISOString(),
+    };
+    setExams(prev => [...prev, optimisticExam]);
+    setIsExamModalOpen(false);
+    setExamForm({ title: '', exam_type: 'ut', subject: 'Operating Systems', exam_date: '', description: '' });
+
+    try {
+      const res = await fetch('/api/exams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(examForm),
+        credentials: 'include'
+      });
+
+      if (!res.ok) throw new Error('Failed to create exam');
+      const saved = await res.json();
+      setExams(prev => prev.map(e => e.id === tempId ? saved : e));
+      showToast('Exam added to calendar!');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to add exam. Rolling back...', 'error');
+      fetchExams();
+    }
+  };
+
+  const handleDeleteExam = async (id) => {
+    if (!window.confirm('Remove this exam from calendar?')) return;
+
+    const examToDelete = exams.find(e => e.id === id);
+    setExams(prev => prev.filter(e => e.id !== id));
+    showToast('Exam removed.');
+
+    try {
+      const res = await fetch(`/api/exams/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (!res.ok) throw new Error('Failed');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to remove exam. Rolling back...', 'error');
+      setExams(prev => [...prev, examToDelete]);
     }
   };
 
@@ -222,7 +312,6 @@ const RevisionPlanner = () => {
     const plan = plans.find(p => p.id === draggedPlanId);
     if (!plan || plan.revision_date === dateStr) return;
 
-    // Optimistic Update
     setPlans(prev => prev.map(p => p.id === draggedPlanId ? { ...p, revision_date: dateStr } : p));
     showToast(`Task rescheduled to ${dateStr}`);
 
@@ -230,10 +319,7 @@ const RevisionPlanner = () => {
       const res = await fetch(`/api/revision-plans/${draggedPlanId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...plan,
-          revision_date: dateStr
-        }),
+        body: JSON.stringify({ ...plan, revision_date: dateStr }),
         credentials: 'include'
       });
 
@@ -243,38 +329,27 @@ const RevisionPlanner = () => {
     } catch (err) {
       console.error(err);
       showToast('Rescheduling failed. Rolling back...', 'error');
-      fetchPlans(); // Rollback
+      fetchPlans();
     } finally {
       setDraggedPlanId(null);
     }
   };
 
-  // Calendar Date Generation Helpers
+  // Calendar Helpers
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
-    const startPadding = firstDay.getDay(); // Padding from last month
+    const startPadding = firstDay.getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
     
     const days = [];
-    
-    // Add padded days from prev month
     for (let i = startPadding - 1; i >= 0; i--) {
-      days.push({
-        date: new Date(year, month, -i),
-        isCurrentMonth: false
-      });
+      days.push({ date: new Date(year, month, -i), isCurrentMonth: false });
     }
-    
-    // Add current month days
     for (let i = 1; i <= totalDays; i++) {
-      days.push({
-        date: new Date(year, month, i),
-        isCurrentMonth: true
-      });
+      days.push({ date: new Date(year, month, i), isCurrentMonth: true });
     }
-    
     return days;
   };
 
@@ -292,35 +367,24 @@ const RevisionPlanner = () => {
     return days;
   };
 
-  // Calendar Mode Triggers
   const handlePrev = () => {
     const next = new Date(currentDate);
-    if (viewMode === 'month') {
-      next.setMonth(next.getMonth() - 1);
-    } else if (viewMode === 'week') {
-      next.setDate(next.getDate() - 7);
-    } else {
-      next.setDate(next.getDate() - 1);
-    }
+    if (viewMode === 'month') next.setMonth(next.getMonth() - 1);
+    else if (viewMode === 'week') next.setDate(next.getDate() - 7);
+    else next.setDate(next.getDate() - 1);
     setCurrentDate(next);
   };
 
   const handleNext = () => {
     const next = new Date(currentDate);
-    if (viewMode === 'month') {
-      next.setMonth(next.getMonth() + 1);
-    } else if (viewMode === 'week') {
-      next.setDate(next.getDate() + 7);
-    } else {
-      next.setDate(next.getDate() + 1);
-    }
+    if (viewMode === 'month') next.setMonth(next.getMonth() + 1);
+    else if (viewMode === 'week') next.setDate(next.getDate() + 7);
+    else next.setDate(next.getDate() + 1);
     setCurrentDate(next);
   };
 
-  // Subject List for dropdowns & filters
   const subjects = ['Operating Systems', 'Computer Networks', 'Database Management', 'General'];
 
-  // Priority Color Helpers
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'high': return 'bg-rose-50 border-rose-100 text-rose-600 border';
@@ -339,36 +403,29 @@ const RevisionPlanner = () => {
     }
   };
 
-  // Filtering Logic
   const filteredPlans = plans.filter(plan => {
     const matchesSubject = subjectFilter === 'All' || plan.subject === subjectFilter;
     const matchesStatus = statusFilter === 'All' || plan.status === statusFilter;
     return matchesSubject && matchesStatus;
   });
 
-  // Productivity widgets calculation
   const completedCount = plans.filter(p => p.status === 'completed').length;
-  const pendingCount = plans.filter(p => p.status === 'pending').length;
-  
-  // Total study hours calculation
   const totalStudyHours = plans.reduce((acc, p) => {
     if (p.status === 'completed' && p.start_time && p.end_time) {
       const [sh, sm] = p.start_time.split(':').map(Number);
       const [eh, em] = p.end_time.split(':').map(Number);
       let diffMins = (eh * 60 + em) - (sh * 60 + sm);
-      if (diffMins < 0) diffMins += 24 * 60; // Roll-over
+      if (diffMins < 0) diffMins += 24 * 60;
       return acc + (diffMins / 60);
     }
     return acc;
   }, 0);
 
-  // Weak subject reminder check
-  const weakSubjects = ['Computer Networks']; // Mock weak subject from database analytics
-  const networksPending = plans.filter(p => p.subject === 'Computer Networks' && p.status === 'pending');
+  const getExamsForDate = (dateStr) => exams.filter(e => e.exam_date === dateStr);
 
   return (
     <div className="flex flex-col gap-6 max-w-[1600px] mx-auto pb-10 relative">
-      {/* Toast Notification Container */}
+      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div 
@@ -387,29 +444,35 @@ const RevisionPlanner = () => {
         )}
       </AnimatePresence>
 
-      {/* 1. Header Banner */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2.5">
-            <CalendarCheck className="text-indigo-600" size={24} /> Spaced Spaced-Repetition Planner
+            <CalendarCheck className="text-indigo-600" size={24} /> Calendar
           </h2>
-          <p className="text-sm text-slate-500 mt-1">Plan, reschedule, and track curriculum revision sessions seamlessly.</p>
+          <p className="text-sm text-slate-500 mt-1">Plan revision sessions, track exams, and stay on top of your schedule.</p>
         </div>
-        <button 
-          onClick={() => handleOpenCreateModal()}
-          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-2xl text-sm font-extrabold hover:bg-indigo-700 shadow-md shadow-indigo-500/10 transition-all hover:scale-[1.01]"
-        >
-          <Plus size={16} strokeWidth={2.5} />
-          Schedule Session
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => { setExamForm({ title: '', exam_type: 'ut', subject: 'Operating Systems', exam_date: new Date().toISOString().split('T')[0], description: '' }); setIsExamModalOpen(true); }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-indigo-200 text-indigo-700 rounded-2xl text-sm font-extrabold hover:bg-indigo-50 transition-all hover:scale-[1.01]"
+          >
+            <GraduationCap size={16} strokeWidth={2.5} />
+            Add Exam
+          </button>
+          <button 
+            onClick={() => handleOpenCreateModal()}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-2xl text-sm font-extrabold hover:bg-indigo-700 shadow-md shadow-indigo-500/10 transition-all hover:scale-[1.01]"
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            Schedule Session
+          </button>
+        </div>
       </div>
 
-      {/* 2. Productivity Stats Widgets */}
+      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        <motion.div 
-          whileHover={{ y: -2 }}
-          className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group"
-        >
+        <motion.div whileHover={{ y: -2 }} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group">
           <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/30 group-hover:scale-105 transition-transform duration-300">
             <Target size={20} />
           </div>
@@ -419,10 +482,7 @@ const RevisionPlanner = () => {
           </div>
         </motion.div>
 
-        <motion.div 
-          whileHover={{ y: -2 }}
-          className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group"
-        >
+        <motion.div whileHover={{ y: -2 }} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group">
           <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/30 group-hover:scale-105 transition-transform duration-300">
             <Clock size={20} />
           </div>
@@ -432,10 +492,7 @@ const RevisionPlanner = () => {
           </div>
         </motion.div>
 
-        <motion.div 
-          whileHover={{ y: -2 }}
-          className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group"
-        >
+        <motion.div whileHover={{ y: -2 }} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group">
           <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center border border-amber-100/30 group-hover:scale-105 transition-transform duration-300">
             <Flame size={20} className="animate-bounce" />
           </div>
@@ -445,32 +502,19 @@ const RevisionPlanner = () => {
           </div>
         </motion.div>
 
-        <motion.div 
-          whileHover={{ y: -2 }}
-          className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group"
-        >
+        <motion.div whileHover={{ y: -2 }} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group">
           <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100/30 group-hover:scale-105 transition-transform duration-300">
-            <AlertCircle size={20} />
+            <GraduationCap size={20} />
           </div>
           <div>
-            {networksPending.length > 0 ? (
-              <>
-                <h3 className="text-base font-extrabold text-rose-600 tracking-tight">Weak: Networks</h3>
-                <p className="text-[10px] font-bold text-slate-400 mt-0.5">{networksPending.length} sessions pending ⚠️</p>
-              </>
-            ) : (
-              <>
-                <h3 className="text-base font-extrabold text-slate-700 tracking-tight">All Subjects Safe</h3>
-                <p className="text-[10px] font-bold text-slate-400 mt-0.5">Revision schedule clear</p>
-              </>
-            )}
+            <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">{exams.length}</h3>
+            <p className="text-xs font-semibold text-slate-400 mt-0.5">Upcoming Exams</p>
           </div>
         </motion.div>
       </div>
 
-      {/* 3. Controls & Filtration Panel */}
+      {/* Controls */}
       <div className="bg-white rounded-2xl p-4.5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.012)] flex flex-col md:flex-row justify-between items-center gap-4">
-        {/* Navigation & Period Label */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
           <div className="flex bg-slate-50 border border-slate-100 p-1 rounded-xl shadow-sm">
             <button onClick={handlePrev} className="p-2 text-slate-500 hover:text-slate-700 hover:bg-white rounded-lg transition-colors">
@@ -485,18 +529,12 @@ const RevisionPlanner = () => {
           </h3>
         </div>
 
-        {/* View Mode & Filtering Controls */}
         <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-          {/* View Toggles */}
           <div className="flex bg-slate-50 border border-slate-100 p-1 rounded-xl shadow-sm">
             {['month', 'week', 'day'].map((mode) => (
-              <button 
-                key={mode} 
-                onClick={() => setViewMode(mode)}
+              <button key={mode} onClick={() => setViewMode(mode)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
-                  viewMode === mode 
-                    ? 'bg-white text-indigo-600 shadow-sm border border-slate-100/50' 
-                    : 'text-slate-500 hover:text-slate-700'
+                  viewMode === mode ? 'bg-white text-indigo-600 shadow-sm border border-slate-100/50' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 {mode}
@@ -506,12 +544,9 @@ const RevisionPlanner = () => {
 
           <div className="h-6 w-px bg-slate-100 hidden sm:block"></div>
 
-          {/* Subject Filter */}
           <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 p-1 rounded-xl">
             <SlidersHorizontal size={12} className="text-slate-400 ml-2" />
-            <select 
-              value={subjectFilter}
-              onChange={(e) => setSubjectFilter(e.target.value)}
+            <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}
               className="bg-transparent text-xs font-bold text-slate-600 focus:outline-none pr-3 cursor-pointer py-1"
             >
               <option value="All">All Subjects</option>
@@ -519,11 +554,8 @@ const RevisionPlanner = () => {
             </select>
           </div>
 
-          {/* Status Filter */}
           <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 p-1 rounded-xl">
-            <select 
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
               className="bg-transparent text-xs font-bold text-slate-600 focus:outline-none pr-3 cursor-pointer py-1"
             >
               <option value="All">All Status</option>
@@ -534,27 +566,25 @@ const RevisionPlanner = () => {
         </div>
       </div>
 
-      {/* 4. Main Calendar Container Grid */}
+      {/* Main Calendar + Sidebar */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         
-        {/* Left Side: Dynamic Calendar Grid */}
+        {/* Calendar Grid */}
         <div className="xl:col-span-3 bg-white rounded-[2rem] border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] overflow-hidden flex flex-col min-h-[600px]">
           
-          {/* Calendar Header Columns */}
           <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-              <div key={d} className="py-3 text-center text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                {d}
-              </div>
+              <div key={d} className="py-3 text-center text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{d}</div>
             ))}
           </div>
 
-          {/* Monthly Grid View */}
+          {/* Monthly View */}
           {viewMode === 'month' && (
             <div className="grid grid-cols-7 flex-1 divide-x divide-y divide-slate-100">
               {getDaysInMonth(currentDate).map((dayObj, index) => {
                 const dateStr = dayObj.date.toISOString().split('T')[0];
                 const dayPlans = filteredPlans.filter(p => p.revision_date === dateStr);
+                const dayExams = getExamsForDate(dateStr);
                 const isToday = new Date().toDateString() === dayObj.date.toDateString();
 
                 return (
@@ -566,7 +596,6 @@ const RevisionPlanner = () => {
                       dayObj.isCurrentMonth ? 'bg-white' : 'bg-slate-50/30'
                     } ${isToday ? 'bg-indigo-50/20' : ''}`}
                   >
-                    {/* Day Number Label */}
                     <div className="flex justify-between items-center mb-1">
                       <span className={`text-xs font-bold ${
                         isToday 
@@ -583,7 +612,25 @@ const RevisionPlanner = () => {
                       </button>
                     </div>
 
-                    {/* Day Task Entries */}
+                    {/* Exam Markers */}
+                    {dayExams.length > 0 && (
+                      <div className="flex flex-col gap-0.5 mb-1">
+                        {dayExams.map(exam => {
+                          const style = getExamStyle(exam.exam_type);
+                          return (
+                            <div 
+                              key={exam.id}
+                              className={`px-1.5 py-0.5 rounded-md text-[8px] font-extrabold uppercase tracking-wider truncate ${style.bgLight} ${style.textColor} border ${style.border}`}
+                              title={`${exam.title} - ${exam.subject}`}
+                            >
+                              {exam.exam_type === 'ut' ? 'UT' : exam.exam_type === 'assessment' ? 'ASS' : 'FIN'}: {exam.subject.substring(0, 12)}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Revision Tasks */}
                     <div className="flex-1 flex flex-col gap-1 overflow-y-auto max-h-[85px] custom-scrollbar">
                       {dayPlans.map(plan => (
                         <div 
@@ -610,17 +657,17 @@ const RevisionPlanner = () => {
             </div>
           )}
 
-          {/* Weekly Grid View */}
+          {/* Weekly View */}
           {viewMode === 'week' && (
             <div className="grid grid-cols-7 flex-1 divide-x divide-slate-100 min-h-[450px]">
               {getDaysInWeek(currentDate).map((day, idx) => {
                 const dateStr = day.toISOString().split('T')[0];
                 const dayPlans = filteredPlans.filter(p => p.revision_date === dateStr);
+                const dayExams = getExamsForDate(dateStr);
                 const isToday = new Date().toDateString() === day.toDateString();
 
                 return (
-                  <div 
-                    key={idx}
+                  <div key={idx}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => handleDrop(dateStr)}
                     className={`p-4 flex flex-col gap-3 min-h-[400px] transition-all ${isToday ? 'bg-indigo-50/20' : ''}`}
@@ -632,10 +679,23 @@ const RevisionPlanner = () => {
                       }`}>{day.getDate()}</span>
                     </div>
 
+                    {/* Exam markers for week view */}
+                    {dayExams.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        {dayExams.map(exam => {
+                          const style = getExamStyle(exam.exam_type);
+                          return (
+                            <div key={exam.id} className={`px-2 py-1 rounded-lg text-[9px] font-extrabold uppercase ${style.bgLight} ${style.textColor} border ${style.border}`}>
+                              {exam.title}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     <div className="flex-1 flex flex-col gap-2 overflow-y-auto max-h-[350px] custom-scrollbar">
                       {dayPlans.map(plan => (
-                        <div 
-                          key={plan.id}
+                        <div key={plan.id}
                           draggable
                           onDragStart={() => handleDragStart(plan.id)}
                           onClick={() => handleOpenEditModal(plan)}
@@ -646,9 +706,7 @@ const RevisionPlanner = () => {
                           }`}
                         >
                           <div className="flex items-center gap-1.5">
-                            <span className={`w-2 h-2 rounded-full ${
-                              plan.status === 'completed' ? 'bg-slate-300' : getPriorityDot(plan.priority)
-                            }`}></span>
+                            <span className={`w-2 h-2 rounded-full ${plan.status === 'completed' ? 'bg-slate-300' : getPriorityDot(plan.priority)}`}></span>
                             <span className="font-bold text-xs truncate">{plan.title}</span>
                           </div>
                           {plan.start_time && (
@@ -665,7 +723,7 @@ const RevisionPlanner = () => {
             </div>
           )}
 
-          {/* Daily Grid View */}
+          {/* Daily View */}
           {viewMode === 'day' && (
             <div className="p-6 flex-1 flex flex-col gap-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -684,22 +742,39 @@ const RevisionPlanner = () => {
                 </button>
               </div>
 
+              {/* Day's Exams */}
+              {getExamsForDate(currentDate.toISOString().split('T')[0]).length > 0 && (
+                <div className="space-y-2">
+                  {getExamsForDate(currentDate.toISOString().split('T')[0]).map(exam => {
+                    const style = getExamStyle(exam.exam_type);
+                    return (
+                      <div key={exam.id} className={`flex items-center justify-between p-3 rounded-xl border ${style.bgLight} ${style.border}`}>
+                        <div className="flex items-center gap-3">
+                          <GraduationCap size={18} className={style.textColor} />
+                          <div>
+                            <p className={`text-sm font-bold ${style.textColor}`}>{exam.title}</p>
+                            <p className="text-xs text-slate-500">{exam.subject} &middot; {exam.exam_type.toUpperCase()}</p>
+                          </div>
+                        </div>
+                        <button onClick={() => handleDeleteExam(exam.id)} className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="flex-1 overflow-y-auto max-h-[380px] divide-y divide-slate-100">
                 {filteredPlans.filter(p => p.revision_date === currentDate.toISOString().split('T')[0]).map(plan => (
-                  <div 
-                    key={plan.id}
+                  <div key={plan.id}
                     onClick={() => handleOpenEditModal(plan)}
                     className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 group cursor-pointer hover:bg-slate-50/40 px-2 rounded-xl transition-colors"
                   >
                     <div className="flex gap-3.5 items-start">
                       <div className="mt-1">
-                        <input 
-                          type="checkbox" 
-                          checked={plan.status === 'completed'}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            handleToggleStatus(plan);
-                          }}
+                        <input type="checkbox" checked={plan.status === 'completed'}
+                          onChange={(e) => { e.stopPropagation(); handleToggleStatus(plan); }}
                           className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 focus:ring-2 cursor-pointer transition-colors"
                         />
                       </div>
@@ -707,9 +782,7 @@ const RevisionPlanner = () => {
                         <h4 className={`font-bold text-sm ${plan.status === 'completed' ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{plan.title}</h4>
                         <p className="text-xs text-slate-400 mt-1">{plan.description || 'No description provided'}</p>
                         <div className="flex items-center gap-2 mt-2">
-                          <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100/30">
-                            {plan.subject}
-                          </span>
+                          <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100/30">{plan.subject}</span>
                           {plan.start_time && (
                             <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
                               <Clock size={11} /> {plan.start_time} - {plan.end_time}
@@ -723,11 +796,7 @@ const RevisionPlanner = () => {
                       <span className={`px-2.5 py-1 text-[9px] font-extrabold uppercase rounded-lg border tracking-wide ${getPriorityColor(plan.priority)}`}>
                         {plan.priority} Priority
                       </span>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeletePlan(plan.id);
-                        }}
+                      <button onClick={(e) => { e.stopPropagation(); handleDeletePlan(plan.id); }}
                         className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
                       >
                         <Trash2 size={14} />
@@ -747,30 +816,70 @@ const RevisionPlanner = () => {
           )}
         </div>
 
-        {/* Right Side: Upcomings & Sidebar */}
+        {/* Sidebar */}
         <div className="flex flex-col gap-6">
           
-          {/* A. Spaced Revision AI Helper */}
-          <div className="bg-gradient-to-br from-indigo-900 to-slate-950 p-6 rounded-[2rem] text-white border border-white/5 relative overflow-hidden shadow-lg shadow-indigo-950/10">
-            <div className="absolute top-[-30%] right-[-10%] w-[150px] h-[150px] bg-gradient-to-br from-indigo-500/15 to-purple-500/10 rounded-full blur-[30px] pointer-events-none"></div>
-            <Sparkles className="text-amber-300 w-7 h-7 mb-3 opacity-90 animate-pulse" />
-            <h4 className="font-extrabold text-sm tracking-tight text-white">Spaced Repetition Tip</h4>
-            <p className="text-xs text-slate-200 leading-relaxed mt-2 font-medium">
-              Review networks or database rules at 1-day, 3-day, and 7-day intervals to maximize long-term synapse memory retention.
-            </p>
+          {/* Exam Legend */}
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-6">
+            <h3 className="text-sm font-bold text-slate-800 tracking-tight mb-3">Exam Types</h3>
+            <div className="space-y-2">
+              {EXAM_TYPES.map(type => (
+                <div key={type.value} className="flex items-center gap-2.5">
+                  <span className={`w-3 h-3 rounded-full ${type.color}`}></span>
+                  <span className="text-xs font-bold text-slate-600">{type.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* B. Upcoming Side-List */}
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-6 flex flex-col min-h-[420px] max-h-[520px] overflow-hidden">
+          {/* Upcoming Exams */}
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-6 flex flex-col min-h-[280px] max-h-[350px] overflow-hidden">
+            <div className="border-b border-slate-100/80 pb-4 mb-4">
+              <h3 className="text-base font-bold text-slate-800 tracking-tight">Upcoming Exams</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Next 30 Days</p>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
+              {exams.filter(e => {
+                const d = new Date(e.exam_date);
+                const now = new Date();
+                const limit = new Date();
+                limit.setDate(limit.getDate() + 30);
+                return d >= now && d <= limit;
+              }).slice(0, 5).map(exam => {
+                const style = getExamStyle(exam.exam_type);
+                return (
+                  <div key={exam.id} className={`p-3 rounded-xl border ${style.bgLight} ${style.border} flex items-center justify-between`}>
+                    <div>
+                      <p className={`text-xs font-bold ${style.textColor}`}>{exam.title}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{exam.subject}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {new Date(exam.exam_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </p>
+                    </div>
+                    <button onClick={() => handleDeleteExam(exam.id)} className="p-1 text-slate-400 hover:text-rose-500 transition-colors">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                );
+              })}
+              {exams.length === 0 && (
+                <div className="py-8 flex flex-col items-center justify-center text-center">
+                  <GraduationCap size={28} className="text-slate-300 mb-2" />
+                  <p className="text-xs font-bold text-slate-400">No exams scheduled</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Upcoming Revision */}
+          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-6 flex flex-col min-h-[320px] max-h-[420px] overflow-hidden">
             <div className="border-b border-slate-100/80 pb-4 mb-4">
               <h3 className="text-base font-bold text-slate-800 tracking-tight">Upcoming Revision</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Next 7 Days</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Pending Sessions</p>
             </div>
-
             <div className="flex-1 overflow-y-auto space-y-3.5 custom-scrollbar pr-1">
               {filteredPlans.filter(p => p.status === 'pending').slice(0, 5).map(plan => (
-                <div 
-                  key={plan.id}
+                <div key={plan.id}
                   onClick={() => handleOpenEditModal(plan)}
                   className="p-3.5 rounded-2xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 hover:bg-white hover:shadow-[0_8px_20px_rgba(0,0,0,0.012)] transition-all cursor-pointer group flex justify-between items-start"
                 >
@@ -784,109 +893,72 @@ const RevisionPlanner = () => {
                       {plan.subject}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 self-center">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleStatus(plan);
-                      }}
-                      className="w-6 h-6 rounded-lg bg-slate-50 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 border border-slate-200/50 hover:border-emerald-100 flex items-center justify-center transition-colors shadow-sm"
-                    >
-                      <Check size={12} strokeWidth={3} />
-                    </button>
-                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(plan); }}
+                    className="w-6 h-6 rounded-lg bg-slate-50 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 border border-slate-200/50 hover:border-emerald-100 flex items-center justify-center transition-colors shadow-sm"
+                  >
+                    <Check size={12} strokeWidth={3} />
+                  </button>
                 </div>
               ))}
-
               {filteredPlans.filter(p => p.status === 'pending').length === 0 && (
                 <div className="py-16 flex flex-col items-center justify-center text-center">
                   <CheckCircle2 size={32} className="text-emerald-500 mb-2.5 animate-pulse" />
                   <h4 className="text-xs font-bold text-slate-700">All Revisions Done</h4>
-                  <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase tracking-wider">Time for a well earned break</p>
+                  <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase tracking-wider">Time for a break</p>
                 </div>
               )}
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* 5. Revision Plan Form Modal */}
+      {/* Revision Plan Modal */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
             ></motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ type: 'spring', duration: 0.5 }}
               className="relative bg-white w-full max-w-lg rounded-[2.5rem] border border-slate-100 shadow-2xl p-7 z-10 overflow-hidden"
             >
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl"
-              >
+              <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl">
                 <X size={16} />
               </button>
-
               <h3 className="text-lg font-bold text-slate-800 tracking-tight mb-6 flex items-center gap-2">
                 <CalendarIcon size={18} className="text-indigo-600" />
-                {modalMode === 'create' ? 'Schedule Spaced Revision' : 'Edit Spaced Revision'}
+                {modalMode === 'create' ? 'Schedule Revision' : 'Edit Revision'}
               </h3>
-
               <form onSubmit={handleSavePlan} className="space-y-4">
-                {/* Title */}
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Revision Title</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Process Synchronization rules" 
-                    value={formData.title}
+                  <input type="text" placeholder="e.g. Process Synchronization rules" value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all placeholder:text-slate-400"
                   />
                 </div>
-
-                {/* Description */}
                 <div>
                   <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Description (Optional)</label>
-                  <textarea 
-                    placeholder="e.g. Study Semaphores, Mutex and Peterson's Solution." 
-                    value={formData.description}
+                  <textarea placeholder="e.g. Study Semaphores and Peterson's Solution." value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows="2.5"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all placeholder:text-slate-400 resize-none"
                   ></textarea>
                 </div>
-
-                {/* Grid Inputs */}
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Subject */}
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Subject</label>
-                    <select 
-                      value={formData.subject}
-                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    <select value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all"
                     >
                       {subjects.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
-
-                  {/* Priority */}
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Priority</label>
-                    <select 
-                      value={formData.priority}
-                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                    <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all"
                     >
                       <option value="low">Low</option>
@@ -895,56 +967,38 @@ const RevisionPlanner = () => {
                     </select>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-3 gap-4">
-                  {/* Date */}
                   <div className="col-span-1.5">
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Date</label>
-                    <input 
-                      type="date" 
-                      value={formData.revision_date}
+                    <input type="date" value={formData.revision_date}
                       onChange={(e) => setFormData({ ...formData, revision_date: e.target.value })}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-xs font-semibold transition-all cursor-pointer"
                     />
                   </div>
-
-                  {/* Start Time */}
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Start</label>
-                    <input 
-                      type="time" 
-                      value={formData.start_time}
+                    <input type="time" value={formData.start_time}
                       onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-xs font-semibold transition-all cursor-pointer"
                     />
                   </div>
-
-                  {/* End Time */}
                   <div>
                     <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">End</label>
-                    <input 
-                      type="time" 
-                      value={formData.end_time}
+                    <input type="time" value={formData.end_time}
                       onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-xs font-semibold transition-all cursor-pointer"
                     />
                   </div>
                 </div>
-
-                {/* Form Controls */}
                 <div className="flex gap-3.5 pt-4">
                   {modalMode === 'edit' && (
-                    <button 
-                      type="button"
-                      onClick={() => handleDeletePlan(activePlan.id)}
+                    <button type="button" onClick={() => handleDeletePlan(activePlan.id)}
                       className="flex-1 py-3 border border-rose-100 bg-rose-50/50 hover:bg-rose-50 text-rose-600 rounded-2xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                     >
                       <Trash2 size={13} /> Delete
                     </button>
                   )}
-                  
-                  <button 
-                    type="submit"
+                  <button type="submit"
                     className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black shadow-md shadow-indigo-500/10 transition-colors flex items-center justify-center gap-1.5"
                   >
                     <Check size={13} /> {modalMode === 'create' ? 'Schedule Session' : 'Save Changes'}
@@ -956,21 +1010,82 @@ const RevisionPlanner = () => {
         )}
       </AnimatePresence>
 
+      {/* Exam Modal */}
+      <AnimatePresence>
+        {isExamModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsExamModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+            ></motion.div>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: 'spring', duration: 0.5 }}
+              className="relative bg-white w-full max-w-md rounded-[2.5rem] border border-slate-100 shadow-2xl p-7 z-10 overflow-hidden"
+            >
+              <button onClick={() => setIsExamModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl">
+                <X size={16} />
+              </button>
+              <h3 className="text-lg font-bold text-slate-800 tracking-tight mb-6 flex items-center gap-2">
+                <GraduationCap size={18} className="text-indigo-600" />
+                Add Exam to Calendar
+              </h3>
+              <form onSubmit={handleCreateExam} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Exam Title</label>
+                  <input type="text" placeholder="e.g. Midterm Exam" value={examForm.title}
+                    onChange={(e) => setExamForm({ ...examForm, title: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all placeholder:text-slate-400"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Exam Type</label>
+                    <select value={examForm.exam_type} onChange={(e) => setExamForm({ ...examForm, exam_type: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all"
+                    >
+                      {EXAM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Subject</label>
+                    <select value={examForm.subject} onChange={(e) => setExamForm({ ...examForm, subject: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all"
+                    >
+                      {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Date</label>
+                  <input type="date" value={examForm.exam_date}
+                    onChange={(e) => setExamForm({ ...examForm, exam_date: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-xs font-semibold transition-all cursor-pointer"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Notes (Optional)</label>
+                  <textarea placeholder="e.g. Chapters 1-5, focus on processes" value={examForm.description}
+                    onChange={(e) => setExamForm({ ...examForm, description: e.target.value })}
+                    rows="2"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all placeholder:text-slate-400 resize-none"
+                  ></textarea>
+                </div>
+                <button type="submit"
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black shadow-md shadow-indigo-500/10 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <GraduationCap size={14} /> Add Exam
+                </button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 5px;
-          height: 5px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background-color: #e2e8f0;
-          border-radius: 20px;
-        }
-        .custom-scrollbar:hover::-webkit-scrollbar-thumb {
-          background-color: #cbd5e1;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e2e8f0; border-radius: 20px; }
+        .custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: #cbd5e1; }
       `}} />
     </div>
   );

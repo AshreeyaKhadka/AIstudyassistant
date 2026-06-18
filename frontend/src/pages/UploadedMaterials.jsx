@@ -21,6 +21,8 @@ const UploadedMaterials = () => {
   const [generating, setGenerating] = useState(null); // { uploadId, type }
   const [generatedContent, setGeneratedContent] = useState(null); // { type, data, source }
   const [retrying, setRetrying] = useState(null); // uploadId being retried
+  const [deleting, setDeleting] = useState(null); // uploadId being deleted
+  const [confirmDelete, setConfirmDelete] = useState(null); // uploadId to confirm delete
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -149,6 +151,33 @@ const UploadedMaterials = () => {
       setTimeout(() => setStatus({ type: '', message: '' }), 5000);
     } finally {
       setRetrying(null);
+    }
+  };
+
+  const handleDelete = async (uploadId) => {
+    setDeleting(uploadId);
+    setConfirmDelete(null);
+    try {
+      const res = await fetch(`/api/upload/${uploadId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMaterials(prev => prev.filter(m => m.id !== uploadId));
+        setStatus({ type: 'success', message: 'Document deleted successfully.' });
+        setTimeout(() => setStatus({ type: '', message: '' }), 3000);
+      } else {
+        setStatus({ type: 'error', message: data.error || 'Failed to delete.' });
+        setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+      }
+    } catch (err) {
+      setStatus({ type: 'error', message: 'Network error during deletion.' });
+      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -338,8 +367,13 @@ const UploadedMaterials = () => {
                       <FileText size={28} />
                     </div>
                     <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                      <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm" title="Delete">
-                        <Trash2 size={18} />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmDelete(file.id); }}
+                        disabled={deleting === file.id}
+                        className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm disabled:opacity-50"
+                        title="Delete"
+                      >
+                        {deleting === file.id ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
                       </button>
                     </div>
                   </div>
@@ -353,6 +387,17 @@ const UploadedMaterials = () => {
                       <span className="w-1.5 h-1.5 bg-slate-100 rounded-full" />
                       <span className="text-[11px] font-bold text-slate-400">
                         {new Date(file.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md ${
+                        (file.mcq_generation_count || 0) >= 2
+                          ? 'bg-rose-50 text-rose-600'
+                          : (file.mcq_generation_count || 0) >= 1
+                            ? 'bg-amber-50 text-amber-600'
+                            : 'bg-slate-50 text-slate-400'
+                      }`}>
+                        MCQs: {file.mcq_generation_count || 0}/2 used
                       </span>
                     </div>
                   </div>
@@ -451,6 +496,54 @@ const UploadedMaterials = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {confirmDelete && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={() => setConfirmDelete(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 40 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 40 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8 text-center"
+            >
+              <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash2 size={28} className="text-rose-500" />
+              </div>
+              <h3 className="text-xl font-extrabold text-slate-800 mb-2">Delete Document?</h3>
+              <p className="text-slate-500 text-sm font-medium mb-8">
+                This will permanently remove the file and all its AI embeddings. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDelete(confirmDelete)}
+                  disabled={deleting === confirmDelete}
+                  className="flex-1 py-3 bg-rose-600 text-white rounded-2xl font-bold hover:bg-rose-700 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                >
+                  {deleting === confirmDelete ? (
+                    <><Loader2 className="animate-spin" size={16} /> Deleting...</>
+                  ) : (
+                    'Delete'
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Generated Content Modal */}
       <AnimatePresence>

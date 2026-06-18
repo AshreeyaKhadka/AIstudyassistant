@@ -23,12 +23,15 @@ from services.generation_service import (
     generate_exam_questions,
 )
 from models.content import StudentUpload
+from models.quiz import QuizSet
 from config import db
 import logging
 import traceback
 
 generate_bp = Blueprint('generate', __name__)
 logger = logging.getLogger(__name__)
+
+MCQ_LIMIT_PER_PDF = 2
 
 
 def _get_user_upload(user, upload_id):
@@ -158,7 +161,7 @@ def gen_flashcards(user):
 @generate_bp.route('/mcqs', methods=['POST'])
 @login_required
 def gen_mcqs(user):
-    """Generate MCQs from an uploaded document."""
+    """Generate MCQs from an uploaded document (max 2 times per PDF)."""
     data = request.get_json(silent=True) or {}
     upload_id = data.get('upload_id')
     count = min(int(data.get('count', 10)), 20)
@@ -169,6 +172,16 @@ def gen_mcqs(user):
     upload, error = _get_user_upload(user, upload_id)
     if error:
         return error
+
+    # Enforce MCQ generation limit per PDF
+    gen_count = upload.mcq_generation_count or 0
+    if gen_count >= MCQ_LIMIT_PER_PDF:
+        return jsonify({
+            "error": f"MCQ generation limit reached for this document ({MCQ_LIMIT_PER_PDF}/{MCQ_LIMIT_PER_PDF} used).",
+            "limit_reached": True,
+            "generation_count": gen_count,
+            "limit": MCQ_LIMIT_PER_PDF,
+        }), 403
 
     ok, err_msg = _ensure_embedded(upload)
     if not ok:
@@ -181,14 +194,31 @@ def gen_mcqs(user):
 
         mcqs = generate_mcqs(context, count=count)
 
+        # Save MCQs to database
+        quiz_set = QuizSet(
+            user_id=user.id,
+            upload_id=upload.id,
+            topic=upload.filename,
+            questions_json=mcqs,
+        )
+        db.session.add(quiz_set)
+
+        # Increment generation count
+        upload.mcq_generation_count = gen_count + 1
+        db.session.commit()
+
         return jsonify({
             "mcqs": mcqs,
             "source_doc": upload.filename,
             "count": len(mcqs),
             "chunks_used": len(context.split("---")),
+            "quiz_set_id": quiz_set.id,
+            "generation_count": upload.mcq_generation_count,
+            "limit": MCQ_LIMIT_PER_PDF,
         }), 200
 
     except Exception as e:
+        db.session.rollback()
         logger.error(f"MCQ generation failed: {e}\n{traceback.format_exc()}")
         return jsonify({"error": f"Generation failed: {str(e)}"}), 500
 
@@ -232,3 +262,40 @@ def gen_exam_questions(user):
     except Exception as e:
         logger.error(f"Exam question generation failed: {e}\n{traceback.format_exc()}")
         return jsonify({"error": f"Generation failed: {str(e)}"}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /generate/saved-mcqs/<upload_id>
+# ---------------------------------------------------------------------------
+@generate_bp.route('/saved-mcqs/<int:upload_id>', methods=['GET'])
+@login_required
+def get_saved_mcqs(user, upload_id):
+    """Retrieve saved MCQs for a specific uploaded document."""
+    upload, error = _get_user_upload(user, upload_id)
+    if error:
+        return error
+
+    quiz_sets = (
+        QuizSet.query.filter_by(user_id=user.id, upload_id=upload_id)
+        .order_by(QuizSet.created_at.desc())
+        .all()
+    )
+
+    return jsonify({
+        "upload_id": upload_id,
+        "filename": upload.filename,
+        "generation_count": upload.mcq_generation_count or 0,
+        "limit": MCQ_LIMIT_PER_PDF,
+        "saved_sets": [
+            {
+                "id": qs.id,
+                "topic": qs.topic,
+                "questions": qs.questions_json,
+                "question_count": len(qs.questions_json) if qs.questions_json else 0,
+                "score": qs.score,
+                "completed_at": qs.completed_at,
+                "created_at": qs.created_at,
+            }
+            for qs in quiz_sets
+        ],
+    }), 200

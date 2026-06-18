@@ -2321,7 +2321,7 @@
   },
   "Probability and Statistics": {
     "credits": "2",
-    "Semester": "4",  
+    "Semester": "5",
     "units": [
       {
         "unit": "Unit I",
@@ -2413,7 +2413,7 @@
   },
   "Engineering Management": {
     "credits": "2",
-    "Semester": "4",
+    "Semester": "5",
     "units": [
       {
         "unit": "Unit I",
@@ -2467,7 +2467,7 @@
   },
   "Embedded Systems": {
     "credits": "2",
-    "Semester": "4",
+    "Semester": "5",
     "units": [
       {
         "unit": "Unit I",
@@ -2547,7 +2547,7 @@
   },
   "Artificial Intelligence": {
     "credits": "3-1-3",
-    "Semester": "4",
+    "Semester": "5",
     "units": [
       {
         "unit": "Unit 1",
@@ -2637,7 +2637,7 @@
   },
   "Digital Signal Analysis and Processing": {
     "credits": "3-1-2",
-    "Semester": "4",
+    "Semester": "5",
     "units": [
       {
         "unit": "Unit 1",
@@ -2853,7 +2853,6 @@
       }
     ]
   },
-
   "Simulation and Modeling": {
     "credits": "Not specified (Theory and Practical)",
     "Semester": "6",
@@ -2976,7 +2975,6 @@
       }
     ]
   },
-
   "Machine Learning": {
     "credits": "3-1-2",
     "Semester": "6",
@@ -3123,7 +3121,6 @@
       }
     ]
   },
-
   "Image Processing and Pattern Recognition": {
     "credits": "3-1-2",
     "Semester": "6",
@@ -3253,7 +3250,6 @@
       }
     ]
   },
-
   "Compiler Design": {
     "credits": "2-2-2",
     "Semester": "6",
@@ -3346,7 +3342,6 @@
       }
     ]
   },
-
   "Project I": {
     "credits": "0-0-2",
     "Semester": "6",
