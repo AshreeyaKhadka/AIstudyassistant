@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  FileUp, Search, Eye, Download, Trash2, Loader2, CheckCircle2,
-  AlertCircle, FileText, Info, HardDrive, Filter, MoreHorizontal, Plus
+  FileUp, Search, Trash2, Loader2, CheckCircle2,
+  AlertCircle, FileText, HardDrive, Filter, Plus,
+  Sparkles, BrainCircuit, Target, Trophy, ChevronRight, X, RefreshCw
 } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { useFilteredSubjects } from '../hooks/useFilteredSubjects';
@@ -17,6 +18,9 @@ const UploadedMaterials = () => {
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
   const [filterSubject, setFilterSubject] = useState('All');
+  const [generating, setGenerating] = useState(null); // { uploadId, type }
+  const [generatedContent, setGeneratedContent] = useState(null); // { type, data, source }
+  const [retrying, setRetrying] = useState(null); // uploadId being retried
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -63,9 +67,9 @@ const UploadedMaterials = () => {
       const data = await res.json();
 
       if (res.ok) {
-        setStatus({ type: 'success', message: 'File uploaded successfully!' });
+        setStatus({ type: 'success', message: 'File uploaded successfully! AI indexing in background...' });
         fetchMaterials();
-        setTimeout(() => setStatus({ type: '', message: '' }), 4000);
+        setTimeout(() => setStatus({ type: '', message: '' }), 5000);
       } else {
         setStatus({ type: 'error', message: data.error || 'Failed to upload file.' });
       }
@@ -74,6 +78,77 @@ const UploadedMaterials = () => {
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleGenerate = async (uploadId, type) => {
+    setGenerating({ uploadId, type });
+    setGeneratedContent(null);
+
+    const endpoints = {
+      flashcards: '/api/generate/flashcards',
+      mcqs: '/api/generate/mcqs',
+      'exam-questions': '/api/generate/exam-questions',
+    };
+
+    try {
+      const res = await fetch(endpoints[type], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          upload_id: uploadId,
+          count: type === 'exam-questions' ? 8 : 10,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setGeneratedContent({
+          type,
+          data,
+          source: data.source_doc,
+        });
+      } else {
+        setStatus({ type: 'error', message: data.error || 'Generation failed.' });
+        setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+      }
+    } catch (err) {
+      setStatus({ type: 'error', message: 'Network error during generation.' });
+      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+    } finally {
+      setGenerating(null);
+    }
+  };
+
+  const handleRetryEmbedding = async (uploadId) => {
+    setRetrying(uploadId);
+    try {
+      const res = await fetch('/api/upload/retry-embedding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ upload_id: uploadId }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setStatus({ type: 'success', message: 'Re-indexing started...' });
+        setTimeout(() => {
+          fetchMaterials();
+          setStatus({ type: '', message: '' });
+        }, 2000);
+      } else {
+        setStatus({ type: 'error', message: data.error || 'Retry failed.' });
+        setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+      }
+    } catch (err) {
+      setStatus({ type: 'error', message: 'Network error during retry.' });
+      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+    } finally {
+      setRetrying(null);
     }
   };
 
@@ -263,16 +338,13 @@ const UploadedMaterials = () => {
                       <FileText size={28} />
                     </div>
                     <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                      <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm" title="Analyze with AI">
-                        <SparklesIcon size={18} />
-                      </button>
                       <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm" title="Delete">
                         <Trash2 size={18} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-1 mt-auto">
+                  <div className="space-y-1">
                     <p className="text-[15px] font-extrabold text-slate-800 truncate leading-tight" title={file.filename}>
                       {file.filename}
                     </p>
@@ -285,14 +357,83 @@ const UploadedMaterials = () => {
                     </div>
                   </div>
 
-                  <div className="pt-5 border-t border-slate-50/80 flex items-center justify-between group-hover:border-blue-50 transition-colors">
+                  {/* Embedding Status */}
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">AI Indexed</span>
+                      {file.embedding_status === 'embedded' && (
+                        <>
+                          <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-tight">AI Indexed</span>
+                        </>
+                      )}
+                      {file.embedding_status === 'indexing' && (
+                        <>
+                          <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tight">Indexing...</span>
+                        </>
+                      )}
+                      {file.embedding_status === 'pending' && (
+                        <>
+                          <div className="w-2 h-2 rounded-full bg-amber-400" />
+                          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tight">Pending</span>
+                        </>
+                      )}
+                      {file.embedding_status === 'failed' && (
+                        <>
+                          <div className="w-2 h-2 rounded-full bg-red-400" />
+                          <span className="text-[10px] font-bold text-red-600 uppercase tracking-tight">Failed</span>
+                        </>
+                      )}
                     </div>
-                    <button className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
-                      <MoreHorizontal size={18} />
-                    </button>
+                    {file.embedding_status === 'failed' && file.embedding_error && (
+                      <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+                        <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1">Error</p>
+                        <p className="text-[11px] text-red-700 leading-relaxed line-clamp-2">{file.embedding_error}</p>
+                        <button
+                          onClick={() => handleRetryEmbedding(file.id)}
+                          disabled={retrying === file.id}
+                          className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 disabled:opacity-50"
+                        >
+                          {retrying === file.id ? (
+                            <Loader2 className="animate-spin" size={12} />
+                          ) : (
+                            <RefreshCw size={12} />
+                          )}
+                          {retrying === file.id ? 'Retrying...' : 'Retry Indexing'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Generate Study Materials Buttons */}
+                  <div className="pt-4 border-t border-slate-50/80 flex flex-col gap-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Generate from this doc</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <GenerateButton
+                        icon={<BrainCircuit size={14} />}
+                        label="Cards"
+                        color="orange"
+                        loading={generating?.uploadId === file.id && generating?.type === 'flashcards'}
+                        onClick={() => handleGenerate(file.id, 'flashcards')}
+                        disabled={!!generating}
+                      />
+                      <GenerateButton
+                        icon={<Target size={14} />}
+                        label="MCQs"
+                        color="blue"
+                        loading={generating?.uploadId === file.id && generating?.type === 'mcqs'}
+                        onClick={() => handleGenerate(file.id, 'mcqs')}
+                        disabled={!!generating}
+                      />
+                      <GenerateButton
+                        icon={<Trophy size={14} />}
+                        label="Exam"
+                        color="indigo"
+                        loading={generating?.uploadId === file.id && generating?.type === 'exam-questions'}
+                        onClick={() => handleGenerate(file.id, 'exam-questions')}
+                        disabled={!!generating}
+                      />
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -310,11 +451,296 @@ const UploadedMaterials = () => {
           </div>
         )}
       </div>
+
+      {/* Generated Content Modal */}
+      <AnimatePresence>
+        {generatedContent && (
+          <GeneratedContentModal
+            content={generatedContent}
+            onClose={() => setGeneratedContent(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
 
-// Internal SVG Helper Components for Clean Code
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
+
+const GenerateButton = ({ icon, label, color, loading, onClick, disabled }) => {
+  const colors = {
+    orange: 'bg-orange-50 text-orange-600 hover:bg-orange-100 border-orange-100',
+    blue: 'bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100',
+    indigo: 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100',
+  };
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl text-[10px] font-bold border transition-all ${colors[color]} ${disabled && !loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+    >
+      {loading ? <Loader2 className="animate-spin" size={14} /> : icon}
+      {label}
+    </button>
+  );
+};
+
+const GeneratedContentModal = ({ content, onClose }) => {
+  const { type, data, source } = content;
+
+  const titles = {
+    flashcards: 'Generated Flashcards',
+    mcqs: 'Generated MCQs',
+    'exam-questions': 'Probable Exam Questions',
+  };
+
+  const icons = {
+    flashcards: <BrainCircuit size={24} />,
+    mcqs: <Target size={24} />,
+    'exam-questions': <Trophy size={24} />,
+  };
+
+  const colorClasses = {
+    flashcards: 'from-orange-500 to-amber-500',
+    mcqs: 'from-blue-500 to-indigo-500',
+    'exam-questions': 'from-indigo-500 to-purple-500',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, y: 40 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 40 }}
+        onClick={e => e.stopPropagation()}
+        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
+      >
+        {/* Header */}
+        <div className={`p-6 bg-gradient-to-r ${colorClasses[type]} text-white flex items-center justify-between`}>
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">{icons[type]}</div>
+            <div>
+              <h2 className="text-xl font-extrabold">{titles[type]}</h2>
+              <p className="text-sm opacity-80 font-medium">From: {source}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-colors">
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {type === 'flashcards' && data.flashcards?.map((fc, i) => (
+            <FlashcardItem key={i} index={i} front={fc.front} back={fc.back} />
+          ))}
+
+          {type === 'mcqs' && data.mcqs?.map((mcq, i) => (
+            <MCQItem key={i} index={i} {...mcq} />
+          ))}
+
+          {type === 'exam-questions' && data.exam_questions?.map((q, i) => (
+            <ExamQuestionItem key={i} index={i} {...q} />
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <span className="text-xs font-bold text-slate-400">
+            {data.count || 0} items • {data.chunks_used || 0} context sections used
+          </span>
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all"
+          >
+            Close
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const FlashcardItem = ({ index, front, back }) => {
+  const [flipped, setFlipped] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      onClick={() => setFlipped(!flipped)}
+      className="bg-white border border-slate-100 rounded-2xl p-5 cursor-pointer hover:shadow-lg hover:border-blue-100 transition-all group"
+    >
+      <div className="flex items-start gap-4">
+        <div className="w-8 h-8 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center text-xs font-extrabold flex-shrink-0">
+          {index + 1}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-slate-800 text-sm leading-relaxed">{front}</p>
+          <AnimatePresence>
+            {flipped && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 pt-3 border-t border-slate-100"
+              >
+                <p className="text-slate-600 text-sm leading-relaxed">{back}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {!flipped && (
+            <p className="text-[10px] font-bold text-blue-500 mt-2 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+              Click to reveal answer
+            </p>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const MCQItem = ({ index, question, options, correct, explanation }) => {
+  const [selected, setSelected] = useState(null);
+  const [showExplanation, setShowExplanation] = useState(false);
+
+  const handleSelect = (key) => {
+    setSelected(key);
+    setShowExplanation(true);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="bg-white border border-slate-100 rounded-2xl p-5"
+    >
+      <div className="flex items-start gap-4">
+        <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xs font-extrabold flex-shrink-0">
+          {index + 1}
+        </div>
+        <div className="flex-1">
+          <p className="font-bold text-slate-800 text-sm leading-relaxed mb-4">{question}</p>
+          <div className="grid grid-cols-1 gap-2">
+            {Object.entries(options || {}).map(([key, val]) => {
+              const isCorrect = key === correct;
+              const isSelected = key === selected;
+              let btnClass = 'bg-slate-50 border-slate-100 text-slate-700 hover:border-blue-200';
+
+              if (selected) {
+                if (isCorrect) btnClass = 'bg-emerald-50 border-emerald-300 text-emerald-800';
+                else if (isSelected && !isCorrect) btnClass = 'bg-rose-50 border-rose-300 text-rose-800';
+                else btnClass = 'bg-slate-50 border-slate-100 text-slate-400';
+              }
+
+              return (
+                <button
+                  key={key}
+                  onClick={() => !selected && handleSelect(key)}
+                  disabled={!!selected}
+                  className={`text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all ${btnClass}`}
+                >
+                  <span className="font-bold mr-2">{key}.</span> {val}
+                </button>
+              );
+            })}
+          </div>
+          <AnimatePresence>
+            {showExplanation && explanation && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100"
+              >
+                <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">Explanation</p>
+                <p className="text-sm text-blue-800 leading-relaxed">{explanation}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const ExamQuestionItem = ({ index, question, type, marks, key_points }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const typeColors = {
+    short_answer: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    long_answer: 'bg-blue-50 text-blue-600 border-blue-100',
+    problem_solving: 'bg-amber-50 text-amber-600 border-amber-100',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="bg-white border border-slate-100 rounded-2xl p-5"
+    >
+      <div className="flex items-start gap-4">
+        <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-xs font-extrabold flex-shrink-0">
+          {index + 1}
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg border ${typeColors[type] || typeColors.short_answer}`}>
+              {(type || 'short_answer').replace('_', ' ')}
+            </span>
+            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg">
+              {marks || 5} marks
+            </span>
+          </div>
+          <p className="font-bold text-slate-800 text-sm leading-relaxed">{question}</p>
+
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-1 mt-3 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            <ChevronRight size={14} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
+            {expanded ? 'Hide' : 'Show'} Key Points ({key_points?.length || 0})
+          </button>
+
+          <AnimatePresence>
+            {expanded && key_points?.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-3 p-3 bg-indigo-50/50 rounded-xl border border-indigo-100"
+              >
+                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-2">Key points for a perfect answer:</p>
+                <ul className="space-y-1.5">
+                  {key_points.map((kp, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-indigo-800">
+                      <CheckCircle2 size={14} className="text-indigo-400 mt-0.5 flex-shrink-0" />
+                      {kp}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// Internal SVG Helper Components
 const SparklesIcon = ({ size }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" /></svg>
 );

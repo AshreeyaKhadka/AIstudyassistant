@@ -37,7 +37,7 @@ const Navbar = ({ user, scrolled }) => {
     return '';
   };
 
-  const showNavbarTitle = !['/upload', '/mcq', '/exam-prep', '/syllabus', '/notes', '/flashcards'].some(p => path.includes(p));
+  const showNavbarTitle = !['/upload', '/mcq', '/exam-prep', '/syllabus', '/notes', '/flashcards', '/chat'].some(p => path.includes(p));
 
   return (
     <header

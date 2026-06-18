@@ -17,6 +17,16 @@ def _ensure_student_upload_schema():
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN parsed_text TEXT'))
         if 'subject' not in columns:
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN subject VARCHAR(255)'))
+        if 'embedding_status' not in columns:
+            connection.execute(text("ALTER TABLE student_uploads ADD COLUMN embedding_status VARCHAR(50) DEFAULT 'pending'"))
+        if 'embedding_error' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN embedding_error TEXT'))
+        # Drop old NOT NULL constraint on storage_path if present
+        if 'storage_path' in columns:
+            try:
+                connection.execute(text("ALTER TABLE student_uploads ALTER COLUMN storage_path DROP NOT NULL"))
+            except Exception:
+                pass  # SQLite doesn't support this; ignore
 
 
 def _ensure_user_profile_schema():
@@ -51,6 +61,7 @@ def create_app():
     from routes.quiz import quiz_bp
     from routes.admin import admin_bp
     from routes.revision import revision_bp
+    from routes.generate import generate_bp
     
     oauth.init_app(app)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -59,6 +70,7 @@ def create_app():
     app.register_blueprint(quiz_bp, url_prefix='/quiz')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(revision_bp, url_prefix='/revision-plans')
+    app.register_blueprint(generate_bp, url_prefix='/generate')
 
 
     # Ensure DB tables are created (useful for dev)
