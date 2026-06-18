@@ -37,4 +37,5 @@ class StudentUpload(db.Model):
     subject = db.Column(db.String(255), nullable=True)
     embedding_status = db.Column(db.String(50), default='pending')  # pending, indexing, embedded, failed
     embedding_error = db.Column(db.Text, nullable=True)
+    mcq_generation_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

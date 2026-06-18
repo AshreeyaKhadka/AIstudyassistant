@@ -17,7 +17,7 @@ from config import Config
 logger = logging.getLogger(__name__)
 
 
-def _call_gemini(prompt: str, temperature: float = 0.4, max_tokens: int = 4096) -> str:
+def _call_gemini(prompt: str, temperature: float = 0.4, max_tokens: int = 32768) -> str:
     """
     Send a prompt to Gemini and return the text response.
     """
@@ -73,7 +73,8 @@ def _call_gemini(prompt: str, temperature: float = 0.4, max_tokens: int = 4096) 
 def _parse_json_response(raw: str) -> any:
     """
     Safely parse a JSON response from the LLM.
-    Handles cases where the LLM wraps JSON in markdown code fences.
+    Handles cases where the LLM wraps JSON in markdown code fences
+    or returns truncated JSON.
     """
     cleaned = raw.strip()
 
@@ -90,8 +91,80 @@ def _parse_json_response(raw: str) -> any:
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse LLM JSON output: {e}\nRaw: {raw[:500]}")
-        raise RuntimeError(f"AI returned invalid JSON: {e}")
+        logger.warning(f"Initial JSON parse failed: {e}. Attempting repair...")
+
+    # Attempt repair: try to fix truncated JSON
+    repaired = _repair_truncated_json(cleaned)
+    if repaired is not None:
+        return repaired
+
+    logger.error(f"Failed to parse LLM JSON output after repair attempts\nRaw: {raw[:500]}")
+    raise RuntimeError(f"AI returned invalid JSON that could not be repaired")
+
+
+def _repair_truncated_json(text: str) -> any:
+    """
+    Attempt to repair truncated JSON by closing open brackets/braces
+    and removing incomplete trailing entries.
+    """
+    try:
+        # Strategy 1: Try parsing with progressively fewer characters
+        # to find a valid JSON prefix
+        for i in range(len(text) - 1, max(0, len(text) - 500), -1):
+            candidate = text[:i]
+            # Try closing any open structures
+            for suffix in ['"}]}', '"}]}', '"]}', '"}', '"', '']:
+                attempt = candidate + suffix
+                try:
+                    result = json.loads(attempt)
+                    if isinstance(result, dict):
+                        logger.info(f"Repaired truncated JSON by trimming {len(text) - i} chars + suffix '{suffix}'")
+                        return result
+                except json.JSONDecodeError:
+                    continue
+
+        # Strategy 2: Find the last complete object in any array
+        # Look for the last complete "}" that could end an object
+        import re
+        # Find all complete {...} objects
+        objects = list(re.finditer(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL))
+        if objects:
+            last_complete = objects[-1].end()
+            # Try to find what key this belongs to and close the structure
+            prefix = text[:last_complete]
+            # Count open brackets
+            open_brackets = prefix.count('[') - prefix.count(']')
+            open_braces = prefix.count('{') - prefix.count('}')
+            close = ']' * open_brackets + '}' * open_braces
+
+            # Find what top-level key we're in
+            key_match = re.search(r'"(\w+)"\s*:\s*\[', text)
+            if key_match:
+                key = key_match.group(1)
+                attempt = text[:last_complete] + close
+                try:
+                    result = json.loads(attempt)
+                    if isinstance(result, dict) and key in result:
+                        logger.info(f"Repaired truncated JSON by keeping {len(objects)} complete objects")
+                        return result
+                except json.JSONDecodeError:
+                    pass
+
+            # Simpler approach: just close everything
+            attempt = prefix + close
+            try:
+                result = json.loads(attempt)
+                if isinstance(result, dict):
+                    logger.info(f"Repaired truncated JSON by closing brackets")
+                    return result
+            except json.JSONDecodeError:
+                pass
+
+        return None
+
+    except Exception as e:
+        logger.error(f"JSON repair failed: {e}")
+        return None
 
 
 # ---------------------------------------------------------------------------

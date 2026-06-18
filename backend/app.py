@@ -41,6 +41,41 @@ def _ensure_user_profile_schema():
         if 'last_name' not in columns:
             connection.execute(text('ALTER TABLE users ADD COLUMN last_name VARCHAR(120)'))
 
+
+def _ensure_mcq_count_schema():
+    inspector = inspect(db.engine)
+    if 'student_uploads' not in inspector.get_table_names():
+        return
+
+    columns = {column['name'] for column in inspector.get_columns('student_uploads')}
+    with db.engine.begin() as connection:
+        if 'mcq_generation_count' not in columns:
+            connection.execute(text("ALTER TABLE student_uploads ADD COLUMN mcq_generation_count INTEGER DEFAULT 0"))
+
+
+def _ensure_quiz_set_upload_schema():
+    inspector = inspect(db.engine)
+    if 'quiz_sets' not in inspector.get_table_names():
+        return
+
+    columns = {column['name'] for column in inspector.get_columns('quiz_sets')}
+    with db.engine.begin() as connection:
+        if 'upload_id' not in columns:
+            connection.execute(text('ALTER TABLE quiz_sets ADD COLUMN upload_id INTEGER'))
+
+
+def _ensure_chat_session_schema():
+    inspector = inspect(db.engine)
+    if 'chat_sessions' not in inspector.get_table_names():
+        return
+
+    columns = {column['name'] for column in inspector.get_columns('chat_sessions')}
+    with db.engine.begin() as connection:
+        if 'title' not in columns:
+            connection.execute(text('ALTER TABLE chat_sessions ADD COLUMN title VARCHAR(255)'))
+        if 'updated_at' not in columns:
+            connection.execute(text('ALTER TABLE chat_sessions ADD COLUMN updated_at TIMESTAMP'))
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -62,6 +97,7 @@ def create_app():
     from routes.admin import admin_bp
     from routes.revision import revision_bp
     from routes.generate import generate_bp
+    from routes.exam import exam_bp
     
     oauth.init_app(app)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -71,6 +107,7 @@ def create_app():
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(revision_bp, url_prefix='/revision-plans')
     app.register_blueprint(generate_bp, url_prefix='/generate')
+    app.register_blueprint(exam_bp, url_prefix='/exams')
 
 
     # Ensure DB tables are created (useful for dev)
@@ -82,6 +119,7 @@ def create_app():
         from models.quiz import QuizSet
         from models.embedding import DocEmbedding
         from models.revision import RevisionPlan
+        from models.exam import Exam
 
         
         # We will set up pgvector later during DB migrations, 
@@ -89,6 +127,9 @@ def create_app():
         db.create_all()
         _ensure_user_profile_schema()
         _ensure_student_upload_schema()
+        _ensure_mcq_count_schema()
+        _ensure_quiz_set_upload_schema()
+        _ensure_chat_session_schema()
 
     return app
 

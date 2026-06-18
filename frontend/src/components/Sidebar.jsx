@@ -55,7 +55,7 @@ const Sidebar = ({ user }) => {
         <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Personalized Learning</div>
         <NavItem to="/dashboard/notes" icon={<BookOpen size={20} />} label="My Notes" />
         <NavItem to="/dashboard/flashcards" icon={<BrainCircuit size={20} />} label="Flashcards" />
-        <NavItem to="/dashboard/revision" icon={<CalendarCheck size={20} />} label="Revision Planner" />
+        <NavItem to="/dashboard/revision" icon={<CalendarCheck size={20} />} label="Calendar" />
 
         <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Practice & Materials</div>
         <NavItem to="/dashboard/upload" icon={<FileUp size={20} />} label="Uploaded Materials" />
