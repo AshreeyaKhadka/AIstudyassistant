@@ -59,12 +59,14 @@ def upload_pdf(user):
             return jsonify({"error": f"Failed to parse PDF: {str(e)}"}), 500
             
         # Create DB record mapping to the user
+        subject = request.form.get('subject')
         upload = StudentUpload(
             filename=filename,
             file_url=filepath,  # In real life, might be S3 URL
             parsed_text=text,
             size_bytes=size_bytes,
-            user_id=user.id
+            user_id=user.id,
+            subject=subject
         )
         
         try:
@@ -196,3 +198,25 @@ def delete_upload(user, upload_id):
         db.session.rollback()
         logger.error(f"Failed to delete upload {upload_id}: {e}")
         return jsonify({"error": "Failed to delete document"}), 500
+
+@upload_bp.route('/<int:upload_id>/subject', methods=['PATCH'])
+@login_required
+def update_subject(user, upload_id):
+    data = request.get_json()
+    subject = data.get('subject')
+
+    upload = StudentUpload.query.get(upload_id)
+    if not upload:
+        return jsonify({"error": "Upload not found"}), 404
+
+    if upload.user_id != user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    try:
+        upload.subject = subject
+        db.session.commit()
+        return jsonify({"message": "Subject updated successfully", "subject": subject}), 200
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to update subject for upload {upload_id}: {e}")
+        return jsonify({"error": "Failed to update subject"}), 500

@@ -1,22 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { BrainCircuit, Play, BookOpen, Sparkles, Flame, Loader2, ChevronLeft, ChevronRight, RotateCcw, FileText } from 'lucide-react';
-import { useOutletContext } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useGeneration } from '../context/GenerationContext';
 
 const Flashcards = () => {
-  const { user } = useOutletContext();
+  const { flashcardState, generateFlashcards, resetFlashcards } = useGeneration();
   const [uploads, setUploads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUpload, setSelectedUpload] = useState(null);
-  const [flashcards, setFlashcards] = useState([]);
-  const [generating, setGenerating] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [studyMode, setStudyMode] = useState(false);
 
+  // Use local state for study session flashcards once generated
+  const [sessionFlashcards, setSessionFlashcards] = useState([]);
+
   useEffect(() => {
     fetchUploads();
   }, []);
+
+  // Update sessionFlashcards when generation finishes
+  useEffect(() => {
+    if (!flashcardState.generating && flashcardState.results) {
+      setSessionFlashcards(flashcardState.results);
+      setStudyMode(true);
+    }
+  }, [flashcardState.generating, flashcardState.results]);
 
   const fetchUploads = async () => {
     try {
@@ -33,35 +42,15 @@ const Flashcards = () => {
   };
 
   const handleGenerate = async (uploadId) => {
-    setGenerating(true);
     setSelectedUpload(uploadId);
-    setFlashcards([]);
     setCurrentIndex(0);
     setFlipped(false);
-
-    try {
-      const res = await fetch('/api/generate/flashcards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ upload_id: uploadId, count: 15 }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.flashcards) {
-        setFlashcards(data.flashcards);
-        setStudyMode(true);
-      }
-    } catch (err) {
-      console.error('Generate failed:', err);
-    } finally {
-      setGenerating(false);
-    }
+    generateFlashcards(uploadId);
   };
 
   const nextCard = () => {
     setFlipped(false);
-    setTimeout(() => setCurrentIndex(i => Math.min(i + 1, flashcards.length - 1)), 200);
+    setTimeout(() => setCurrentIndex(i => Math.min(i + 1, sessionFlashcards.length - 1)), 200);
   };
 
   const prevCard = () => {
@@ -74,9 +63,9 @@ const Flashcards = () => {
     setFlipped(false);
   };
 
-  if (studyMode && flashcards.length > 0) {
-    const card = flashcards[currentIndex];
-    const progress = ((currentIndex + 1) / flashcards.length) * 100;
+  if (studyMode && sessionFlashcards.length > 0) {
+    const card = sessionFlashcards[currentIndex];
+    const progress = ((currentIndex + 1) / sessionFlashcards.length) * 100;
 
     return (
       <div className="flex flex-col h-full gap-8 pb-12">
@@ -84,14 +73,14 @@ const Flashcards = () => {
         <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => { setStudyMode(false); setFlashcards([]); }}
+              onClick={() => { setStudyMode(false); resetFlashcards(); setSessionFlashcards([]); }}
               className="p-2.5 bg-slate-50 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all"
             >
               <ChevronLeft size={20} />
             </button>
             <div>
               <h2 className="text-xl font-extrabold text-slate-800">Study Session</h2>
-              <p className="text-sm text-slate-500 font-medium">Card {currentIndex + 1} of {flashcards.length}</p>
+              <p className="text-sm text-slate-500 font-medium">Card {currentIndex + 1} of {sessionFlashcards.length}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -156,7 +145,7 @@ const Flashcards = () => {
                 <ChevronLeft size={24} className="text-slate-600" />
               </button>
               <div className="flex gap-1.5">
-                {flashcards.map((_, i) => (
+                {sessionFlashcards.map((_, i) => (
                   <div
                     key={i}
                     className={`w-2 h-2 rounded-full transition-all ${i === currentIndex ? 'bg-orange-500 w-6' : 'bg-slate-200'}`}
@@ -165,7 +154,7 @@ const Flashcards = () => {
               </div>
               <button
                 onClick={nextCard}
-                disabled={currentIndex === flashcards.length - 1}
+                disabled={currentIndex === sessionFlashcards.length - 1}
                 className="p-3 bg-white border border-slate-100 rounded-xl hover:bg-slate-50 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
               >
                 <ChevronRight size={24} className="text-slate-600" />
@@ -240,13 +229,13 @@ const Flashcards = () => {
 
                 <button
                   onClick={() => handleGenerate(upload.id)}
-                  disabled={generating}
-                  className={`mt-auto w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold transition-all ${generating && selectedUpload === upload.id
-                      ? 'bg-orange-100 text-orange-600'
-                      : 'bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-100'
-                    } ${generating && selectedUpload !== upload.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={flashcardState.generating}
+                  className={`mt-auto w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold transition-all ${flashcardState.generating && (selectedUpload === upload.id || flashcardState.selectedUploadId === upload.id)
+                    ? 'bg-orange-100 text-orange-600'
+                    : 'bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-100'
+                    } ${flashcardState.generating && (selectedUpload !== upload.id && flashcardState.selectedUploadId !== upload.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  {generating && selectedUpload === upload.id ? (
+                  {(flashcardState.generating && (selectedUpload === upload.id || flashcardState.selectedUploadId === upload.id)) ? (
                     <><Loader2 className="animate-spin" size={18} /> Generating...</>
                   ) : (
                     <><Sparkles size={18} /> Generate Flashcards</>

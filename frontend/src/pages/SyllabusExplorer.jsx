@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Book, Clock, ChevronRight, FileText, Layout, List, MessageSquare } from 'lucide-react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
@@ -14,6 +14,27 @@ const SyllabusExplorer = () => {
     const userSemester = user?.semester ? String(user.semester) : '';
 
     const { subjects, allData } = useFilteredSubjects(userSemester);
+    const [materials, setMaterials] = useState([]);
+
+    useEffect(() => {
+        const fetchMaterials = async () => {
+            try {
+                const res = await fetch('/api/upload/', { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    setMaterials(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch materials:", err);
+            }
+        };
+        fetchMaterials();
+    }, []);
+
+    const subjectMaterials = useMemo(() => {
+        if (!selectedSubject) return [];
+        return materials.filter(m => m.subject === selectedSubject);
+    }, [materials, selectedSubject]);
 
     const filteredSubjects = useMemo(() => {
         const result = subjects.filter(subject => {
@@ -161,6 +182,45 @@ const SyllabusExplorer = () => {
                                             </motion.div>
                                         ))}
                                     </div>
+
+                                    {/* User Materials for this Subject */}
+                                    {subjectMaterials.length > 0 && (
+                                        <div className="mt-10 pt-10 border-t border-slate-100">
+                                            <div className="flex items-center justify-between mb-6">
+                                                <h3 className="text-xl font-bold text-slate-800 flex items-center gap-3">
+                                                    Your Library
+                                                    <span className="text-xs text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">{subjectMaterials.length} Docs</span>
+                                                </h3>
+                                                <button
+                                                    onClick={() => navigate('/dashboard/upload')}
+                                                    className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline transition-all"
+                                                >
+                                                    Manage Vault
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {subjectMaterials.map((file) => (
+                                                    <div
+                                                        key={file.id}
+                                                        className="group bg-white p-5 rounded-2xl border border-slate-100 hover:shadow-xl hover:shadow-slate-100 hover:border-blue-100 transition-all cursor-pointer"
+                                                        onClick={() => navigate('/dashboard/upload')}
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-all">
+                                                                <FileText size={24} />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-bold text-slate-800 text-sm truncate">{file.filename}</p>
+                                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                                                                    {new Date(file.created_at).toLocaleDateString()}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </motion.div>
                         ) : (
