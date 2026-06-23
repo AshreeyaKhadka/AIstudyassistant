@@ -55,6 +55,9 @@ const UploadedMaterials = () => {
 
     const formData = new FormData();
     formData.append('file', file);
+    if (filterSubject !== 'All') {
+      formData.append('subject', filterSubject);
+    }
 
     try {
       setUploading(true);
@@ -178,6 +181,25 @@ const UploadedMaterials = () => {
       setTimeout(() => setStatus({ type: '', message: '' }), 5000);
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleUpdateSubject = async (uploadId, newSubject) => {
+    try {
+      const res = await fetch(`/api/upload/${uploadId}/subject`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ subject: newSubject }),
+      });
+
+      if (res.ok) {
+        setMaterials(prev => prev.map(m => m.id === uploadId ? { ...m, subject: newSubject } : m));
+        setStatus({ type: 'success', message: `Subject updated to ${newSubject}` });
+        setTimeout(() => setStatus({ type: '', message: '' }), 3000);
+      }
+    } catch (err) {
+      console.error("Failed to update subject:", err);
     }
   };
 
@@ -389,14 +411,30 @@ const UploadedMaterials = () => {
                         {new Date(file.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                       </span>
                     </div>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg border ${file.subject ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-slate-50 text-slate-400 border-slate-100'
+                        }`}>
+                        {file.subject || 'No Subject'}
+                      </span>
+                      <select
+                        value={file.subject || ''}
+                        onChange={(e) => handleUpdateSubject(file.id, e.target.value)}
+                        className="text-[10px] bg-slate-50 border-none rounded-lg px-2 py-1 font-bold text-slate-500 focus:ring-0 cursor-pointer hover:bg-slate-100 transition-colors"
+                      >
+                        <option value="">Move to...</option>
+                        {subjects.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md ${
-                        (file.mcq_generation_count || 0) >= 2
-                          ? 'bg-rose-50 text-rose-600'
-                          : (file.mcq_generation_count || 0) >= 1
-                            ? 'bg-amber-50 text-amber-600'
-                            : 'bg-slate-50 text-slate-400'
-                      }`}>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md ${(file.mcq_generation_count || 0) >= 2
+                        ? 'bg-rose-50 text-rose-600'
+                        : (file.mcq_generation_count || 0) >= 1
+                          ? 'bg-amber-50 text-amber-600'
+                          : 'bg-slate-50 text-slate-400'
+                        }`}>
                         MCQs: {file.mcq_generation_count || 0}/2 used
                       </span>
                     </div>

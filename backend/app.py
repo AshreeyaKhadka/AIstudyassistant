@@ -98,6 +98,7 @@ def create_app():
     from routes.revision import revision_bp
     from routes.generate import generate_bp
     from routes.exam import exam_bp
+    from routes.user import user_bp
     
     oauth.init_app(app)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -108,6 +109,7 @@ def create_app():
     app.register_blueprint(revision_bp, url_prefix='/revision-plans')
     app.register_blueprint(generate_bp, url_prefix='/generate')
     app.register_blueprint(exam_bp, url_prefix='/exams')
+    app.register_blueprint(user_bp, url_prefix='/user')
 
 
     # Ensure DB tables are created (useful for dev)

@@ -54,24 +54,6 @@ const Navbar = ({ user, scrolled }) => {
       ) : <div />}
 
       <div className="flex items-center gap-5">
-        <div className="relative group w-[300px] hidden md:block">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
-          <input
-            type="text"
-            placeholder="Search resources, topics..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm placeholder:text-slate-400"
-          />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            <kbd className="hidden sm:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-medium text-slate-400 bg-slate-100 rounded border border-slate-200">⌘</kbd>
-            <kbd className="hidden sm:inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-medium text-slate-400 bg-slate-100 rounded border border-slate-200">K</kbd>
-          </div>
-        </div>
-
-        <button className="relative p-2.5 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm">
-          <Bell size={20} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-        </button>
-
         <div className="flex items-center pl-2 border-l border-slate-200">
           <UserButton afterSignOutUrl="/" />
         </div>
