@@ -79,10 +79,8 @@ const ProfileSetupPage = () => {
         return response.json();
       })
       .then((profile) => {
-        if (profile.profile_complete) {
-          navigate('/dashboard', { replace: true });
-          return;
-        }
+        // Removed auto-redirect to dashboard even if profile_complete is true,
+        // as we want to force confirmation every session.
         const derivedNames = splitName(profile.display_name || profile.name || '');
         setFormData((current) => ({
           ...current,
@@ -139,6 +137,7 @@ const ProfileSetupPage = () => {
         throw new Error(payload.error || 'Failed to save profile');
       }
 
+      sessionStorage.setItem('onboarded_session', 'true');
       navigate('/dashboard', { replace: true });
     } catch (submitError) {
       setError(submitError.message || 'Failed to save profile');

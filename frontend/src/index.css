@@ -141,3 +141,24 @@ hr {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Custom KaTeX Theming for AI Chat */
+.katex-display {
+  background-color: var(--surface-container-low) !important;
+  color: var(--on-surface) !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 0.75rem !important;
+  border: 1px solid rgba(193, 198, 214, 0.25) !important;
+  overflow-x: auto !important;
+  margin: 0.75rem 0 !important;
+}
+
+.katex {
+  font-size: 1.05em !important;
+  color: inherit !important;
+}
+
+span.katex {
+  padding: 0 0.15em !important;
+}
+

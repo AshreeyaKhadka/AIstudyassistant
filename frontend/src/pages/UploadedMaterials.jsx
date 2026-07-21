@@ -5,13 +5,13 @@ import {
   Sparkles, BrainCircuit, Target, Trophy, ChevronRight, X, RefreshCw
 } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
-import { useFilteredSubjects } from '../hooks/useFilteredSubjects';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const UploadedMaterials = () => {
   const { user } = useOutletContext();
   const userSemester = user?.semester || '';
-  const { subjects } = useFilteredSubjects(userSemester);
+  const [dbSubjects, setDbSubjects] = useState([]);
+  const [selectedUploadSubjectId, setSelectedUploadSubjectId] = useState('');
 
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +27,20 @@ const UploadedMaterials = () => {
 
   useEffect(() => {
     fetchMaterials();
+    fetchDbSubjects();
   }, []);
+
+  const fetchDbSubjects = async () => {
+    try {
+      const res = await fetch('/api/syllabus/subjects', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setDbSubjects(data);
+      }
+    } catch (err) {
+      console.error("Failed to load subjects:", err);
+    }
+  };
 
   const fetchMaterials = async () => {
     try {
@@ -53,10 +66,18 @@ const UploadedMaterials = () => {
       return;
     }
 
+    if (!selectedUploadSubjectId) {
+      setStatus({ type: 'error', message: 'You must select a subject from the dropdown before uploading study materials.' });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const matchedSub = dbSubjects.find(s => String(s.id) === String(selectedUploadSubjectId));
     const formData = new FormData();
     formData.append('file', file);
-    if (filterSubject !== 'All') {
-      formData.append('subject', filterSubject);
+    formData.append('subject_id', selectedUploadSubjectId);
+    if (matchedSub) {
+      formData.append('subject', matchedSub.name);
     }
 
     try {
@@ -251,6 +272,17 @@ const UploadedMaterials = () => {
               accept=".pdf"
               onChange={handleUpload}
             />
+            {/* Subject selector dropdown (required before upload) */}
+            <select
+              value={selectedUploadSubjectId}
+              onChange={(e) => setSelectedUploadSubjectId(e.target.value)}
+              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all min-w-[160px]"
+            >
+              <option value="">Select subject...</option>
+              {dbSubjects.map(s => (
+                <option key={s.id} value={s.id}>{s.name} (S{s.semester})</option>
+              ))}
+            </select>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -259,7 +291,7 @@ const UploadedMaterials = () => {
               className={`flex-1 md:flex-none px-7 py-4 bg-slate-900 text-white rounded-2xl text-sm font-bold shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all flex items-center justify-center gap-3 ${uploading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {uploading ? <Loader2 className="animate-spin" size={20} /> : <FileUp size={20} />}
-              {uploading ? 'Processing Architecture...' : 'Upload New Material'}
+              {uploading ? 'Processing...' : 'Upload Material'}
             </motion.button>
           </div>
         </div>
@@ -321,16 +353,16 @@ const UploadedMaterials = () => {
           >
             Full Collection
           </button>
-          {subjects.map(subject => (
+          {dbSubjects.map(subject => (
             <button
-              key={subject}
-              onClick={() => setFilterSubject(subject)}
-              className={`px-6 py-3 rounded-2xl text-xs font-bold whitespace-nowrap transition-all shadow-sm ${filterSubject === subject
+              key={subject.id}
+              onClick={() => setFilterSubject(subject.name)}
+              className={`px-6 py-3 rounded-2xl text-xs font-bold whitespace-nowrap transition-all shadow-sm ${filterSubject === subject.name
                 ? 'bg-blue-600 text-white shadow-blue-200'
                 : 'bg-white text-slate-500 border border-slate-100 hover:border-blue-200'
                 }`}
             >
-              {subject}
+              {subject.name}
             </button>
           ))}
         </div>
@@ -422,8 +454,8 @@ const UploadedMaterials = () => {
                         className="text-[10px] bg-slate-50 border-none rounded-lg px-2 py-1 font-bold text-slate-500 focus:ring-0 cursor-pointer hover:bg-slate-100 transition-colors"
                       >
                         <option value="">Move to...</option>
-                        {subjects.map(s => (
-                          <option key={s} value={s}>{s}</option>
+                        {dbSubjects.map(s => (
+                          <option key={s.id} value={s.name}>{s.name}</option>
                         ))}
                       </select>
                     </div>

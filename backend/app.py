@@ -21,12 +21,23 @@ def _ensure_student_upload_schema():
             connection.execute(text("ALTER TABLE student_uploads ADD COLUMN embedding_status VARCHAR(50) DEFAULT 'pending'"))
         if 'embedding_error' not in columns:
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN embedding_error TEXT'))
+        if 'subject_id' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN subject_id INTEGER REFERENCES subjects(id)'))
+        if 'doc_type' not in columns:
+            connection.execute(text("ALTER TABLE student_uploads ADD COLUMN doc_type VARCHAR(50) DEFAULT 'material'"))
+        
         # Drop old NOT NULL constraint on storage_path if present
         if 'storage_path' in columns:
             try:
                 connection.execute(text("ALTER TABLE student_uploads ALTER COLUMN storage_path DROP NOT NULL"))
             except Exception:
                 pass  # SQLite doesn't support this; ignore
+
+        # Create unique partial index if index doesn't exist
+        try:
+            connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_subject_syllabus ON student_uploads (subject_id) WHERE doc_type = 'syllabus'"))
+        except Exception as e:
+            pass
 
 
 def _ensure_user_profile_schema():
@@ -99,6 +110,7 @@ def create_app():
     from routes.generate import generate_bp
     from routes.exam import exam_bp
     from routes.user import user_bp
+    from routes.syllabus import syllabus_bp
     
     oauth.init_app(app)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -110,6 +122,7 @@ def create_app():
     app.register_blueprint(generate_bp, url_prefix='/generate')
     app.register_blueprint(exam_bp, url_prefix='/exams')
     app.register_blueprint(user_bp, url_prefix='/user')
+    app.register_blueprint(syllabus_bp, url_prefix='/syllabus')
 
 
     # Ensure DB tables are created (useful for dev)

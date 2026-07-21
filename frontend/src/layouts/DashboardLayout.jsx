@@ -14,11 +14,16 @@ const DashboardLayout = () => {
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const handleSignIn = () => {
+    sessionStorage.removeItem('onboarded_session');
+    navigate('/signin');
+  };
+
   useEffect(() => {
     if (!isLoaded || !isUserLoaded) return;
 
     if (!isSignedIn) {
-      navigate('/signin');
+      handleSignIn();
       return;
     }
 
@@ -43,7 +48,10 @@ const DashboardLayout = () => {
         if (res.ok) {
           const profile = await res.json();
 
-          if (!profile.profile_complete) {
+          // Check if we have already onboarding in this SPECIFIC browser session
+          const hasOnboardedThisSession = sessionStorage.getItem('onboarded_session');
+
+          if (!profile.profile_complete || !hasOnboardedThisSession) {
             navigate('/profile-setup', { replace: true });
             return;
           }

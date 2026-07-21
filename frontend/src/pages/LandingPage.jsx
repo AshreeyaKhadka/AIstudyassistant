@@ -18,6 +18,7 @@ const LandingPage = () => {
   const navigate = useNavigate();
 
   const handleSignIn = () => {
+    sessionStorage.removeItem('onboarded_session');
     navigate('/signin');
   };
 
