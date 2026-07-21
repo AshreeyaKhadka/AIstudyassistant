@@ -29,8 +29,7 @@ def _build_redirect_url(path):
 
 
 def _profile_redirect_for_user(user):
-    if user.first_name and user.last_name and user.college and user.semester:
-        return _build_redirect_url('/dashboard')
+    # Force profile setup every time a user logs in
     return _build_redirect_url('/profile-setup')
 
 # Setup Google OAuth
@@ -166,7 +165,11 @@ def get_current_user():
     if not user:
         return jsonify({"error": "User not found"}), 404
         
-    return jsonify(user.to_dict()), 200
+    user_data = user.to_dict()
+    # Override profile_complete with the session-specific flag from JWT
+    user_data['profile_complete'] = payload.get('onboarded', False)
+    
+    return jsonify(user_data), 200
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
@@ -234,7 +237,7 @@ def onboard():
         logger.error(f"Failed to onboard user: {e}")
         return jsonify({"error": "Failed to update profile"}), 500
 
-    jwt_token = generate_token(user.id)
+    jwt_token = generate_token(user.id, onboarded=True)
     response = make_response(jsonify({"message": "Profile updated", "user": user.to_dict()}), 200)
     response.set_cookie('session_token', jwt_token, httponly=True, max_age=7*24*3600, samesite='Lax')
     return response

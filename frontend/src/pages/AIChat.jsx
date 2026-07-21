@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Bot, Loader2, MessageSquare, SendHorizontal, Sparkles, UserRound, ArrowLeft, Plus, Trash2, History, X } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 const AIChat = () => {
   const [searchParams] = useSearchParams();
@@ -9,6 +12,9 @@ const AIChat = () => {
   const subject = searchParams.get('subject') || '';
   const unit = searchParams.get('unit') || '';
   const unitLabel = searchParams.get('unitLabel') || '';
+  const subject_id = searchParams.get('subject_id') || '';
+  const doc_type = searchParams.get('doc_type') || '';
+
 
   const [messages, setMessages] = useState([
     {
@@ -172,6 +178,8 @@ const AIChat = () => {
           unit: unit || undefined,
           unitLabel: unitLabel || undefined,
           session_id: sessionId || undefined,
+          subject_id: subject_id ? parseInt(subject_id) : undefined,
+          doc_type: doc_type || undefined,
         }),
       });
 
@@ -211,15 +219,15 @@ const AIChat = () => {
 
   const quickPrompts = subject
     ? [
-        `Explain the key concepts of ${unit || subject} in simple terms.`,
-        `Create 5 revision bullet points for ${unit || subject}.`,
-        `Quiz me on the important concepts from ${unit || subject}.`,
-      ]
+      `Explain the key concepts of ${unit || subject} in simple terms.`,
+      `Create 5 revision bullet points for ${unit || subject}.`,
+      `Quiz me on the important concepts from ${unit || subject}.`,
+    ]
     : [
-        'Explain the last topic in simple terms.',
-        'Turn my notes into 5 revision bullets.',
-        'Quiz me on the important concepts from my materials.',
-      ];
+      'Explain the last topic in simple terms.',
+      'Turn my notes into 5 revision bullets.',
+      'Quiz me on the important concepts from my materials.',
+    ];
 
   return (
     <div className="flex flex-col h-full min-h-[72vh] bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -288,11 +296,10 @@ const AIChat = () => {
               {sessions.map((sess) => (
                 <div
                   key={sess.id}
-                  className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${
-                    sessionId === sess.id
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'bg-white border border-slate-100 hover:border-blue-200'
-                  }`}
+                  className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${sessionId === sess.id
+                    ? 'bg-blue-50 border border-blue-200'
+                    : 'bg-white border border-slate-100 hover:border-blue-200'
+                    }`}
                 >
                   <button
                     onClick={() => loadSession(sess.id)}
@@ -395,17 +402,16 @@ const ChatBubble = ({ role, content }) => {
         </div>
       )}
       <div
-        className={`max-w-[min(44rem,85%)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm border ${
-          isUser
-            ? 'bg-blue-600 text-white border-blue-500 rounded-br-md'
-            : 'bg-white text-slate-700 border-slate-200 rounded-bl-md'
-        }`}
+        className={`max-w-[min(44rem,85%)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm border ${isUser
+          ? 'bg-blue-600 text-white border-blue-500 rounded-br-md'
+          : 'bg-white text-slate-700 border-slate-200 rounded-bl-md'
+          }`}
       >
         {isUser ? (
           <span className="whitespace-pre-wrap">{content}</span>
         ) : (
           <div className="prose prose-sm prose-slate max-w-none prose-p:my-1 prose-pre:bg-slate-100 prose-pre:border prose-pre:border-slate-200 prose-code:text-pink-600 prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-normal prose-pre:code:bg-transparent prose-pre:code:p-0">
-            <ReactMarkdown>{content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{content}</ReactMarkdown>
           </div>
         )}
       </div>

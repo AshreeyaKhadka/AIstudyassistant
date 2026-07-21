@@ -160,6 +160,9 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
         # Prepare ChromaDB upsert data
         collection = _get_collection()
 
+        subject_id = upload.subject_id if upload else None
+        doc_type = upload.doc_type if upload else 'material'
+
         ids = [f"upload_{upload_id}_chunk_{i}" for i in range(len(chunks))]
         metadatas = [
             {
@@ -167,6 +170,8 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
                 "user_id": user_id,
                 "filename": filename,
                 "chunk_index": i,
+                "subject_id": subject_id,
+                "doc_type": doc_type,
             }
             for i in range(len(chunks))
         ]
@@ -203,28 +208,36 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
 # ---------------------------------------------------------------------------
 # 4. Retrieval: similarity search
 # ---------------------------------------------------------------------------
-def retrieve_context(upload_id: int, query: str = None, top_k: int = 8) -> list[dict]:
+def retrieve_context(upload_id: int = None, query: str = None, top_k: int = 8, filter_metadata: dict = None) -> list[dict]:
     """
-    Retrieve the top-k most relevant chunks for a given upload.
+    Retrieve the top-k most relevant chunks.
     
     If a query is provided, does semantic similarity search.
-    If no query, returns all chunks for the document (up to top_k).
+    If no query, returns all chunks matching filters (up to top_k).
     """
     collection = _get_collection()
+
+    where_filter = {}
+    if upload_id is not None:
+        where_filter["upload_id"] = upload_id
+    if filter_metadata:
+        for k, v in filter_metadata.items():
+            if v is not None:
+                where_filter[k] = v
 
     if query:
         # Embed the query
         query_embedding = _embed_texts([query])[0]
         results = collection.query(
             query_embeddings=[query_embedding],
-            where={"upload_id": upload_id},
+            where=where_filter,
             n_results=top_k,
             include=["documents", "metadatas", "distances"],
         )
     else:
-        # Get all chunks for the document (for full-document generation)
+        # Get chunks
         results = collection.get(
-            where={"upload_id": upload_id},
+            where=where_filter,
             include=["documents", "metadatas"],
         )
 
@@ -238,7 +251,7 @@ def retrieve_context(upload_id: int, query: str = None, top_k: int = 8) -> list[
             chunks.append({
                 "text": doc,
                 "metadata": meta,
-                "score": 1 - dist,  # Convert distance to similarity
+                "score": 1 - dist if dist is not None else 1.0,  # Convert distance to similarity
             })
     else:
         documents = results.get("documents", [])

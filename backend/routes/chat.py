@@ -80,7 +80,8 @@ def _build_gemini_contents(history, message, material_context, subject=None, uni
         + topic_hint +
         'Use the provided uploaded study materials when they are relevant. '
         'If the uploaded material does not contain enough information, say so clearly instead of inventing details. '
-        'Keep answers concise, practical, and easy to revise.'
+        'Keep answers concise, practical, and easy to revise. '
+        'IMPORTANT: Format all mathematical expressions and formulas using LaTeX: wrap inline math in single dollar signs like $...$ (e.g. $x^2$), and standalone block/display equations in double dollar signs like $$...$$ (e.g. $$\\int x dx$$). Do not use \\( or \\[ delimiters.'
     )
 
     assembled_messages = [
@@ -126,7 +127,35 @@ def send_message(user):
         return jsonify({'error': 'Message is required.'}), 400
 
     history = _normalize_history(data.get('history', []))
-    material_context = _build_material_context(user)
+    
+    subject_id = data.get('subject_id')
+    doc_type = data.get('doc_type') # 'syllabus' or 'material'
+
+    # If subject_id or doc_type scope is set, retrieve from ChromaDB using filters
+    if subject_id or doc_type:
+        from services.rag_service import retrieve_context
+        filter_metadata = {"user_id": user.id}
+        if subject_id:
+            try:
+                filter_metadata["subject_id"] = int(subject_id)
+            except (ValueError, TypeError):
+                pass
+        if doc_type and doc_type in ['syllabus', 'material']:
+            filter_metadata["doc_type"] = doc_type
+            
+        chunks = retrieve_context(query=message, top_k=8, filter_metadata=filter_metadata)
+        if chunks:
+            formatted_chunks = []
+            for c in chunks:
+                filename = c["metadata"].get("filename", "Unknown Document")
+                dtype = c["metadata"].get("doc_type", "document")
+                formatted_chunks.append(f"[{dtype.upper()} File: {filename}]\n{c['text']}")
+            material_context = "\n\n".join(formatted_chunks)
+        else:
+            material_context = "No relevant context found from the study documents."
+    else:
+        material_context = _build_material_context(user)
+
     subject = data.get('subject') or None
     unit = data.get('unit') or None
     unit_label = data.get('unitLabel') or None
@@ -176,6 +205,7 @@ def send_message(user):
     # Persist chat to database
     try:
         # Get or create session
+        session = None  # ensure variable is always defined
         if session_id:
             session = ChatSession.query.get(session_id)
             if not session or session.user_id != user.id:

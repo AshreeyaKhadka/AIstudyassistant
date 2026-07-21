@@ -5,10 +5,11 @@ from flask import request, jsonify
 from config import Config
 from models.user import User
 
-def generate_token(user_id):
-    """Generates a JWT token for the given user"""
+def generate_token(user_id, onboarded=False):
+    """Generates a JWT token for the given user with an optional onboarding flag"""
     payload = {
         'user_id': user_id,
+        'onboarded': onboarded,
         'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7),
         'iat': datetime.datetime.utcnow()
     }

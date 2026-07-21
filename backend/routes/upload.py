@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from werkzeug.utils import secure_filename
 import fitz  # PyMuPDF
 from config import db
-from models.content import StudentUpload
+from models.content import StudentUpload, Subject
 from models.quiz import QuizSet
 from services.auth_service import login_required
 from services.rag_service import embed_document, is_document_embedded, delete_document_embeddings
@@ -59,14 +59,27 @@ def upload_pdf(user):
             return jsonify({"error": f"Failed to parse PDF: {str(e)}"}), 500
             
         # Create DB record mapping to the user
-        subject = request.form.get('subject')
+        subject_id = request.form.get('subject_id')
+        subject_name = request.form.get('subject')
+        
+        if subject_id:
+            try:
+                subject_id = int(subject_id)
+                subj = Subject.query.filter_by(id=subject_id, user_id=user.id).first()
+                if subj:
+                    subject_name = subj.name
+            except (ValueError, TypeError):
+                pass
+
         upload = StudentUpload(
             filename=filename,
             file_url=filepath,  # In real life, might be S3 URL
             parsed_text=text,
             size_bytes=size_bytes,
             user_id=user.id,
-            subject=subject
+            subject=subject_name,
+            subject_id=subject_id,
+            doc_type='material'
         )
         
         try:
