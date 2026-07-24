@@ -140,7 +140,28 @@ const RevisionWidget = () => {
           <h4 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-2.5">Upcoming Tasks</h4>
           
           <div className="space-y-2.5">
-            {upcomingPlans.slice(0, 2).map(plan => (
+            {upcomingPlans.slice(0, 2).map(plan => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const planDateObj = new Date(plan.revision_date);
+              planDateObj.setHours(0, 0, 0, 0);
+              const timeDiff = planDateObj.getTime() - today.getTime();
+              const remainingDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+              
+              let countdownText = "";
+              let countdownColor = "text-slate-500";
+              
+              if (remainingDays > 0) {
+                countdownText = `⏳ ${remainingDays} Day${remainingDays > 1 ? 's' : ''} Remaining`;
+              } else if (remainingDays === 0) {
+                countdownText = "🟢 Today";
+                countdownColor = "text-emerald-500 font-bold";
+              } else {
+                countdownText = "🔴 Completed";
+                countdownColor = "text-rose-500 font-bold";
+              }
+
+              return (
               <div 
                 key={plan.id}
                 onClick={() => navigate('/dashboard/revision')}
@@ -151,12 +172,15 @@ const RevisionWidget = () => {
                   <span className="text-[9px] text-slate-400 font-bold mt-1 block">
                     {new Date(plan.revision_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
+                  <span className={`text-[9px] mt-1 block ${countdownColor}`}>
+                    {countdownText}
+                  </span>
                 </div>
                 <span className="text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200/20">
                   {plan.subject}
                 </span>
               </div>
-            ))}
+            )})}
 
             {upcomingPlans.length === 0 && (
               <p className="text-[11px] font-semibold text-slate-400 italic py-1">No upcoming revisions scheduled.</p>

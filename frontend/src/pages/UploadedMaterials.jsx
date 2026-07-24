@@ -1,11 +1,214 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   FileUp, Search, Trash2, Loader2, CheckCircle2,
   AlertCircle, FileText, HardDrive, Filter, Plus,
-  Sparkles, BrainCircuit, Target, Trophy, ChevronRight, X, RefreshCw
+  Sparkles, BrainCircuit, Target, Trophy, ChevronRight, X, RefreshCw, ChevronDown
 } from 'lucide-react';
 import { useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// ---------------------------------------------------------------------------
+// Fallback subject list – used ONLY if the backend returns an empty array.
+// When the backend seeds Pokhara University subjects these entries are ignored.
+// ---------------------------------------------------------------------------
+const FALLBACK_SUBJECTS = [
+  { id: 'fb-1-1',  name: 'Calculus I',                              semester: 1 },
+  { id: 'fb-1-2',  name: 'Digital Logic',                           semester: 1 },
+  { id: 'fb-1-3',  name: 'Programming in C',                        semester: 1 },
+  { id: 'fb-1-4',  name: 'Basic Electrical Engineering',            semester: 1 },
+  { id: 'fb-1-5',  name: 'Computer Workshop',                       semester: 1 },
+  { id: 'fb-1-6',  name: 'Communication Technique',                 semester: 1 },
+  { id: 'fb-1-7',  name: 'Electronics Devices & Circuits',          semester: 1 },
+  { id: 'fb-2-1',  name: 'Algebra & Geometry',                      semester: 2 },
+  { id: 'fb-2-2',  name: 'Applied Physics',                         semester: 2 },
+  { id: 'fb-2-3',  name: 'Applied Chemistry',                       semester: 2 },
+  { id: 'fb-2-4',  name: 'Basic Engineering Drawing',               semester: 2 },
+  { id: 'fb-2-5',  name: 'Object Oriented Programming in C++',      semester: 2 },
+  { id: 'fb-2-6',  name: 'Data Structure & Algorithm',              semester: 2 },
+  { id: 'fb-2-7',  name: 'Instrumentation',                         semester: 2 },
+  { id: 'fb-3-1',  name: 'Calculus II',                             semester: 3 },
+  { id: 'fb-3-2',  name: 'Database Management System',              semester: 3 },
+  { id: 'fb-3-3',  name: 'Operating Systems',                       semester: 3 },
+  { id: 'fb-3-4',  name: 'Microprocessor & Assembly Language Programming', semester: 3 },
+  { id: 'fb-3-5',  name: 'Computer Graphics',                       semester: 3 },
+  { id: 'fb-3-6',  name: 'Data Communication',                      semester: 3 },
+  { id: 'fb-4-1',  name: 'Applied Mathematics',                     semester: 4 },
+  { id: 'fb-4-2',  name: 'Numerical Methods',                       semester: 4 },
+  { id: 'fb-4-3',  name: 'Advanced Programming with Java',          semester: 4 },
+  { id: 'fb-4-4',  name: 'Theory of Computation',                   semester: 4 },
+  { id: 'fb-4-5',  name: 'Computer Architecture',                   semester: 4 },
+  { id: 'fb-4-6',  name: 'Research Fundamentals',                   semester: 4 },
+  { id: 'fb-5-1',  name: 'Probability & Statistics',                semester: 5 },
+  { id: 'fb-5-2',  name: 'Embedded System',                         semester: 5 },
+  { id: 'fb-5-3',  name: 'Engineering Management',                  semester: 5 },
+  { id: 'fb-5-4',  name: 'Artificial Intelligence',                 semester: 5 },
+  { id: 'fb-5-5',  name: 'Digital Signal Analysis Processing',      semester: 5 },
+  { id: 'fb-5-6',  name: 'Software Engineering',                    semester: 5 },
+  { id: 'fb-6-1',  name: 'Image Processing & Pattern Recognition',  semester: 6 },
+  { id: 'fb-6-2',  name: 'Machine Learning',                        semester: 6 },
+  { id: 'fb-6-3',  name: 'Data Science & Analytics',               semester: 6 },
+  { id: 'fb-6-4',  name: 'Computer Networks',                       semester: 6 },
+  { id: 'fb-6-5',  name: 'Simulation & Modeling',                   semester: 6 },
+  { id: 'fb-6-6',  name: 'Elective I',                              semester: 6 },
+  { id: 'fb-6-7',  name: 'Project I',                               semester: 6 },
+  { id: 'fb-7-1',  name: 'Entrepreneurship & Professional Practice', semester: 7 },
+  { id: 'fb-7-2',  name: 'Engineering Economics',                   semester: 7 },
+  { id: 'fb-7-3',  name: 'Network & Cyber Security',                semester: 7 },
+  { id: 'fb-7-4',  name: 'Cloud Computing & Virtualization',        semester: 7 },
+  { id: 'fb-7-5',  name: 'Compiler Design',                         semester: 7 },
+  { id: 'fb-7-6',  name: 'Elective II',                             semester: 7 },
+  { id: 'fb-8-1',  name: 'Elective III',                            semester: 8 },
+  { id: 'fb-8-2',  name: 'Internship',                              semester: 8 },
+  { id: 'fb-8-3',  name: 'Project II',                              semester: 8 },
+];
+
+// ---------------------------------------------------------------------------
+// SubjectCombobox – searchable autocomplete for subject selection.
+// Props:
+//   subjects        – array from API ({ id, name, semester })
+//   selectedId      – currently selected subject id (string)
+//   onSelect(id)    – called when user picks a subject
+// ---------------------------------------------------------------------------
+const SubjectCombobox = ({ subjects, selectedId, onSelect }) => {
+  const [query, setQuery]       = useState('');
+  const [open, setOpen]         = useState(false);
+  const wrapperRef              = useRef(null);
+  const inputRef                = useRef(null);
+
+  // Determine display label for the currently selected subject
+  const selectedSubject = subjects.find(s => String(s.id) === String(selectedId));
+  const displayLabel    = selectedSubject ? `${selectedSubject.name} (S${selectedSubject.semester})` : '';
+
+  // Filter subjects by query (case-insensitive, matches any part of name)
+  const filtered = query.trim() === ''
+    ? subjects
+    : subjects.filter(s => s.name.toLowerCase().includes(query.trim().toLowerCase()));
+
+  // Group filtered results by semester
+  const grouped = filtered.reduce((acc, s) => {
+    const key = s.semester;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(s);
+    return acc;
+  }, {});
+  const semesterKeys = Object.keys(grouped).map(Number).sort((a, b) => a - b);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false);
+        // If the user typed but didn't select, reset the input to the current selection
+        if (!selectedId) setQuery('');
+        else if (selectedSubject) setQuery(selectedSubject.name);
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [selectedId, selectedSubject]);
+
+  const handleSelect = (subject) => {
+    onSelect(String(subject.id));
+    setQuery(subject.name);
+    setOpen(false);
+  };
+
+  const handleClear = (e) => {
+    e.stopPropagation();
+    onSelect('');
+    setQuery('');
+    setOpen(false);
+    inputRef.current?.focus();
+  };
+
+  const handleInputChange = (e) => {
+    setQuery(e.target.value);
+    setOpen(true);
+    // If user edits the text, clear the locked selection
+    if (selectedId) onSelect('');
+  };
+
+  const handleFocus = () => {
+    setOpen(true);
+    // On focus, show full list if nothing typed yet
+    if (!query && selectedSubject) setQuery('');
+  };
+
+  return (
+    <div ref={wrapperRef} className="relative min-w-[220px]">
+      {/* Input row */}
+      <div
+        className={`flex items-center gap-1.5 px-3 py-2 bg-white border rounded-xl text-xs font-semibold text-slate-700 cursor-text transition-all
+          ${ open ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300' }`}
+        onClick={() => { setOpen(true); inputRef.current?.focus(); }}
+      >
+        <Search size={13} className="shrink-0 text-slate-400" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onFocus={handleFocus}
+          onChange={handleInputChange}
+          placeholder="Search subject..."
+          className="flex-1 bg-transparent outline-none placeholder:text-slate-400 placeholder:font-normal min-w-0"
+        />
+        {(query || selectedId) && (
+          <button type="button" onClick={handleClear} className="shrink-0 text-slate-400 hover:text-slate-600 transition-colors">
+            <X size={12} />
+          </button>
+        )}
+        <ChevronDown
+          size={13}
+          className={`shrink-0 text-slate-400 transition-transform ${ open ? 'rotate-180' : '' }`}
+        />
+      </div>
+
+      {/* Dropdown */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.12 }}
+            className="absolute z-50 mt-1.5 w-full max-h-72 overflow-y-auto bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-200/60 py-1"
+          >
+            {semesterKeys.length === 0 && (
+              <div className="px-4 py-3 text-xs text-slate-400 font-medium">
+                No subjects found
+              </div>
+            )}
+            {semesterKeys.map(sem => (
+              <div key={sem}>
+                {/* Semester group header */}
+                <div className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  Semester {sem}
+                </div>
+                {grouped[sem].map(subject => {
+                  const isSelected = String(subject.id) === String(selectedId);
+                  return (
+                    <button
+                      key={subject.id}
+                      type="button"
+                      onMouseDown={(e) => { e.preventDefault(); handleSelect(subject); }}
+                      className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors
+                        ${ isSelected
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'text-slate-700 hover:bg-slate-50' }`}
+                    >
+                      {subject.name}
+                      {isSelected && <span className="ml-1 text-blue-400">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 const UploadedMaterials = () => {
   const { user } = useOutletContext();
@@ -24,6 +227,9 @@ const UploadedMaterials = () => {
   const [deleting, setDeleting] = useState(null); // uploadId being deleted
   const [confirmDelete, setConfirmDelete] = useState(null); // uploadId to confirm delete
   const fileInputRef = useRef(null);
+
+  // subjectsForCombobox: prefer backend data, fall back to FALLBACK_SUBJECTS
+  const subjectsForCombobox = dbSubjects.length > 0 ? dbSubjects : FALLBACK_SUBJECTS;
 
   useEffect(() => {
     fetchMaterials();
@@ -272,17 +478,12 @@ const UploadedMaterials = () => {
               accept=".pdf"
               onChange={handleUpload}
             />
-            {/* Subject selector dropdown (required before upload) */}
-            <select
-              value={selectedUploadSubjectId}
-              onChange={(e) => setSelectedUploadSubjectId(e.target.value)}
-              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all min-w-[160px]"
-            >
-              <option value="">Select subject...</option>
-              {dbSubjects.map(s => (
-                <option key={s.id} value={s.id}>{s.name} (S{s.semester})</option>
-              ))}
-            </select>
+            {/* Subject searchable combobox (required before upload) */}
+            <SubjectCombobox
+              subjects={subjectsForCombobox}
+              selectedId={selectedUploadSubjectId}
+              onSelect={setSelectedUploadSubjectId}
+            />
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}

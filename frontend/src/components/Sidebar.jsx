@@ -53,6 +53,7 @@ const Sidebar = ({ user }) => {
         <NavItem to="/dashboard/progress" icon={<LineChart size={20} />} label="Progress Tracker" />
 
         <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Personalized Learning</div>
+        <NavItem to="/dashboard/focus" icon={<Target size={20} />} label="Smart Focus Mode" />
         <NavItem to="/dashboard/flashcards" icon={<BrainCircuit size={20} />} label="Flashcards" />
         <NavItem to="/dashboard/revision" icon={<CalendarCheck size={20} />} label="Calendar" />
 

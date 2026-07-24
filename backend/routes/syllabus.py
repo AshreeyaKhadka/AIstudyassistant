@@ -5,6 +5,8 @@ from services.auth_service import login_required
 from services.rag_service import embed_document, delete_document_embeddings
 from werkzeug.utils import secure_filename
 import os
+import json
+import re
 import logging
 import threading
 
@@ -14,10 +16,71 @@ logger = logging.getLogger(__name__)
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+
+def _seed_default_subjects_if_empty(user):
+    """Seed default Pokhara University subjects for new users if their subject list is empty."""
+    existing = Subject.query.filter_by(user_id=user.id).first()
+    if existing:
+        return
+
+    json_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'syllabusparser',
+        'unitwise.json'
+    )
+    if not os.path.exists(json_path):
+        logger.warning(f"Default syllabus file not found at {json_path}")
+        return
+
+    try:
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        pu_data = data.get("Pokhara University - Bachelor in Computer Engineering", {})
+        user_sem = user.semester if user.semester else 1
+
+        new_subjects = []
+        seen = set()
+        for raw_name, sub_info in pu_data.items():
+            if not isinstance(sub_info, dict):
+                continue
+            sem_str = str(sub_info.get("Semester") or sub_info.get("semester") or "1").strip()
+            try:
+                sem = int(sem_str)
+            except ValueError:
+                sem = 1
+
+            clean_name = re.sub(r'\s*\(\d+-\d+-\d+\)', '', raw_name).strip()
+            key = (clean_name, sem)
+            if key in seen:
+                continue
+            seen.add(key)
+
+            is_current = (sem == user_sem)
+            subject = Subject(
+                user_id=user.id,
+                name=clean_name,
+                semester=sem,
+                code=None,
+                is_current=is_current,
+                is_backlog=False
+            )
+            new_subjects.append(subject)
+
+        if new_subjects:
+            db.session.add_all(new_subjects)
+            db.session.commit()
+            logger.info(f"Seeded {len(new_subjects)} default Pokhara University subjects for user {user.id}")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to seed default subjects for user {user.id}: {e}")
+
+
 @syllabus_bp.route('/subjects', methods=['GET'])
 @login_required
 def get_subjects(user):
-    subjects = Subject.query.filter_by(user_id=user.id).order_by(Subject.created_at.desc()).all()
+    _seed_default_subjects_if_empty(user)
+    subjects = Subject.query.filter_by(user_id=user.id).order_by(Subject.semester.asc(), Subject.name.asc()).all()
     return jsonify([{
         "id": s.id,
         "name": s.name,
@@ -27,6 +90,7 @@ def get_subjects(user):
         "is_backlog": s.is_backlog,
         "created_at": s.created_at.isoformat() if s.created_at else None
     } for s in subjects]), 200
+
 
 @syllabus_bp.route('/subjects', methods=['POST'])
 @login_required
