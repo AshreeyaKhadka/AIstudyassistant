@@ -20,24 +20,30 @@ const SharedResources = ({ resources = [] }) => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {resources.map((res) => (
-          <div
-            key={res.id}
-            onClick={() => navigate('/dashboard/upload')}
-            className="flex items-center gap-3 p-3 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#FAF9F7] transition-colors cursor-pointer"
-          >
-            <div className="p-2 bg-[#ECEAE7] text-[#102326] rounded-[4px] shrink-0">
-              {res.type === 'folder' ? <Folder size={14} /> : <FileText size={14} />}
+      {resources.length === 0 ? (
+        <div className="p-4 text-center text-xs font-mono text-[#666666] border border-dashed border-[#D7D3CF] rounded-[4px] bg-[#FAF9F7]">
+          No global university resources shared yet.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {resources.map((res) => (
+            <div
+              key={res.id}
+              onClick={() => navigate('/dashboard/upload')}
+              className="flex items-center gap-3 p-3 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#FAF9F7] transition-colors cursor-pointer"
+            >
+              <div className="p-2 bg-[#ECEAE7] text-[#102326] rounded-[4px] shrink-0">
+                {res.type === 'folder' ? <Folder size={14} /> : <FileText size={14} />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-[#111111] truncate">{res.title}</p>
+                <span className="text-[9px] font-mono uppercase text-[#666666]">{res.category}</span>
+              </div>
+              <ChevronRight size={14} className="text-[#102326] shrink-0" />
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-[#111111] truncate">{res.title}</p>
-              <span className="text-[9px] font-mono uppercase text-[#666666]">{res.category}</span>
-            </div>
-            <ChevronRight size={14} className="text-[#102326] shrink-0" />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

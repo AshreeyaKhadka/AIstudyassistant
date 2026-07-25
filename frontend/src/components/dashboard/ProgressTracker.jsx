@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ProgressTracker = () => {
+const ProgressTracker = ({ progress = 0 }) => {
   return (
     <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-5">
       <div className="pb-4 border-b border-[#D7D3CF] mb-4">
@@ -14,12 +14,15 @@ const ProgressTracker = () => {
             Overall completion
           </span>
           <span className="text-2xl font-bold font-mono text-[#111111]">
-            68%
+            {progress}%
           </span>
         </div>
 
         <div className="w-full h-1.5 bg-[#ECEAE7] rounded-none overflow-hidden">
-          <div className="bg-[#102326] h-full w-[68%] transition-all duration-500"></div>
+          <div 
+            className="bg-[#102326] h-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          ></div>
         </div>
       </div>
     </div>

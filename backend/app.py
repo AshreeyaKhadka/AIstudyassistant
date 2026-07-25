@@ -103,6 +103,8 @@ def _ensure_subject_schema():
             connection.execute(text('ALTER TABLE subjects ADD COLUMN semester INTEGER'))
         if 'code' not in columns:
             connection.execute(text('ALTER TABLE subjects ADD COLUMN code VARCHAR(50)'))
+        if 'credits' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN credits INTEGER DEFAULT 3'))
         if 'is_current' not in columns:
             connection.execute(text('ALTER TABLE subjects ADD COLUMN is_current BOOLEAN DEFAULT 1'))
         if 'is_backlog' not in columns:
@@ -118,7 +120,11 @@ def create_app():
     app.config.from_object(Config)
 
     # Allow requests from Vite frontend (usually port 5173)
-    CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}}, supports_credentials=True)
+    CORS(
+        app,
+        resources={r"/*": {"origins": ["http://localhost:5173", "http://localhost:5174"]}},
+        supports_credentials=True,
+    )
 
     db.init_app(app)
 
@@ -137,6 +143,7 @@ def create_app():
     from routes.exam import exam_bp
     from routes.user import user_bp
     from routes.syllabus import syllabus_bp
+    from routes.exam_prep import exam_prep_bp
     from routes.focus import focus_bp
     
     oauth.init_app(app)
@@ -150,6 +157,7 @@ def create_app():
     app.register_blueprint(exam_bp, url_prefix='/exams')
     app.register_blueprint(user_bp, url_prefix='/user')
     app.register_blueprint(syllabus_bp, url_prefix='/syllabus')
+    app.register_blueprint(exam_prep_bp, url_prefix='/exam-prep')
     app.register_blueprint(focus_bp, url_prefix='/focus')
 
 

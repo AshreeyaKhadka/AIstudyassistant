@@ -62,6 +62,7 @@ def _seed_default_subjects_if_empty(user):
                 name=clean_name,
                 semester=sem,
                 code=None,
+                credits=3,
                 is_current=is_current,
                 is_backlog=False
             )
@@ -86,6 +87,7 @@ def get_subjects(user):
         "name": s.name,
         "semester": s.semester,
         "code": s.code,
+        "credits": s.credits,
         "is_current": s.is_current,
         "is_backlog": s.is_backlog,
         "created_at": s.created_at.isoformat() if s.created_at else None
@@ -99,6 +101,7 @@ def create_subject(user):
     name = data.get('name', '').strip()
     semester_val = data.get('semester')
     code = data.get('code', '').strip() or None
+    credits_val = data.get('credits', 3)
     is_backlog = bool(data.get('is_backlog', False))
 
     if not name or semester_val is None:
@@ -121,6 +124,7 @@ def create_subject(user):
         name=name,
         semester=semester,
         code=code,
+        credits=credits_val,
         is_current=is_current,
         is_backlog=is_backlog
     )
@@ -137,6 +141,7 @@ def create_subject(user):
         "name": subject.name,
         "semester": subject.semester,
         "code": subject.code,
+        "credits": subject.credits,
         "is_current": subject.is_current,
         "is_backlog": subject.is_backlog,
         "created_at": subject.created_at.isoformat() if subject.created_at else None

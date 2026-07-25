@@ -334,3 +334,46 @@ def delete_session(user, session_id):
         db.session.rollback()
         logger.error(f'Failed to delete session {session_id}: {exc}')
         return jsonify({'error': 'Failed to delete session'}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /chat/suggestions — get dynamic prompt suggestions for user
+# ---------------------------------------------------------------------------
+@chat_bp.route('/suggestions', methods=['GET'])
+@login_required
+def get_chat_suggestions(user):
+    from models.content import Subject
+    
+    # 1. Fetch user's recent uploads
+    uploads = StudentUpload.query.filter_by(user_id=user.id).order_by(StudentUpload.created_at.desc()).limit(3).all()
+    # 2. Fetch user's subjects
+    user_subjects = Subject.query.filter_by(user_id=user.id).limit(3).all()
+
+    suggestions = []
+
+    if uploads:
+        for u in uploads:
+            clean_title = u.filename.rsplit('.', 1)[0].replace('_', ' ')
+            suggestions.append(f"Explain key concepts from {clean_title}")
+            suggestions.append(f"Turn {clean_title} into 5 revision bullets")
+            suggestions.append(f"Quiz me on {clean_title}")
+
+    if user_subjects:
+        for s in user_subjects:
+            suggestions.append(f"Explain {s.name} core principles")
+            suggestions.append(f"Generate 5 exam questions for {s.name}")
+
+    # Fallback to default starters if no uploads or subjects
+    if not suggestions:
+        suggestions = [
+            "Explain the last engineering topic in simple terms",
+            "Turn my notes into 5 revision bullets",
+            "Quiz me on key concepts from my study materials"
+        ]
+
+    # Limit to top 4 unique prompts
+    unique_suggestions = list(dict.fromkeys(suggestions))[:4]
+
+    return jsonify(unique_suggestions), 200
+
+

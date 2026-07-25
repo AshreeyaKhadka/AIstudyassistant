@@ -1,12 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Download, Eye } from 'lucide-react';
+import { FileText, Eye } from 'lucide-react';
+import PDFViewerModal from '../PDFViewerModal';
 
 const UploadedMaterials = ({ materials = [] }) => {
   const navigate = useNavigate();
+  const [viewingFile, setViewingFile] = useState(null);
+
+  const handleTitleClick = (file) => {
+    navigate('/dashboard/upload', {
+      state: {
+        search: file.filename,
+        subject: file.subject
+      }
+    });
+  };
 
   return (
-    <div className="border border-[#D7D3CF] bg-white rounded-[4px] p-5">
+    <div className="border border-[#D7D3CF] bg-white rounded-[4px] p-5 shadow-2xs">
       <div className="flex items-center justify-between pb-4 border-b border-[#D7D3CF] mb-4">
         <div>
           <h3 className="text-base font-bold text-[#111111] tracking-tight">Uploaded Materials</h3>
@@ -39,9 +50,13 @@ const UploadedMaterials = ({ materials = [] }) => {
               {materials.map((file) => (
                 <tr key={file.id} className="hover:bg-[#FAF9F7] transition-colors">
                   <td className="p-3">
-                    <div className="flex items-center gap-2.5">
-                      <FileText size={15} className="text-[#102326] shrink-0" />
-                      <span className="font-semibold text-[#111111] truncate max-w-[180px] sm:max-w-[240px]">
+                    <div 
+                      onClick={() => handleTitleClick(file)}
+                      className="flex items-center gap-2.5 cursor-pointer group"
+                      title={`Go to ${file.filename} in Study Vault`}
+                    >
+                      <FileText size={15} className="text-[#102326] shrink-0 group-hover:scale-110 transition-transform" />
+                      <span className="font-semibold text-[#111111] group-hover:text-[#C96A32] group-hover:underline transition-colors truncate max-w-[180px] sm:max-w-[240px]">
                         {file.filename}
                       </span>
                     </div>
@@ -50,16 +65,16 @@ const UploadedMaterials = ({ materials = [] }) => {
                     {file.subject || 'GENERAL'}
                   </td>
                   <td className="p-3 hidden md:table-cell font-mono text-[10px] text-[#666666]">
-                    {file.size}
+                    {file.size || '0.5 MB'}
                   </td>
                   <td className="p-3 text-right">
                     <div className="flex justify-end gap-1.5">
                       <button 
-                        onClick={() => navigate('/dashboard/upload')}
-                        className="p-1.5 text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] border border-[#D7D3CF]" 
-                        title="Preview"
+                        onClick={() => setViewingFile(file)}
+                        className="p-1.5 text-[#111111] hover:bg-[#102326] hover:text-white rounded-[4px] border border-[#D7D3CF] transition-colors" 
+                        title="View PDF Document"
                       >
-                        <Eye size={13} />
+                        <Eye size={14} />
                       </button>
                     </div>
                   </td>
@@ -69,6 +84,14 @@ const UploadedMaterials = ({ materials = [] }) => {
           </table>
         )}
       </div>
+
+      {/* PDF Viewer Popup Modal */}
+      {viewingFile && (
+        <PDFViewerModal
+          file={viewingFile}
+          onClose={() => setViewingFile(null)}
+        />
+      )}
     </div>
   );
 };
