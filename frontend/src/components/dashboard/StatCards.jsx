@@ -1,13 +1,24 @@
 import React from 'react';
 
 const StatCards = ({ stats }) => {
+  const formatQuizAccuracy = () => {
+    if (stats?.quizAccuracy == null) return '—';
+    return `${stats.quizAccuracy}%`;
+  };
+
+  const formatStudyHours = () => {
+    const hours = stats?.weeklyStudyHours ?? 0;
+    if (hours === 0) return '0h';
+    return `${hours}h`;
+  };
+
   const statItems = [
-    { label: 'TOTAL NOTES', value: stats?.totalNotes ?? 0 },
-    { label: 'FLASHCARDS', value: stats?.flashcardsCompleted ?? 0 },
-    { label: 'UPLOADED PDFS', value: stats?.uploadedPDFs ?? 0 },
-    { label: 'STUDY HOURS', value: `${stats?.weeklyStudyHours ?? 0}h` },
-    { label: 'QUIZ ACCURACY', value: `${stats?.quizAccuracy ?? 0}%` },
-    { label: 'PENDING REVISION', value: stats?.pendingRevision ?? 0, isAccent: true },
+    { label: 'TOTAL NOTES', value: stats?.totalNotes ?? 0, emptyHint: stats?.totalNotes === 0 ? 'No notes yet' : null },
+    { label: 'FLASHCARDS', value: stats?.flashcardsCompleted ?? 0, emptyHint: stats?.flashcardsCompleted === 0 ? 'None saved' : null },
+    { label: 'UPLOADED PDFS', value: stats?.uploadedPDFs ?? 0, emptyHint: stats?.uploadedPDFs === 0 ? 'Upload a PDF' : null },
+    { label: 'STUDY HOURS', value: formatStudyHours(), sublabel: 'This week', emptyHint: (stats?.weeklyStudyHours ?? 0) === 0 ? 'Log focus sessions' : null },
+    { label: 'QUIZ ACCURACY', value: formatQuizAccuracy(), emptyHint: stats?.quizAccuracy == null ? 'No quizzes yet' : null },
+    { label: 'PENDING REVISION', value: stats?.pendingRevision ?? 0, isAccent: true, emptyHint: stats?.pendingRevision === 0 ? 'All caught up' : null },
   ];
 
   return (
@@ -24,6 +35,12 @@ const StatCards = ({ stats }) => {
             <div className={`text-xl sm:text-2xl font-bold font-mono ${item.isAccent ? 'text-[#C96A32]' : 'text-[#111111]'}`}>
               {item.value}
             </div>
+            {item.sublabel && (
+              <div className="text-[9px] font-mono uppercase text-[#999999] mt-1 tracking-wider">{item.sublabel}</div>
+            )}
+            {item.emptyHint && (
+              <div className="text-[9px] font-mono text-[#999999] mt-1">{item.emptyHint}</div>
+            )}
           </div>
         ))}
       </div>

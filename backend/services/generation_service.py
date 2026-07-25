@@ -350,3 +350,80 @@ def generate_exam_questions(context: str, count: int = 8) -> list[dict]:
         })
 
     return validated
+
+
+BLUEPRINT_PROMPT = """You are creating a one-page exam revision blueprint for university students. Based STRICTLY on the study material below for {subject}, produce a concise visual-ready summary.
+
+STUDY MATERIAL CONTEXT:
+{context}
+
+OUTPUT FORMAT (strict JSON):
+{{
+  "title": "Subject Blueprint",
+  "sections": [
+    {{
+      "heading": "Core Formulas / Rules",
+      "items": ["item 1", "item 2"]
+    }},
+    {{
+      "heading": "Key Terms",
+      "items": ["term: definition", "..."]
+    }},
+    {{
+      "heading": "Must-Know Diagrams / Processes",
+      "items": ["description"]
+    }},
+    {{
+      "heading": "High-Yield Exam Tips",
+      "items": ["tip 1", "tip 2"]
+    }}
+  ]
+}}
+
+Return ONLY valid JSON with 4-6 sections and 3-6 items each."""
+
+
+RAPID_REVISION_PROMPT = """You are building a rapid revision deck for last-minute exam prep. Based STRICTLY on the study material below, generate exactly {count} flash-style key term cards.
+
+STUDY MATERIAL CONTEXT:
+{context}
+
+OUTPUT FORMAT (strict JSON):
+{{
+  "cards": [
+    {{ "term": "Short term or concept", "definition": "One-line definition" }}
+  ]
+}}
+
+Generate exactly {count} cards. Return ONLY valid JSON."""
+
+
+def generate_blueprint_sheet(context: str, subject: str = 'Subject') -> dict:
+    prompt = BLUEPRINT_PROMPT.format(context=context, subject=subject)
+    raw = _call_gemini(prompt, temperature=0.4)
+    parsed = _parse_json_response(raw)
+    sections = parsed.get('sections', [])
+    if not isinstance(sections, list) or not sections:
+        raise RuntimeError('Invalid blueprint format')
+    return {
+        'title': parsed.get('title', f'{subject} Blueprint'),
+        'subject': subject,
+        'sections': sections,
+    }
+
+
+def generate_rapid_revision(context: str, count: int = 15) -> list[dict]:
+    prompt = RAPID_REVISION_PROMPT.format(context=context, count=count)
+    raw = _call_gemini(prompt, temperature=0.5)
+    parsed = _parse_json_response(raw)
+    cards = parsed.get('cards', [])
+    if not isinstance(cards, list):
+        raise RuntimeError('Invalid rapid revision format')
+    validated = []
+    for card in cards:
+        if isinstance(card, dict) and card.get('term') and card.get('definition'):
+            validated.append({
+                'term': str(card['term']).strip(),
+                'definition': str(card['definition']).strip(),
+            })
+    return validated

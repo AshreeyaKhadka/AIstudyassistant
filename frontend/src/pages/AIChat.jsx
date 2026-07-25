@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, Loader2, MessageSquare, SendHorizontal, UserRound, ArrowLeft, Plus, Trash2, History, X } from 'lucide-react';
+import { Bot, Loader2, MessageSquare, SendHorizontal, UserRound, ArrowLeft, Plus, Trash2, History, X, AlertTriangle } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -33,7 +33,29 @@ const AIChat = () => {
   const [sessions, setSessions] = useState([]);
   const [showSessions, setShowSessions] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
-  const [deletingSession, setDeletingSession] = useState(null);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Dynamic Suggestion Chips
+  const [dynamicSuggestions, setDynamicSuggestions] = useState([]);
+
+  useEffect(() => {
+    // Fetch dynamic prompt suggestions from backend based on user uploads/subjects
+    const fetchSuggestions = async () => {
+      try {
+        const res = await fetch('/api/chat/suggestions', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setDynamicSuggestions(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch suggestions:', err);
+      }
+    };
+    if (!subject) {
+      fetchSuggestions();
+    }
+  }, [subject]);
 
   const history = useMemo(
     () => messages.map(({ role, content }) => ({ role, content })),
@@ -106,23 +128,25 @@ const AIChat = () => {
     }
   };
 
-  const deleteSession = async (sessId) => {
-    setDeletingSession(sessId);
+  const confirmDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    setDeleting(true);
     try {
-      const res = await fetch(`/api/chat/sessions/${sessId}`, {
+      const res = await fetch(`/api/chat/sessions/${sessionToDelete.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
       if (res.ok) {
-        setSessions(prev => prev.filter(s => s.id !== sessId));
-        if (sessionId === sessId) {
+        setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
+        if (sessionId === sessionToDelete.id) {
           startNewChat();
         }
       }
     } catch (err) {
       console.error('Failed to delete session:', err);
     } finally {
-      setDeletingSession(null);
+      setDeleting(false);
+      setSessionToDelete(null);
     }
   };
 
@@ -203,7 +227,7 @@ const AIChat = () => {
         {
           id: Date.now() + 1,
           role: 'assistant',
-          content: 'I could not reach the AI service just now. Please try again in a moment.',
+          content: 'I could not reach the AI service just now. Please check your connection and try again.',
         },
       ]);
     } finally {
@@ -213,25 +237,59 @@ const AIChat = () => {
 
   const quickPrompts = subject
     ? [
-      `Explain the key concepts of ${unit || subject} in simple terms.`,
-      `Create 5 revision bullet points for ${unit || subject}.`,
-      `Quiz me on the important concepts from ${unit || subject}.`,
-    ]
+        `Explain key concepts of ${unit || subject}`,
+        `5 revision bullet points for ${unit || subject}`,
+        `Quiz me on important concepts from ${unit || subject}`,
+      ]
+    : dynamicSuggestions.length > 0
+    ? dynamicSuggestions
     : [
-      'Explain the last topic in simple terms.',
-      'Turn my notes into 5 revision bullets.',
-      'Quiz me on the important concepts from my materials.',
-    ];
+        'Explain the last topic in simple terms',
+        'Turn my notes into 5 revision bullets',
+        'Quiz me on key concepts from my materials',
+      ];
 
   return (
-    <div className="flex flex-col h-[82vh] bg-white border border-[#D7D3CF] rounded-[4px] overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-8rem)] bg-white border border-[#D7D3CF] rounded-[4px] overflow-hidden">
+      {/* Delete Confirmation Modal */}
+      {sessionToDelete && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 max-w-sm w-full space-y-4 shadow-lg">
+            <div className="flex items-center gap-3 text-[#C96A32]">
+              <AlertTriangle size={24} />
+              <h3 className="text-base font-bold text-[#111111]">Delete Conversation?</h3>
+            </div>
+            <p className="text-xs text-[#666666] leading-relaxed font-sans">
+              Are you sure you want to delete <span className="font-semibold text-[#111111]">"{sessionToDelete.title}"</span>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#D7D3CF]">
+              <button
+                onClick={() => setSessionToDelete(null)}
+                disabled={deleting}
+                className="px-3 py-1.5 border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={confirmDeleteSession}
+                disabled={deleting}
+                className="px-3 py-1.5 bg-[#C96A32] text-white hover:bg-[#a85222] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5"
+              >
+                {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                <span>DELETE</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[#D7D3CF] bg-[#F7F5F2] flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="px-4 md:px-6 py-3.5 border-b border-[#D7D3CF] bg-[#F7F5F2] flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
           {subject && (
             <button
               onClick={() => navigate('/dashboard/syllabus')}
-              className="p-1.5 rounded-[4px] bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] transition-colors"
+              className="p-1.5 rounded-[4px] bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] transition-colors shrink-0"
             >
               <ArrowLeft size={16} />
             </button>
@@ -239,17 +297,17 @@ const AIChat = () => {
           <div className="w-8 h-8 rounded-[4px] bg-[#102326] text-white flex items-center justify-center shrink-0">
             <MessageSquare size={16} />
           </div>
-          <div>
-            <h3 className="text-base font-bold text-[#111111] tracking-tight">
+          <div className="min-w-0">
+            <h3 className="text-sm md:text-base font-bold text-[#111111] tracking-tight truncate">
               {subject ? `Study: ${unit || subject}` : 'Chat Assistant'}
             </h3>
-            <p className="text-xs text-[#666666] font-mono">
-              {subject ? `FOCUSED ON ${subject.toUpperCase()}` : 'ACADEMIC ENGINE'}
+            <p className="text-[10px] text-[#666666] font-mono truncate">
+              {subject ? `FOCUSED ON ${subject.toUpperCase()}` : 'RAG ACADEMIC ENGINE'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => { fetchSessions(); setShowSessions(!showSessions); }}
             className="px-3 py-1.5 bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] transition-colors text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5"
@@ -271,7 +329,7 @@ const AIChat = () => {
 
       {/* History Drawer */}
       {showSessions && (
-        <div className="border-b border-[#D7D3CF] bg-[#F7F5F2] p-4 max-h-60 overflow-y-auto">
+        <div className="border-b border-[#D7D3CF] bg-[#F7F5F2] p-4 max-h-60 overflow-y-auto shrink-0">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-xs font-mono uppercase tracking-wider text-[#666666] font-semibold">Previous Conversations</h4>
             <button onClick={() => setShowSessions(false)} className="text-[#666666] hover:text-[#111111]">
@@ -305,11 +363,11 @@ const AIChat = () => {
                     </p>
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); deleteSession(sess.id); }}
-                    disabled={deletingSession === sess.id}
+                    onClick={(e) => { e.stopPropagation(); setSessionToDelete(sess); }}
                     className="p-1 hover:text-[#C96A32] transition-colors"
+                    title="Delete Chat"
                   >
-                    {deletingSession === sess.id ? <Loader2 className="animate-spin" size={13} /> : <Trash2 size={13} />}
+                    <Trash2 size={13} />
                   </button>
                 </div>
               ))}
@@ -319,7 +377,7 @@ const AIChat = () => {
       )}
 
       {/* Messages Scroll Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-[#F7F5F2]">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-[#F7F5F2]">
         {messages.map((message) => (
           <ChatBubble key={message.id} role={message.role} content={message.content} />
         ))}
@@ -337,15 +395,15 @@ const AIChat = () => {
       </div>
 
       {/* Input Footer */}
-      <div className="border-t border-[#D7D3CF] bg-white p-4">
-        <div className="flex flex-wrap gap-2 mb-3">
+      <div className="border-t border-[#D7D3CF] bg-white p-3 md:p-4 shrink-0">
+        <div className="flex flex-wrap gap-1.5 md:gap-2 mb-3 max-h-24 overflow-y-auto custom-scrollbar">
           {quickPrompts.map((prompt) => (
             <button
               key={prompt}
               type="button"
               onClick={() => handleSend(prompt)}
               disabled={loading}
-              className="text-xs font-mono text-[#111111] bg-[#F7F5F2] hover:bg-[#102326] hover:text-white border border-[#D7D3CF] rounded-[4px] px-3 py-1.5 transition-colors disabled:opacity-50"
+              className="text-[11px] font-mono text-[#111111] bg-[#F7F5F2] hover:bg-[#102326] hover:text-white border border-[#D7D3CF] rounded-[4px] px-2.5 py-1 transition-colors disabled:opacity-50 text-left truncate max-w-full"
             >
               {prompt}
             </button>
@@ -353,8 +411,9 @@ const AIChat = () => {
         </div>
 
         {error ? (
-          <div className="mb-3 text-xs font-mono text-[#C96A32] bg-[#FFFDFB] border border-[#D7D3CF] rounded-[4px] px-3 py-2">
-            {error}
+          <div className="mb-3 text-xs font-mono text-[#C96A32] bg-[#FFFDFB] border border-[#D7D3CF] rounded-[4px] px-3 py-2 flex justify-between items-center">
+            <span>{error}</span>
+            <button onClick={() => setError('')} className="underline text-[10px] ml-2">Dismiss</button>
           </div>
         ) : null}
 
@@ -376,10 +435,10 @@ const AIChat = () => {
             type="button"
             onClick={() => handleSend()}
             disabled={loading || !input.trim()}
-            className="px-4 py-2.5 rounded-[4px] bg-[#102326] hover:bg-[#0b191c] text-white font-mono text-xs font-semibold uppercase tracking-wider disabled:opacity-50 transition-colors inline-flex items-center gap-1.5 shrink-0"
+            className="px-3.5 md:px-4 py-2.5 rounded-[4px] bg-[#102326] hover:bg-[#0b191c] text-white font-mono text-xs font-semibold uppercase tracking-wider disabled:opacity-50 transition-colors inline-flex items-center gap-1.5 shrink-0"
           >
             {loading ? <Loader2 size={14} className="animate-spin" /> : <SendHorizontal size={14} />}
-            <span>SEND</span>
+            <span className="hidden sm:inline">SEND</span>
           </button>
         </div>
       </div>
@@ -391,29 +450,29 @@ const ChatBubble = ({ role, content }) => {
   const isUser = role === 'user';
 
   return (
-    <div className={`flex items-start gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex items-start gap-2.5 md:gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && (
-        <div className="w-8 h-8 rounded-[4px] bg-[#102326] text-white flex items-center justify-center shrink-0 mt-0.5">
+        <div className="w-7 h-7 md:w-8 md:h-8 rounded-[4px] bg-[#102326] text-white flex items-center justify-center shrink-0 mt-0.5">
           <Bot size={15} />
         </div>
       )}
       <div
-        className={`max-w-[80%] rounded-[4px] px-4 py-3 text-xs leading-relaxed border ${
+        className={`max-w-[85%] sm:max-w-[75%] rounded-[4px] px-3.5 py-2.5 md:px-4 md:py-3 text-xs leading-relaxed border ${
           isUser
             ? 'bg-[#102326] text-white border-[#102326]'
             : 'bg-white text-[#111111] border-[#D7D3CF]'
         }`}
       >
         {isUser ? (
-          <span className="whitespace-pre-wrap">{content}</span>
+          <span className="whitespace-pre-wrap break-words">{content}</span>
         ) : (
-          <div className="prose prose-xs max-w-none text-[#111111]">
+          <div className="prose prose-xs max-w-none text-[#111111] break-words">
             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{content}</ReactMarkdown>
           </div>
         )}
       </div>
       {isUser && (
-        <div className="w-8 h-8 rounded-[4px] bg-[#ECEAE7] text-[#111111] border border-[#D7D3CF] flex items-center justify-center shrink-0 mt-0.5">
+        <div className="w-7 h-7 md:w-8 md:h-8 rounded-[4px] bg-[#ECEAE7] text-[#111111] border border-[#D7D3CF] flex items-center justify-center shrink-0 mt-0.5">
           <UserRound size={15} />
         </div>
       )}
