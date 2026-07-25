@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Square, SkipForward, RefreshCw, Maximize2, Minimize2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Play, Pause, RefreshCw, SkipForward, Maximize2, Minimize2 } from 'lucide-react';
 
 const PomodoroTimer = ({ onSessionComplete }) => {
   const modes = [
@@ -8,7 +8,7 @@ const PomodoroTimer = ({ onSessionComplete }) => {
     { label: '50/10', focus: 50, break: 10 },
     { label: '90/20', focus: 90, break: 20 },
   ];
-  
+
   const [currentMode, setCurrentMode] = useState(modes[0]);
   const [timeLeft, setTimeLeft] = useState(modes[0].focus * 60);
   const [isActive, setIsActive] = useState(false);
@@ -29,7 +29,7 @@ const PomodoroTimer = ({ onSessionComplete }) => {
   const handleComplete = () => {
     setIsActive(false);
     if (!isBreak) {
-      onSessionComplete({
+      onSessionComplete?.({
         duration_minutes: currentMode.focus,
         break_duration_minutes: currentMode.break,
         completed: true
@@ -75,18 +75,19 @@ const PomodoroTimer = ({ onSessionComplete }) => {
   const totalTime = (isBreak ? currentMode.break : currentMode.focus) * 60;
   const progress = ((totalTime - timeLeft) / totalTime) * 100;
   
-  const circumference = 2 * Math.PI * 120; // r=120
+  const circumference = 2 * Math.PI * 110;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="bg-white rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-100 p-8 flex flex-col items-center relative overflow-hidden">
-      <div className="absolute top-6 right-6 flex gap-2">
-        <button onClick={toggleFullscreen} className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-xl transition">
-          {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+    <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 sm:p-8 flex flex-col items-center relative select-none">
+      <div className="absolute top-4 right-4">
+        <button onClick={toggleFullscreen} className="p-2 text-[#666666] hover:text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] transition-colors">
+          {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
         </button>
       </div>
 
-      <div className="flex gap-2 mb-8">
+      {/* Mode Switches */}
+      <div className="flex gap-2 mb-6">
         {modes.map(m => (
           <button 
             key={m.label}
@@ -96,52 +97,70 @@ const PomodoroTimer = ({ onSessionComplete }) => {
               setIsBreak(false);
               setTimeLeft(m.focus * 60);
             }}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${currentMode.label === m.label ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+            className={`px-3 py-1.5 rounded-[4px] border font-mono text-xs font-semibold tracking-wider transition-colors ${
+              currentMode.label === m.label 
+                ? 'bg-[#102326] text-white border-[#102326]' 
+                : 'bg-white text-[#111111] border-[#D7D3CF] hover:bg-[#ECEAE7]'
+            }`}
           >
             {m.label}
           </button>
         ))}
       </div>
 
-      <div className="relative w-72 h-72 flex items-center justify-center mb-8">
-        {/* SVG Circle for progress */}
+      {/* Circle Timer Dial */}
+      <div className="relative w-64 h-64 flex items-center justify-center mb-6">
         <svg className="absolute inset-0 w-full h-full transform -rotate-90">
-          <circle cx="144" cy="144" r="120" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-slate-100" />
+          <circle cx="128" cy="128" r="110" stroke="#ECEAE7" strokeWidth="8" fill="transparent" />
           <motion.circle 
-            cx="144" cy="144" r="120" stroke="currentColor" strokeWidth="12" fill="transparent" 
-            className={isBreak ? "text-emerald-400" : "text-indigo-500"}
-            strokeLinecap="round"
+            cx="128" cy="128" r="110" stroke={isBreak ? "#C96A32" : "#102326"} strokeWidth="8" fill="transparent" 
+            strokeLinecap="square"
             initial={{ strokeDashoffset: circumference }}
             animate={{ strokeDashoffset }}
-            transition={{ duration: 0.5, ease: "linear" }}
+            transition={{ duration: 0.3, ease: "linear" }}
             style={{ strokeDasharray: circumference }}
           />
         </svg>
         <div className="z-10 text-center flex flex-col items-center">
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 mb-1">
-            {isBreak ? 'Break Time' : 'Focus Mode'}
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-1">
+            {isBreak ? 'BREAK TIME' : 'FOCUS MODE'}
           </span>
-          <h2 className="text-6xl font-black text-slate-800 tracking-tighter tabular-nums">
+          <h2 className="text-5xl font-bold font-mono text-[#111111] tracking-tight tabular-nums">
             {formatTime(timeLeft)}
           </h2>
-          <span className="text-xs font-semibold text-slate-400 mt-2">
+          <span className="text-xs font-mono text-[#666666] mt-2">
             Session {sessionCount + 1}
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <button onClick={toggleTimer} className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform hover:scale-105 active:scale-95 ${isBreak ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
-          {isActive ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
+      {/* Control Buttons */}
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={toggleTimer} 
+          className={`h-11 px-6 rounded-[4px] font-mono text-xs font-semibold tracking-wider uppercase transition-colors flex items-center justify-center gap-2 ${
+            isBreak ? 'bg-[#C96A32] hover:bg-[#b05a28] text-white border border-[#C96A32]' : 'bg-[#102326] hover:bg-[#0b191c] text-white border border-[#102326]'
+          }`}
+        >
+          {isActive ? <Pause size={16} /> : <Play size={16} />}
+          <span>{isActive ? 'PAUSE' : 'START'}</span>
         </button>
-        
-        <button onClick={resetTimer} className="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors">
-          <RefreshCw size={20} />
+
+        <button 
+          onClick={resetTimer} 
+          className="h-11 w-11 rounded-[4px] border border-[#D7D3CF] bg-white hover:bg-[#ECEAE7] text-[#111111] flex items-center justify-center transition-colors"
+          title="Reset Timer"
+        >
+          <RefreshCw size={16} />
         </button>
 
         {isBreak && (
-          <button onClick={skipBreak} className="w-12 h-12 rounded-xl flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Skip Break">
-            <SkipForward size={20} />
+          <button 
+            onClick={skipBreak} 
+            className="h-11 px-4 rounded-[4px] border border-[#D7D3CF] bg-white hover:bg-[#ECEAE7] text-[#111111] font-mono text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <SkipForward size={16} />
+            <span>SKIP BREAK</span>
           </button>
         )}
       </div>

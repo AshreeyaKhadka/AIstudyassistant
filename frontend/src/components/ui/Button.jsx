@@ -1,53 +1,27 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
-export const Button = ({ variant = 'primary', style = {}, children, ...props }) => {
-  const baseStyle = {
-    fontFamily: 'var(--font-functional)',
-    fontWeight: 500,
-    padding: '0.5rem 1.5rem',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    border: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-  };
-
-  let specificStyle = {};
+export const Button = ({ variant = 'primary', className = '', style = {}, children, ...props }) => {
+  let variantClasses = '';
 
   if (variant === 'primary') {
-    specificStyle = {
-      background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%)',
-      color: 'var(--on-primary)',
-      borderRadius: 'var(--radius-default)',
-      boxShadow: 'var(--shadow-ambient)'
-    };
+    variantClasses = 'bg-[#102326] text-white border border-[#102326] hover:bg-[#0b191c]';
   } else if (variant === 'secondary') {
-    specificStyle = {
-      backgroundColor: 'var(--surface-container-highest)',
-      color: 'var(--on-surface)',
-      borderRadius: 'var(--radius-default)',
-    };
-  } else if (variant === 'tertiary') {
-    specificStyle = {
-      backgroundColor: 'transparent',
-      color: 'var(--on-primary-fixed-variant)',
-      borderRadius: 'var(--radius-default)',
-    };
+    variantClasses = 'bg-white text-[#111111] border border-[#D7D3CF] hover:bg-[#ECEAE7]';
+  } else if (variant === 'outline') {
+    variantClasses = 'bg-transparent text-[#111111] border border-[#D7D3CF] hover:bg-[#102326] hover:text-white';
+  } else if (variant === 'accent') {
+    variantClasses = 'bg-[#C96A32] text-white border border-[#C96A32] hover:bg-[#b05a28]';
+  } else {
+    variantClasses = 'bg-[#ECEAE7] text-[#111111] border border-[#D7D3CF] hover:bg-[#DCD9D5]';
   }
 
-  const combinedStyle = { ...baseStyle, ...specificStyle, ...style };
-
   return (
-    <motion.button 
-      whileHover={{ scale: 1.02, y: -2 }}
-      whileTap={{ scale: 0.98 }}
-      style={combinedStyle} 
+    <button
+      className={`px-4 py-2 rounded-[4px] font-mono text-xs font-semibold tracking-wider uppercase transition-colors inline-flex items-center justify-center gap-2 ${variantClasses} ${className}`}
+      style={style}
       {...props}
     >
       {children}
-    </motion.button>
+    </button>
   );
 };

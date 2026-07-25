@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/react';
-import { motion } from 'framer-motion';
-import { User, Mail, GraduationCap, Calendar, Save, ChevronDown, Camera, CheckCircle2, AlertCircle } from 'lucide-react';
+import { User, Mail, GraduationCap, Calendar, Save, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const semesterOptions = [
   { value: '1', label: '1st Semester' },
@@ -134,121 +133,109 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+      <div className="flex items-center justify-center py-16">
+        <div className="h-6 w-6 animate-spin border-2 border-[#102326] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6 pb-12">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800">Profile</h2>
-        <p className="text-sm text-slate-500 mt-1">Manage your personal and academic information.</p>
+      <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px]">
+        <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-1">
+          USER PROFILE & ACADEMIC SETTINGS
+        </div>
+        <h2 className="text-2xl font-bold text-[#111111] tracking-tight">Student Profile</h2>
+        <p className="text-xs text-[#666666] mt-0.5">Manage your identity and current enrolled semester details.</p>
       </div>
 
       {/* Profile Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"
-      >
-        {/* Avatar Section */}
-        <div className="p-6 pb-0">
-          <div className="flex items-center gap-5">
-            <div className="relative group">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-blue-500/20">
-                {clerkUser?.imageUrl ? (
-                  <img src={clerkUser.imageUrl} alt="avatar" className="w-full h-full rounded-full object-cover" />
-                ) : (
-                  `${formData.firstName?.charAt(0) || ''}${formData.lastName?.charAt(0) || ''}`.toUpperCase() || 'U'
-                )}
-              </div>
-              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
-                <Camera size={18} className="text-white" />
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-slate-800">
-                {formData.firstName} {formData.lastName}
-              </h3>
-              <p className="text-sm text-slate-500">{formData.email}</p>
-              {clerkUser?.username && (
-                <p className="text-xs text-slate-400 mt-0.5">@{clerkUser.username}</p>
-              )}
-            </div>
+      <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 space-y-6">
+        {/* User Identity Header */}
+        <div className="flex items-center gap-4 pb-6 border-b border-[#D7D3CF]">
+          <div className="w-14 h-14 rounded-[4px] bg-[#102326] text-white flex items-center justify-center text-lg font-mono font-bold border border-[#102326]">
+            {clerkUser?.imageUrl ? (
+              <img src={clerkUser.imageUrl} alt="avatar" className="w-full h-full rounded-[4px] object-cover" />
+            ) : (
+              `${formData.firstName?.charAt(0) || ''}${formData.lastName?.charAt(0) || ''}`.toUpperCase() || 'U'
+            )}
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-[#111111]">
+              {formData.firstName} {formData.lastName}
+            </h3>
+            <p className="text-xs font-mono text-[#666666]">{formData.email}</p>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 pt-4 space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <ProfileField label="First Name" icon={<User size={16} />}>
+            <ProfileField label="FIRST NAME" icon={<User size={14} />}>
               <input
                 type="text"
                 value={formData.firstName}
                 onChange={handleChange('firstName')}
                 placeholder="First name"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
               />
             </ProfileField>
-            <ProfileField label="Last Name" icon={<User size={16} />}>
+            <ProfileField label="LAST NAME" icon={<User size={14} />}>
               <input
                 type="text"
                 value={formData.lastName}
                 onChange={handleChange('lastName')}
                 placeholder="Last name"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
               />
             </ProfileField>
           </div>
 
-          <ProfileField label="Email Address" icon={<Mail size={16} />}>
+          <ProfileField label="EMAIL ADDRESS" icon={<Mail size={14} />}>
             <input
               type="email"
               value={formData.email}
               readOnly
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500 cursor-not-allowed opacity-70"
+              className="w-full bg-[#FAF9F7] border border-[#D7D3CF] rounded-[4px] px-3 py-2 text-xs font-mono text-[#666666] cursor-not-allowed opacity-70"
             />
           </ProfileField>
 
-          <ProfileField label="College" icon={<GraduationCap size={16} />}>
+          <ProfileField label="COLLEGE / INSTITUTION" icon={<GraduationCap size={14} />}>
             <input
               type="text"
               value={formData.college}
               onChange={handleChange('college')}
               placeholder="Enter your college name"
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
             />
           </ProfileField>
 
-          <ProfileField label="Semester" icon={<Calendar size={16} />}>
+          <ProfileField label="ENROLLED SEMESTER" icon={<Calendar size={14} />}>
             <div className="relative">
               <select
                 value={formData.semester}
                 onChange={handleChange('semester')}
-                className="w-full appearance-none px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+                className="w-full appearance-none bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none cursor-pointer"
               >
                 <option value="">Select semester</option>
                 {semesterOptions.map((s) => (
                   <option key={s.value} value={s.value}>{s.label}</option>
                 ))}
               </select>
-              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666666] pointer-events-none" />
             </div>
           </ProfileField>
 
           {/* Messages */}
           {message.text && (
-            <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium ${
+            <div className={`p-3 rounded-[4px] text-xs font-mono flex items-center gap-2 border ${
               message.type === 'success'
-                ? 'bg-green-50 text-green-700 border border-green-100'
-                : 'bg-red-50 text-red-700 border border-red-100'
+                ? 'bg-white text-[#102326] border-[#102326]'
+                : 'bg-[#FFFDFB] text-[#C96A32] border-[#D7D3CF]'
             }`}>
-              {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-              {message.text}
+              {message.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+              <span>{message.text}</span>
             </div>
           )}
 
@@ -257,52 +244,49 @@ const ProfilePage = () => {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className="px-4 py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
             >
-              <Save size={16} />
-              {saving ? 'Saving...' : 'Save Changes'}
+              <Save size={14} />
+              <span>{saving ? 'SAVING...' : 'SAVE CHANGES'}</span>
             </button>
           </div>
         </form>
-      </motion.div>
+      </div>
 
-      {/* Account Info */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.1 }}
-        className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6"
-      >
-        <h4 className="text-sm font-semibold text-slate-800 mb-4">Account Details</h4>
-        <div className="grid grid-cols-2 gap-4 text-sm">
+      {/* Account Info Details */}
+      <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 space-y-3">
+        <h4 className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold pb-2 border-b border-[#D7D3CF]">
+          SYSTEM ACCOUNT DETAILS
+        </h4>
+        <div className="grid grid-cols-2 gap-4 text-xs font-mono">
           <div>
-            <span className="text-slate-400">Account ID</span>
-            <p className="text-slate-600 font-mono text-xs mt-0.5 truncate">{clerkUser?.id || 'N/A'}</p>
+            <span className="text-[#666666]">USER ID</span>
+            <p className="text-[#111111] font-semibold mt-0.5 truncate">{clerkUser?.id || 'N/A'}</p>
           </div>
           <div>
-            <span className="text-slate-400">Role</span>
-            <p className="text-slate-600 mt-0.5 capitalize">Student</p>
+            <span className="text-[#666666]">ROLE</span>
+            <p className="text-[#111111] font-semibold mt-0.5">STUDENT</p>
           </div>
           <div>
-            <span className="text-slate-400">Provider</span>
-            <p className="text-slate-600 mt-0.5">Clerk Auth</p>
+            <span className="text-[#666666]">AUTHENTICATION</span>
+            <p className="text-[#111111] font-semibold mt-0.5">CLERK OAUTH</p>
           </div>
           <div>
-            <span className="text-slate-400">Joined</span>
-            <p className="text-slate-600 mt-0.5">
-              {clerkUser?.createdAt ? new Date(clerkUser.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+            <span className="text-[#666666]">CREATED AT</span>
+            <p className="text-[#111111] font-semibold mt-0.5">
+              {clerkUser?.createdAt ? new Date(clerkUser.createdAt).toLocaleDateString() : 'N/A'}
             </p>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };
 
 const ProfileField = ({ label, icon, children }) => (
-  <div className="space-y-1.5">
-    <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
-      <span className="text-slate-400">{icon}</span>
+  <div className="space-y-1">
+    <label className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
+      <span>{icon}</span>
       {label}
     </label>
     {children}

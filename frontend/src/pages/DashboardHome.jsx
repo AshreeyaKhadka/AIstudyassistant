@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import WelcomeSection from '../components/dashboard/WelcomeSection';
 import StatCards from '../components/dashboard/StatCards';
@@ -12,8 +12,6 @@ import ExamTools from '../components/dashboard/ExamTools';
 import RecommendedMaterials from '../components/dashboard/RecommendedMaterials';
 import RevisionWidget from '../components/dashboard/RevisionWidget';
 import FocusWidget from '../components/dashboard/FocusWidget';
-
-import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 const DashboardHome = () => {
@@ -41,7 +39,7 @@ const DashboardHome = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-20">
-        <Loader2 className="animate-spin text-blue-500" size={40} />
+        <Loader2 className="animate-spin text-[#102326]" size={36} />
       </div>
     );
   }
@@ -51,45 +49,43 @@ const DashboardHome = () => {
   const { studentData, recentQueries, uploadedMaterials, sharedResources, flashcards, generatedNotes } = dashboardData;
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1600px] mx-auto pb-10">
-      {/* 1. Welcome Section */}
+    <div className="space-y-6 pb-8">
+      {/* 1. Top Header Grid (Welcome Section) */}
       <WelcomeSection data={studentData} user={user} />
 
-      {/* 2. Quick Stats */}
-      <StatCards stats={studentData.stats} />
+      {/* 2. Quick Metric Bar (6 stats in 1 row) */}
+      <StatCards stats={studentData?.stats} />
 
-      {/* 3. Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* 3. Main Dashboard Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-        {/* Left Column (Main Content) - Takes up 2/3 width */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          {/* Personalized Flashcards Preview */}
+        {/* Left Column (2/3 width on desktop) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Flashcards Review Card */}
           <FlashcardPreview flashcards={flashcards} />
 
+          {/* Sub grid: Recent Queries & AI Notes */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Recent Queries */}
             <RecentQueries queries={recentQueries} />
-
-            {/* Notes Preview */}
             <NotesPreview notes={generatedNotes} />
           </div>
 
-          {/* Uploaded Materials */}
+          {/* Uploaded Materials Table Card */}
           <UploadedMaterials materials={uploadedMaterials} />
 
           {/* Global Shared Resources */}
           <SharedResources resources={sharedResources} />
         </div>
 
-        {/* Right Column (Sidebar Content) - Takes up 1/3 width */}
-        <div className="flex flex-col gap-6">
-          {/* Smart Focus Mode Widget */}
+        {/* Right Column (1/3 width on desktop) */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Smart Focus Mode (Dark Card) */}
           <FocusWidget />
 
-          {/* Revision Planner Dashboard Widget */}
+          {/* Revision Schedule (Light Card) */}
           <RevisionWidget />
 
-          {/* Progress Tracking */}
+          {/* Academic Progress Card */}
           <ProgressTracker />
 
           {/* Exam Prep Tools */}
@@ -98,7 +94,6 @@ const DashboardHome = () => {
           {/* Recommended Materials */}
           <RecommendedMaterials />
         </div>
-
 
       </div>
     </div>

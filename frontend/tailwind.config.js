@@ -7,33 +7,35 @@ export default {
   theme: {
     extend: {
       colors: {
-        surface: 'var(--surface)',
-        'surface-lowest': 'var(--surface-container-lowest)',
-        'surface-low': 'var(--surface-container-low)',
-        'surface-container': 'var(--surface-container)',
-        'surface-high': 'var(--surface-container-high)',
-        'surface-highest': 'var(--surface-container-highest)',
-        primary: 'var(--primary)',
-        'primary-container': 'var(--primary-container)',
-        'on-primary': 'var(--on-primary)',
-        secondary: 'var(--secondary-container)',
-        'on-secondary': 'var(--on-secondary-container)',
-        tertiary: 'var(--tertiary)',
-        'outline-variant': 'var(--outline-variant)',
-        'ghost-border': 'var(--ghost-border)',
+        background: '#F7F5F2',
+        sidebar: '#ECEAE7',
+        card: '#FFFFFF',
+        'primary-dark': '#102326',
+        'primary-hover': '#0b191c',
+        'accent-orange': '#C96A32',
+        'border-subtle': '#D7D3CF',
+        'text-primary': '#111111',
+        'text-secondary': '#666666',
+        'text-muted': '#888888',
       },
       fontFamily: {
-        editorial: ['var(--font-editorial)', 'sans-serif'],
-        functional: ['var(--font-functional)', 'sans-serif'],
-      },
-      boxShadow: {
-        ambient: 'var(--shadow-ambient)',
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'Courier New', 'monospace'],
+        heading: ['"Space Grotesk"', 'Inter', 'sans-serif'],
       },
       borderRadius: {
-        sm: 'var(--radius-sm)',
-        DEFAULT: 'var(--radius-default)',
-        xl: 'var(--radius-xl)',
-        full: 'var(--radius-full)',
+        DEFAULT: '4px',
+        sm: '4px',
+        md: '4px',
+        lg: '4px',
+        xl: '4px',
+        '2xl': '4px',
+        '3xl': '4px',
+        full: '9999px',
+      },
+      boxShadow: {
+        none: 'none',
+        subtle: '0 1px 2px rgba(0,0,0,0.03)',
       }
     },
   },
@@ -41,3 +43,4 @@ export default {
     require('@tailwindcss/typography'),
   ],
 }
+
