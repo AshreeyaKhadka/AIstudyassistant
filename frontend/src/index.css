@@ -240,3 +240,19 @@ tr:hover td {
   font-size: 1.05em !important;
   color: inherit !important;
 }
+
+.focus-glass {
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 1rem;
+  background: rgba(11, 32, 35, .70);
+  box-shadow: 0 18px 50px rgba(0,0,0,.20);
+  backdrop-filter: blur(18px);
+}
+.focus-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.62);
+}
