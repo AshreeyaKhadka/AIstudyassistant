@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { Play, Pause, RefreshCw, SkipForward, Maximize2, Minimize2 } from 'lucide-react';
+import { Play, Pause, RefreshCw, SkipForward, Maximize2 } from 'lucide-react';
+import FullscreenFocus from './FullscreenFocus';
 
-const PomodoroTimer = ({ onSessionComplete }) => {
+const PomodoroTimer = ({ onSessionComplete, selectedSubject, topic, recommendations }) => {
   const modes = [
     { label: '25/5', focus: 25, break: 5 },
     { label: '50/10', focus: 50, break: 10 },
@@ -15,6 +17,7 @@ const PomodoroTimer = ({ onSessionComplete }) => {
   const [isBreak, setIsBreak] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
+  const [completion, setCompletion] = useState(false);
 
   useEffect(() => {
     let interval = null;
@@ -29,6 +32,7 @@ const PomodoroTimer = ({ onSessionComplete }) => {
   const handleComplete = () => {
     setIsActive(false);
     if (!isBreak) {
+    setCompletion(true);
       onSessionComplete?.({
         duration_minutes: currentMode.focus,
         break_duration_minutes: currentMode.break,
@@ -38,6 +42,7 @@ const PomodoroTimer = ({ onSessionComplete }) => {
       setIsBreak(true);
       setTimeLeft(currentMode.break * 60);
     } else {
+      window.setTimeout(() => setCompletion(false), 1800);
       setIsBreak(false);
       setTimeLeft(currentMode.focus * 60);
     }
@@ -56,15 +61,7 @@ const PomodoroTimer = ({ onSessionComplete }) => {
     }
   };
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
+  const toggleFullscreen = () => setIsFullscreen((value) => !value);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -78,11 +75,11 @@ const PomodoroTimer = ({ onSessionComplete }) => {
   const circumference = 2 * Math.PI * 110;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
-  return (
+  return (<>
     <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 sm:p-8 flex flex-col items-center relative select-none">
       <div className="absolute top-4 right-4">
         <button onClick={toggleFullscreen} className="p-2 text-[#666666] hover:text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] transition-colors">
-          {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+          <Maximize2 size={16} />
         </button>
       </div>
 
@@ -165,7 +162,13 @@ const PomodoroTimer = ({ onSessionComplete }) => {
         )}
       </div>
     </div>
-  );
+    {isFullscreen && createPortal(<FullscreenFocus open={isFullscreen} onClose={() => setIsFullscreen(false)} currentMode={currentMode} modes={modes}
+      setMode={(mode) => { setCurrentMode(mode); setIsActive(false); setIsBreak(false); setCompletion(false); setTimeLeft(mode.focus * 60); }}
+      timeLeft={timeLeft} isActive={isActive} setIsActive={setIsActive} isBreak={isBreak}
+      resetTimer={resetTimer} skipBreak={skipBreak} sessionCount={sessionCount}
+      selectedSubject={selectedSubject} topic={topic} recommendations={recommendations} completion={completion}
+    />, document.body)}
+  </>);
 };
 
 export default PomodoroTimer;

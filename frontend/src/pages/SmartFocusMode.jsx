@@ -124,7 +124,12 @@ const SmartFocusMode = () => {
             </div>
           </div>
 
-          <PomodoroTimer onSessionComplete={handleSessionComplete} />
+          <PomodoroTimer
+            onSessionComplete={handleSessionComplete}
+            selectedSubject={selectedSubject}
+            topic={topic}
+            recommendations={recommendations}
+          />
 
         </div>
 
