@@ -87,6 +87,32 @@ def _ensure_chat_session_schema():
         if 'updated_at' not in columns:
             connection.execute(text('ALTER TABLE chat_sessions ADD COLUMN updated_at TIMESTAMP'))
 
+
+def _ensure_subject_schema():
+    inspector = inspect(db.engine)
+    if 'subjects' not in inspector.get_table_names():
+        return
+
+    columns = {column['name'] for column in inspector.get_columns('subjects')}
+    with db.engine.begin() as connection:
+        if 'user_id' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN user_id INTEGER REFERENCES users(id)'))
+        if 'name' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN name VARCHAR(255)'))
+        if 'semester' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN semester INTEGER'))
+        if 'code' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN code VARCHAR(50)'))
+        if 'is_current' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN is_current BOOLEAN DEFAULT 1'))
+        if 'is_backlog' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN is_backlog BOOLEAN DEFAULT 0'))
+        if 'description' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN description TEXT'))
+        if 'created_at' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN created_at DATETIME'))
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -111,6 +137,7 @@ def create_app():
     from routes.exam import exam_bp
     from routes.user import user_bp
     from routes.syllabus import syllabus_bp
+    from routes.focus import focus_bp
     
     oauth.init_app(app)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -123,6 +150,7 @@ def create_app():
     app.register_blueprint(exam_bp, url_prefix='/exams')
     app.register_blueprint(user_bp, url_prefix='/user')
     app.register_blueprint(syllabus_bp, url_prefix='/syllabus')
+    app.register_blueprint(focus_bp, url_prefix='/focus')
 
 
     # Ensure DB tables are created (useful for dev)
@@ -135,12 +163,14 @@ def create_app():
         from models.embedding import DocEmbedding
         from models.revision import RevisionPlan
         from models.exam import Exam
+        from models.focus import StudySession, UserAchievement
 
         
         # We will set up pgvector later during DB migrations, 
         # but for initial start, this avoids missing table errors.
         db.create_all()
         _ensure_user_profile_schema()
+        _ensure_subject_schema()
         _ensure_student_upload_schema()
         _ensure_mcq_count_schema()
         _ensure_quiz_set_upload_schema()

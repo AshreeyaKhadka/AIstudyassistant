@@ -11,6 +11,7 @@ import ProgressTracker from '../components/dashboard/ProgressTracker';
 import ExamTools from '../components/dashboard/ExamTools';
 import RecommendedMaterials from '../components/dashboard/RecommendedMaterials';
 import RevisionWidget from '../components/dashboard/RevisionWidget';
+import FocusWidget from '../components/dashboard/FocusWidget';
 
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
@@ -82,6 +83,9 @@ const DashboardHome = () => {
 
         {/* Right Column (Sidebar Content) - Takes up 1/3 width */}
         <div className="flex flex-col gap-6">
+          {/* Smart Focus Mode Widget */}
+          <FocusWidget />
+
           {/* Revision Planner Dashboard Widget */}
           <RevisionWidget />
 

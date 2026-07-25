@@ -25,6 +25,7 @@ import RevisionPlanner from '../pages/RevisionPlanner';
 import Settings from '../pages/Settings';
 import ProfilePage from '../pages/ProfilePage';
 import SyllabusExplorer from '../pages/SyllabusExplorer';
+import SmartFocusMode from '../pages/SmartFocusMode';
 
 const AppRouter = () => {
   return (
@@ -49,6 +50,7 @@ const AppRouter = () => {
         {/* Protected Dashboard Routes */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />
+          <Route path="focus" element={<SmartFocusMode />} />
           <Route path="chat" element={<AIChat />} />
           <Route path="notes" element={<Notes />} />
           <Route path="flashcards" element={<Flashcards />} />

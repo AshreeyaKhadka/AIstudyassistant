@@ -847,6 +847,26 @@ const RevisionPlanner = () => {
                 return d >= now && d <= limit;
               }).slice(0, 5).map(exam => {
                 const style = getExamStyle(exam.exam_type);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const examDateObj = new Date(exam.exam_date);
+                examDateObj.setHours(0, 0, 0, 0);
+                const timeDiff = examDateObj.getTime() - today.getTime();
+                const remainingDays = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                
+                let countdownText = "";
+                let countdownColor = "text-slate-500";
+                
+                if (remainingDays > 0) {
+                  countdownText = `⏳ ${remainingDays} Day${remainingDays > 1 ? 's' : ''} Remaining`;
+                } else if (remainingDays === 0) {
+                  countdownText = "🟢 Exam is Today";
+                  countdownColor = "text-emerald-500 font-bold";
+                } else {
+                  countdownText = "🔴 Exam Completed";
+                  countdownColor = "text-rose-500 font-bold";
+                }
+
                 return (
                   <div key={exam.id} className={`p-3 rounded-xl border ${style.bgLight} ${style.border} flex items-center justify-between`}>
                     <div>
@@ -854,6 +874,9 @@ const RevisionPlanner = () => {
                       <p className="text-[10px] text-slate-500 mt-0.5">{exam.subject}</p>
                       <p className="text-[10px] text-slate-400 mt-0.5">
                         {new Date(exam.exam_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </p>
+                      <p className={`text-[10px] mt-1 ${countdownColor}`}>
+                        {countdownText}
                       </p>
                     </div>
                     <button onClick={() => handleDeleteExam(exam.id)} className="p-1 text-slate-400 hover:text-rose-500 transition-colors">
