@@ -1,125 +1,152 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Sparkles,
-  Heart,
-  Zap,
-  Target,
-  BookOpen,
-  Code,
-  Briefcase,
-  GitBranch,
-  FileText,
-  Save,
-  Loader,
-  CheckCircle2,
   AlertCircle,
+  ArrowUpRight,
+  BookOpen,
+  Briefcase,
+  CheckCircle2,
   ChevronRight,
+  Code,
+  Compass,
+  FileText,
+  GitBranch,
+  GraduationCap,
+  Heart,
+  Layers3,
+  Loader,
+  Map,
   Plus,
+  Printer,
+  Rocket,
+  Save,
+  Target,
+  Trophy,
   X,
+  Zap,
 } from 'lucide-react';
 
+const defaultExperience = {
+  hackathons: false,
+  open_source: false,
+  internships: false,
+  research_papers: false,
+  jobs: false,
+};
+
+const defaultExperienceDetails = {
+  hackathon_details: '',
+  open_source_details: '',
+  internship_details: '',
+  research_details: '',
+  job_details: '',
+};
+
+const goalOptions = [
+  { id: 'internship', label: 'Internship', description: 'Build proof of ability and get industry exposure.', icon: Briefcase },
+  { id: 'job', label: 'Full-time role', description: 'Prepare for hiring pipelines, projects, and interviews.', icon: Rocket },
+  { id: 'higher_studies', label: 'Graduate studies', description: 'Shape research direction, exams, and academic profile.', icon: GraduationCap },
+  { id: 'exploring', label: 'Exploring options', description: 'Compare paths before committing deeply.', icon: Compass },
+];
+
+const experienceOptions = [
+  { key: 'hackathons', icon: Zap, label: 'Hackathons', detail: 'hackathon_details', prompt: 'Projects, awards, themes, or roles you handled.' },
+  { key: 'open_source', icon: GitBranch, label: 'Open Source', detail: 'open_source_details', prompt: 'Repos, pull requests, issues, or communities you contributed to.' },
+  { key: 'internships', icon: Briefcase, label: 'Internships', detail: 'internship_details', prompt: 'Company, role, stack, responsibilities, or outcomes.' },
+  { key: 'research_papers', icon: FileText, label: 'Research Papers', detail: 'research_details', prompt: 'Topics, papers, supervisors, publications, or experiments.' },
+  { key: 'jobs', icon: Briefcase, label: 'Jobs / Industry', detail: 'job_details', prompt: 'Roles, projects, production work, or impact delivered.' },
+];
+
+const interestSuggestions = [
+  'AI & Machine Learning',
+  'Web Development',
+  'Mobile Development',
+  'Cloud & DevOps',
+  'Data Science',
+  'Cybersecurity',
+  'Core Engineering',
+  'Research',
+  'Robotics',
+  'Game Development',
+];
+
+const skillSuggestions = [
+  'Python',
+  'JavaScript',
+  'React',
+  'Node.js',
+  'Java',
+  'C++',
+  'SQL',
+  'AWS',
+  'Docker',
+  'Git',
+  'Machine Learning',
+  'Data Analysis',
+];
+
+const profileStats = [
+  { label: 'Career signal', value: 'Personalized' },
+  { label: 'Roadmap', value: '6–12 mo' },
+  { label: 'Inputs', value: 'Skills + goals' },
+];
+
+
+const normalizeProfile = (data) => ({
+  interests: data.interests || [],
+  skills: data.skills || [],
+  career_goal: data.career_goal || '',
+  experience: { ...defaultExperience, ...(data.experience || {}) },
+  experience_details: { ...defaultExperienceDetails, ...(data.experience_details || {}) },
+});
+
 const CareerCompass = () => {
-  const [currentStep, setCurrentStep] = useState('form'); // form, loading, results
+  const [currentStep, setCurrentStep] = useState('form');
   const [profile, setProfile] = useState({
     interests: [],
     skills: [],
     career_goal: '',
-    experience: {
-      hackathons: false,
-      open_source: false,
-      internships: false,
-      research_papers: false,
-      jobs: false,
-    },
-    experience_details: {
-      hackathon_details: '',
-      open_source_details: '',
-      internship_details: '',
-      research_details: '',
-      job_details: '',
-    },
+    experience: defaultExperience,
+    experience_details: defaultExperienceDetails,
   });
-
   const [analysis, setAnalysis] = useState(null);
   const [motivationalMessage, setMotivationalMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [saved, setSaved] = useState(false);
-
   const [newInterest, setNewInterest] = useState('');
   const [newSkill, setNewSkill] = useState('');
 
-  // Predefined interests and skills for suggestions
-  const interestSuggestions = [
-    'AI & Machine Learning',
-    'Web Development',
-    'Mobile Development',
-    'Cloud & DevOps',
-    'Data Science',
-    'Cybersecurity',
-    'Core Engineering',
-    'Research',
-    'Robotics',
-    'Game Development',
-  ];
-
-  const skillSuggestions = [
-    'Python',
-    'JavaScript',
-    'React',
-    'Node.js',
-    'Java',
-    'C++',
-    'SQL',
-    'AWS',
-    'Docker',
-    'Git',
-    'Machine Learning',
-    'Data Analysis',
-  ];
-
-  // Load existing profile on mount
   useEffect(() => {
     loadExistingProfile();
   }, []);
 
+  const selectedExperienceCount = useMemo(
+    () => Object.values(profile.experience).filter(Boolean).length,
+    [profile.experience]
+  );
+
+  const completionScore = useMemo(() => {
+    let score = 0;
+    if (profile.career_goal) score += 25;
+    if (profile.interests.length > 0) score += 25;
+    if (profile.skills.length > 0) score += 25;
+    if (selectedExperienceCount > 0) score += 25;
+    return score;
+  }, [profile.career_goal, profile.interests.length, profile.skills.length, selectedExperienceCount]);
+
   const loadExistingProfile = async () => {
     try {
-      const response = await fetch('/api/career/profile', {
-        credentials: 'include',
-      });
+      const response = await fetch('/api/career/profile', { credentials: 'include' });
 
       if (response.ok) {
         const data = await response.json();
-        setProfile({
-          interests: data.interests || [],
-          skills: data.skills || [],
-          career_goal: data.career_goal || '',
-          experience: data.experience || {
-            hackathons: false,
-            open_source: false,
-            internships: false,
-            research_papers: false,
-            jobs: false,
-          },
-          experience_details: data.experience_details || {
-            hackathon_details: '',
-            open_source_details: '',
-            internship_details: '',
-            research_details: '',
-            job_details: '',
-          },
-        });
+        setProfile(normalizeProfile(data));
 
-        // Load analysis if exists
-        const analysisResponse = await fetch('/api/career/analysis', {
-          credentials: 'include',
-        });
+        const analysisResponse = await fetch('/api/career/analysis', { credentials: 'include' });
         if (analysisResponse.ok) {
           const analysisData = await analysisResponse.json();
           setAnalysis(analysisData.analysis);
-          setMotivationalMessage(analysisData.motivational_message);
+          setMotivationalMessage(analysisData.motivational_message || '');
           setCurrentStep('results');
         }
       }
@@ -128,612 +155,603 @@ const CareerCompass = () => {
     }
   };
 
-  const addInterest = () => {
-    if (newInterest.trim() && !profile.interests.includes(newInterest)) {
-      setProfile({
-        ...profile,
-        interests: [...profile.interests, newInterest],
-      });
-      setNewInterest('');
-    }
+  const addUniqueItem = (field, value) => {
+    const trimmed = value.trim();
+    if (!trimmed || profile[field].includes(trimmed)) return;
+    setProfile((current) => ({ ...current, [field]: [...current[field], trimmed] }));
   };
 
-  const removeInterest = (interest) => {
-    setProfile({
-      ...profile,
-      interests: profile.interests.filter((i) => i !== interest),
-    });
+  const removeItem = (field, value) => {
+    setProfile((current) => ({ ...current, [field]: current[field].filter((item) => item !== value) }));
+  };
+
+  const addInterest = () => {
+    addUniqueItem('interests', newInterest);
+    setNewInterest('');
   };
 
   const addSkill = () => {
-    if (newSkill.trim() && !profile.skills.includes(newSkill)) {
-      setProfile({
-        ...profile,
-        skills: [...profile.skills, newSkill],
-      });
-      setNewSkill('');
-    }
-  };
-
-  const removeSkill = (skill) => {
-    setProfile({
-      ...profile,
-      skills: profile.skills.filter((s) => s !== skill),
-    });
+    addUniqueItem('skills', newSkill);
+    setNewSkill('');
   };
 
   const toggleExperience = (key) => {
-    setProfile({
-      ...profile,
+    setProfile((current) => ({
+      ...current,
       experience: {
-        ...profile.experience,
-        [key]: !profile.experience[key],
+        ...current.experience,
+        [key]: !current.experience[key],
       },
-    });
+    }));
   };
 
   const updateExperienceDetail = (key, value) => {
-    setProfile({
-      ...profile,
+    setProfile((current) => ({
+      ...current,
       experience_details: {
-        ...profile.experience_details,
+        ...current.experience_details,
         [key]: value,
       },
-    });
+    }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setLoading(true);
     setError(null);
+    setSaved(false);
+    setCurrentStep('loading');
 
     try {
       const response = await fetch('/api/career/profile', {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profile),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to save profile');
       }
 
-      const data = await response.json();
       setSaved(true);
 
-      // Fetch the analysis
-      setTimeout(async () => {
-        try {
-          const analysisResponse = await fetch('/api/career/analysis', {
-            credentials: 'include',
-          });
-          if (analysisResponse.ok) {
-            const analysisData = await analysisResponse.json();
-            setAnalysis(analysisData.analysis);
-            setMotivationalMessage(analysisData.motivational_message);
-            setCurrentStep('results');
-          }
-        } catch (err) {
-          console.error('Error fetching analysis:', err);
-        }
-        setLoading(false);
-      }, 500);
+      const analysisResponse = await fetch('/api/career/analysis', { credentials: 'include' });
+      if (!analysisResponse.ok) throw new Error('Profile saved, but analysis could not be loaded.');
+
+      const analysisData = await analysisResponse.json();
+      setAnalysis(analysisData.analysis);
+      setMotivationalMessage(analysisData.motivational_message || '');
+      setCurrentStep('results');
     } catch (err) {
       setError(err.message);
+      setCurrentStep('form');
+    } finally {
       setLoading(false);
     }
   };
 
-  // Form Step
-  if (currentStep === 'form') {
-    return (
-      <div className="space-y-8 max-w-4xl mx-auto pb-12">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+  const renderSelectedChips = (items, field) => (
+    <div className="flex flex-wrap gap-2">
+      {items.map((item) => (
+        <span
+          key={item}
+          className="inline-flex items-center gap-2 rounded-full bg-[#102326] px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
         >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Sparkles className="w-8 h-8 text-[#102326]" />
-            <h1 className="text-3xl md:text-4xl font-bold text-[#111111]">
-              Career Compass
-            </h1>
-          </div>
-          <p className="text-[#666666] text-lg max-w-2xl mx-auto">
-            Tell us about your interests, skills, and goals. Our AI mentor will analyze your profile
-            and create a personalized career roadmap just for you.
-          </p>
-        </motion.div>
+          {item}
+          <button type="button" onClick={() => removeItem(field, item)} className="rounded-full text-white/80 hover:text-white" aria-label={`Remove ${item}`}>
+            <X size={13} aria-hidden="true" />
+          </button>
+        </span>
+      ))}
+    </div>
+  );
 
-        {/* Form Card */}
-        <motion.form
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          onSubmit={handleSubmit}
-          className="bg-white rounded-lg border border-[#D7D3CF] shadow-sm overflow-hidden"
-        >
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border-l-4 border-red-400 p-4 text-red-700">
-              <p className="font-semibold text-sm">Error: {error}</p>
-            </div>
-          )}
+  const renderSuggestionGrid = (suggestions, field, clearInput) => (
+    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+      {suggestions.map((suggestion) => {
+        const selected = profile[field].includes(suggestion);
+        return (
+          <button
+            key={suggestion}
+            type="button"
+            onClick={() => {
+              addUniqueItem(field, suggestion);
+              clearInput('');
+            }}
+            disabled={selected}
+            className={`rounded-[5px] border px-3 py-2 text-left text-xs font-semibold transition-all ${
+              selected
+                ? 'cursor-not-allowed border-[#D7D3CF] bg-[#ECEAE7] text-[#888888] opacity-70'
+                : 'border-[#D7D3CF] bg-white text-[#111111] hover:-translate-y-0.5 hover:border-[#102326] hover:shadow-sm'
+            }`}
+          >
+            {selected ? '✓ ' : '+ '}{suggestion}
+          </button>
+        );
+      })}
+    </div>
+  );
 
-          <div className="p-6 md:p-8 space-y-8">
-            {/* 1. Career Goal */}
-            <section>
-              <h2 className="text-xl font-bold text-[#111111] mb-4 flex items-center gap-2">
-                <Target size={20} className="text-[#102326]" />
-                What's Your Career Goal?
-              </h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {['internship', 'job', 'higher_studies', 'exploring'].map((goal) => (
-                  <button
-                    key={goal}
-                    type="button"
-                    onClick={() =>
-                      setProfile({ ...profile, career_goal: goal })
-                    }
-                    className={`px-4 py-3 rounded-lg border-2 font-semibold transition-all ${
-                      profile.career_goal === goal
-                        ? 'bg-[#102326] text-white border-[#102326]'
-                        : 'bg-white text-[#111111] border-[#D7D3CF] hover:border-[#102326]'
-                    }`}
-                  >
-                    {goal === 'internship' && '🎓 Internship'}
-                    {goal === 'job' && '💼 Job'}
-                    {goal === 'higher_studies' && '🎯 Higher Studies'}
-                    {goal === 'exploring' && '🔍 Exploring'}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* 2. Interests */}
-            <section>
-              <h2 className="text-xl font-bold text-[#111111] mb-4 flex items-center gap-2">
-                <Heart size={20} className="text-[#102326]" />
-                Your Interests
-              </h2>
-              <div className="space-y-3">
-                {/* Selected Interests */}
-                {profile.interests.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {profile.interests.map((interest) => (
-                      <motion.div
-                        key={interest}
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="bg-[#102326] text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2"
-                      >
-                        {interest}
-                        <button
-                          type="button"
-                          onClick={() => removeInterest(interest)}
-                          className="hover:opacity-80"
-                        >
-                          <X size={14} />
-                        </button>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Input & Suggestions */}
-                <div className="flex gap-2 mb-3">
-                  <input
-                    type="text"
-                    value={newInterest}
-                    onChange={(e) => setNewInterest(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addInterest())}
-                    placeholder="Type your interest..."
-                    className="flex-1 px-3 py-2 border border-[#D7D3CF] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#102326]"
-                  />
-                  <button
-                    type="button"
-                    onClick={addInterest}
-                    className="bg-[#102326] text-white px-3 py-2 rounded-lg hover:bg-[#0a1819] transition-colors"
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
-
-                {/* Suggestions */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {interestSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() =>
-                        setProfile({
-                          ...profile,
-                          interests: [...profile.interests, suggestion],
-                        }) && setNewInterest('')
-                      }
-                      disabled={profile.interests.includes(suggestion)}
-                      className={`px-3 py-2 rounded-lg text-sm transition-all ${
-                        profile.interests.includes(suggestion)
-                          ? 'bg-[#D7D3CF] text-[#666666] cursor-not-allowed opacity-50'
-                          : 'bg-[#ECEAE7] text-[#111111] hover:bg-[#D7D3CF]'
-                      }`}
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* 3. Skills */}
-            <section>
-              <h2 className="text-xl font-bold text-[#111111] mb-4 flex items-center gap-2">
-                <Code size={20} className="text-[#102326]" />
-                Your Skills
-              </h2>
-              <div className="space-y-3">
-                {/* Selected Skills */}
-                {profile.skills.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {profile.skills.map((skill) => (
-                      <motion.div
-                        key={skill}
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="bg-[#102326] text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2"
-                      >
-                        {skill}
-                        <button
-                          type="button"
-                          onClick={() => removeSkill(skill)}
-                          className="hover:opacity-80"
-                        >
-                          <X size={14} />
-                        </button>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Input & Suggestions */}
-                <div className="flex gap-2 mb-3">
-                  <input
-                    type="text"
-                    value={newSkill}
-                    onChange={(e) => setNewSkill(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                    placeholder="Type your skill..."
-                    className="flex-1 px-3 py-2 border border-[#D7D3CF] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#102326]"
-                  />
-                  <button
-                    type="button"
-                    onClick={addSkill}
-                    className="bg-[#102326] text-white px-3 py-2 rounded-lg hover:bg-[#0a1819] transition-colors"
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
-
-                {/* Suggestions */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {skillSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => {
-                        if (!profile.skills.includes(suggestion)) {
-                          setProfile({
-                            ...profile,
-                            skills: [...profile.skills, suggestion],
-                          });
-                          setNewSkill('');
-                        }
-                      }}
-                      disabled={profile.skills.includes(suggestion)}
-                      className={`px-3 py-2 rounded-lg text-sm transition-all ${
-                        profile.skills.includes(suggestion)
-                          ? 'bg-[#D7D3CF] text-[#666666] cursor-not-allowed opacity-50'
-                          : 'bg-[#ECEAE7] text-[#111111] hover:bg-[#D7D3CF]'
-                      }`}
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            {/* 4. Experience */}
-            <section>
-              <h2 className="text-xl font-bold text-[#111111] mb-4 flex items-center gap-2">
-                <Briefcase size={20} className="text-[#102326]" />
-                Your Experience
-              </h2>
-              <p className="text-[#666666] text-sm mb-4">
-                Select what you've already done. Don't worry if you haven't done everything yet—we'll
-                recommend what to explore!
-              </p>
-
-              <div className="space-y-4">
-                {[
-                  {
-                    key: 'hackathons',
-                    icon: <Zap size={18} />,
-                    label: 'Hackathons',
-                    detail: 'hackathon_details',
-                  },
-                  {
-                    key: 'open_source',
-                    icon: <GitBranch size={18} />,
-                    label: 'Open Source',
-                    detail: 'open_source_details',
-                  },
-                  {
-                    key: 'internships',
-                    icon: <Briefcase size={18} />,
-                    label: 'Internships',
-                    detail: 'internship_details',
-                  },
-                  {
-                    key: 'research_papers',
-                    icon: <FileText size={18} />,
-                    label: 'Research Papers',
-                    detail: 'research_details',
-                  },
-                  {
-                    key: 'jobs',
-                    icon: <Briefcase size={18} />,
-                    label: 'Jobs / Industry',
-                    detail: 'job_details',
-                  },
-                ].map(({ key, icon, label, detail }) => (
-                  <div
-                    key={key}
-                    className="border border-[#D7D3CF] rounded-lg p-4 transition-all hover:border-[#102326]"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <input
-                        type="checkbox"
-                        id={key}
-                        checked={profile.experience[key]}
-                        onChange={() => toggleExperience(key)}
-                        className="w-4 h-4 rounded cursor-pointer"
-                      />
-                      <label htmlFor={key} className="flex items-center gap-2 cursor-pointer font-medium">
-                        {icon}
-                        {label}
-                      </label>
-                      {profile.experience[key] && <CheckCircle2 size={18} className="ml-auto text-green-600" />}
-                    </div>
-                    {profile.experience[key] && (
-                      <textarea
-                        value={profile.experience_details[detail]}
-                        onChange={(e) => updateExperienceDetail(detail, e.target.value)}
-                        placeholder={`Tell us about your ${label.toLowerCase()} experience (optional)`}
-                        className="w-full px-3 py-2 border border-[#D7D3CF] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#102326]"
-                        rows="2"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          {/* Submit Button */}
-          <div className="bg-[#F7F5F2] border-t border-[#D7D3CF] p-6 flex gap-3">
-            <button
-              type="submit"
-              disabled={loading}
-              className={`flex-1 py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
-                loading
-                  ? 'bg-[#D7D3CF] text-[#666666] cursor-not-allowed'
-                  : 'bg-[#102326] text-white hover:bg-[#0a1819]'
-              }`}
-            >
-              {loading ? (
-                <>
-                  <Loader size={18} className="animate-spin" />
-                  Analyzing Your Profile...
-                </>
-              ) : (
-                <>
-                  <Save size={18} />
-                  Get My Career Compass
-                </>
-              )}
-            </button>
-          </div>
-        </motion.form>
-      </div>
-    );
-  }
-
-  // Loading Step
   if (currentStep === 'loading') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <Loader size={48} className="animate-spin text-[#102326]" />
-        <p className="text-[#666666] text-lg">Creating your personalized Career Compass...</p>
+      <div className="flex min-h-[68vh] items-center justify-center pb-10">
+        <div
+          className="relative overflow-hidden rounded-[8px] border border-[#102326] bg-[#102326] p-8 text-center text-white shadow-[0_24px_70px_rgba(16,35,38,0.18)]"
+        >
+          <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/15 bg-white/10">
+            <Loader size={30} className="animate-spin" aria-hidden="true" />
+          </div>
+          <h1 className="relative mt-5 text-2xl font-black tracking-tight text-white">Building your career map</h1>
+          <p className="relative mt-2 max-w-md text-sm leading-relaxed text-[#D6E0DE]">
+            Matching your interests, skills, and experience into practical next moves.
+          </p>
+        </div>
       </div>
     );
   }
 
-  // Results Step
   if (currentStep === 'results' && analysis) {
     return (
-      <div className="space-y-8 max-w-4xl mx-auto pb-12">
-        {/* Header with Motivational Message */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+      <div className="space-y-6 pb-10">
+        <section
+          className="relative isolate overflow-hidden rounded-[8px] border border-[#102326] bg-[#071719] p-5 text-white shadow-[0_20px_54px_rgba(16,35,38,0.14)] sm:p-7 lg:p-8"
         >
-          <h1 className="text-3xl md:text-4xl font-bold text-[#111111] mb-4 flex items-center justify-center gap-3">
-            <Sparkles className="w-8 h-8 text-[#102326]" />
-            Your Career Compass
-          </h1>
-          {motivationalMessage && (
-            <p className="text-lg text-[#102326] font-semibold italic max-w-2xl mx-auto bg-[#ECEAE7] rounded-lg p-4">
-              "{motivationalMessage}"
-            </p>
-          )}
-        </motion.div>
+          <div className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,#071719_0%,#102326_58%,#17373B_100%)]" />
+          <div className="absolute inset-x-0 bottom-0 -z-10 h-px bg-white/15" />
 
-        {/* Current Standing */}
+          <div className="grid gap-8 xl:grid-cols-[1fr_360px] xl:items-end">
+            <div>
+              <div className="mb-4 inline-flex rounded-full border border-white/15 bg-white/[0.08] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#D6E0DE]">
+                Career Compass
+              </div>
+              <h1 className="max-w-3xl text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl lg:text-5xl">Your next chapter has a clearer shape.</h1>
+              {motivationalMessage && (
+                <p className="mt-5 max-w-3xl border-l-2 border-[#C96A32] pl-4 text-sm font-semibold leading-7 text-[#F7F5F2]">
+                  {motivationalMessage}
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-[7px] border border-white/15 bg-white/[0.06] p-5">
+              <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
+                <div>
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#B8C4C2]">Profile summary</p>
+                  <p className="mt-2 text-xl font-black text-white">
+                    {profile.career_goal ? goalOptions.find((goal) => goal.id === profile.career_goal)?.label : 'Flexible'}
+                  </p>
+                </div>
+                <span className="rounded-full border border-[#F1A76F]/40 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-[#F1A76F]">
+                  {completionScore}% ready
+                </span>
+              </div>
+              <div className="divide-y divide-white/10">
+                <div className="flex items-center justify-between py-3">
+                  <p className="text-sm text-[#B8C4C2]">Skills added</p>
+                  <p className="text-sm font-black text-white">{profile.skills.length || 0}</p>
+                </div>
+                <div className="flex items-center justify-between py-3">
+                  <p className="text-sm text-[#B8C4C2]">Interests added</p>
+                  <p className="text-sm font-black text-white">{profile.interests.length || 0}</p>
+                </div>
+                <div className="flex items-center justify-between pt-3">
+                  <p className="text-sm text-[#B8C4C2]">Experience signals</p>
+                  <p className="text-sm font-black text-white">{selectedExperienceCount}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {analysis.current_standing && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-lg border border-[#D7D3CF] shadow-sm p-6 md:p-8"
-          >
-            <h2 className="text-2xl font-bold text-[#111111] mb-4 flex items-center gap-2">
-              <Heart size={24} className="text-[#102326]" />
-              Where You Stand
-            </h2>
-            <p className="text-[#444444] leading-relaxed text-lg">{analysis.current_standing}</p>
-          </motion.div>
+          <section className="rounded-[7px] border border-[#D7D3CF] bg-white p-5 shadow-sm sm:p-6">
+            <div className="mb-3">
+              <div>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#C96A32]">Current standing</p>
+                <h2 className="text-xl font-black tracking-tight text-[#111111]">Where you stand right now</h2>
+              </div>
+            </div>
+            <p className="text-base leading-8 text-[#444444]">{analysis.current_standing}</p>
+          </section>
         )}
 
-        {/* Opportunities */}
         {analysis.opportunities && analysis.opportunities.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
-          >
-            <h2 className="text-2xl font-bold text-[#111111] flex items-center gap-2">
-              <Target size={24} className="text-[#102326]" />
-              Recommended Opportunities for You
-            </h2>
-            <div className="grid gap-4">
-              {analysis.opportunities.map((opp, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="bg-white rounded-lg border border-[#D7D3CF] shadow-sm p-6 hover:shadow-md transition-shadow"
+          <section className="space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#C96A32]">Recommended routes</p>
+                <h2 className="text-2xl font-black tracking-tight text-[#111111]">Opportunities worth exploring</h2>
+              </div>
+              <span className="inline-flex w-fit rounded-full border border-[#D7D3CF] bg-white px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[#666666]">
+                Prioritized by fit
+              </span>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              {analysis.opportunities.map((opportunity, index) => (
+                <article
+                  key={`${opportunity.title}-${index}`}
+                  className="group overflow-hidden rounded-[7px] border border-[#D7D3CF] bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#102326] hover:shadow-[0_18px_46px_rgba(16,35,38,0.10)]"
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-[#ECEAE7] flex items-center justify-center shrink-0 text-2xl">
-                      {opp.type === 'Internship' && '🎓'}
-                      {opp.type === 'Hackathon' && '🚀'}
-                      {opp.type === 'Research' && '🔬'}
-                      {opp.type === 'Open Source' && '🌍'}
-                      {opp.type === 'Job' && '💼'}
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-[#111111] mb-2">{opp.title}</h3>
-                      <p className="text-[#666666] mb-3">{opp.why_for_them}</p>
-                      <div className="mb-3">
-                        <p className="text-sm font-semibold text-[#102326] mb-2">When to explore:</p>
-                        <p className="text-sm text-[#444444]">{opp.timeline}</p>
+                  <div className="border-b border-[#D7D3CF] bg-[#FAF9F7] p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex gap-3">
+                        <div>
+                          <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#888888]">Path 0{index + 1}</p>
+                          <h3 className="mt-1 text-lg font-black text-[#111111]">{opportunity.title}</h3>
+                        </div>
                       </div>
+                      <ArrowUpRight size={16} className="text-[#C96A32] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
+                    </div>
+                    <p className="mt-4 text-sm leading-relaxed text-[#555555]">{opportunity.why_for_them}</p>
+                  </div>
+
+                  <div className="space-y-4 p-5">
+                    {opportunity.timeline && (
+                      <div className="rounded-[5px] border border-[#D7D3CF] bg-white p-3">
+                        <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#666666]">When to explore</p>
+                        <p className="mt-1 text-sm text-[#444444]">{opportunity.timeline}</p>
+                      </div>
+                    )}
+
+                    {opportunity.next_steps && opportunity.next_steps.length > 0 && (
                       <div>
-                        <p className="text-sm font-semibold text-[#102326] mb-2">Your next steps:</p>
-                        <ul className="space-y-1">
-                          {opp.next_steps && opp.next_steps.map((step, stepIdx) => (
-                            <li key={stepIdx} className="text-sm text-[#444444] flex items-start gap-2">
-                              <ChevronRight size={14} className="mt-0.5 shrink-0" />
+                        <p className="mb-2 text-sm font-black text-[#102326]">Next steps</p>
+                        <ul className="space-y-2">
+                          {opportunity.next_steps.map((step, stepIndex) => (
+                            <li key={stepIndex} className="flex items-start gap-2 text-sm leading-relaxed text-[#444444]">
+                              <ChevronRight size={15} className="mt-0.5 shrink-0 text-[#C96A32]" aria-hidden="true" />
                               {step}
                             </li>
                           ))}
                         </ul>
                       </div>
-                    </div>
+                    )}
                   </div>
-                </motion.div>
+                </article>
               ))}
             </div>
-          </motion.div>
+          </section>
         )}
 
-        {/* Unexplored Areas */}
-        {analysis.unexplored_areas && analysis.unexplored_areas.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
-          >
-            <h2 className="text-2xl font-bold text-[#111111] flex items-center gap-2">
-              <BookOpen size={24} className="text-[#102326]" />
-              Let's Explore New Areas
-            </h2>
-            <p className="text-[#666666]">
-              These areas might not be on your radar yet, but they could really complement your
-              journey:
-            </p>
-            <div className="grid gap-4 md:grid-cols-2">
-              {analysis.unexplored_areas.map((area, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="bg-white rounded-lg border border-[#D7D3CF] shadow-sm p-6"
-                >
-                  <h3 className="text-lg font-bold text-[#102326] mb-2 flex items-center gap-2">
-                    <Sparkles size={18} />
-                    {area.area}
-                  </h3>
-                  <p className="text-[#666666] mb-3">{area.why_matters}</p>
-                  <div className="bg-[#ECEAE7] rounded-lg p-3 mb-3">
-                    <p className="text-sm font-semibold text-[#111111] mb-2">How to get started:</p>
-                    <p className="text-sm text-[#444444]">{area.how_to_start}</p>
+        <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+          {analysis.unexplored_areas && analysis.unexplored_areas.length > 0 && (
+            <section className="rounded-[7px] border border-[#D7D3CF] bg-white p-5 shadow-sm sm:p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-[#ECEAE7] text-[#102326]">
+                  <BookOpen size={18} aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#C96A32]">Adjacent bets</p>
+                  <h2 className="text-xl font-black tracking-tight text-[#111111]">Areas to explore next</h2>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {analysis.unexplored_areas.map((area, index) => (
+                  <div key={`${area.area}-${index}`} className="rounded-[6px] border border-[#D7D3CF] bg-[#FAF9F7] p-4">
+                    <h3 className="text-base font-black text-[#102326]">{area.area}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-[#555555]">{area.why_matters}</p>
+                    {area.how_to_start && (
+                      <p className="mt-3 rounded-[5px] border border-[#D7D3CF] bg-white p-3 text-sm text-[#444444]">
+                        <span className="font-bold text-[#111111]">Start here: </span>{area.how_to_start}
+                      </p>
+                    )}
+                    {area.benefit_to_them && <p className="mt-3 text-sm font-bold text-[#102326]">For you: {area.benefit_to_them}</p>}
                   </div>
-                  <p className="text-sm text-[#102326] font-semibold">
-                    For you: {area.benefit_to_them}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+                ))}
+              </div>
+            </section>
+          )}
 
-        {/* Suggested Path */}
-        {analysis.suggested_path && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-[#ECEAE7] rounded-lg border border-[#D7D3CF] p-6 md:p-8"
-          >
-            <h2 className="text-2xl font-bold text-[#111111] mb-4 flex items-center gap-2">
-              <Zap size={24} className="text-[#102326]" />
-              Your 6-12 Month Roadmap
-            </h2>
-            <p className="text-[#444444] leading-relaxed whitespace-pre-wrap">{analysis.suggested_path}</p>
-          </motion.div>
-        )}
+          {analysis.suggested_path && (
+            <section className="relative overflow-hidden rounded-[7px] border border-[#102326] bg-[#102326] p-5 text-white shadow-sm sm:p-6">
+              <div className="relative mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-[6px] border border-white/15 bg-white/10">
+                  <Map size={18} aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#B8C4C2]">Roadmap</p>
+                  <h2 className="text-xl font-black tracking-tight text-white">Your next 6 to 12 months</h2>
+                </div>
+              </div>
+              <p className="relative whitespace-pre-wrap text-sm leading-7 text-[#D6E0DE]">{analysis.suggested_path}</p>
+            </section>
+          )}
+        </div>
 
-        {/* Action Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex gap-3 pt-4"
-        >
+        <div className="flex flex-col gap-3 pt-2 sm:flex-row">
           <button
+            type="button"
             onClick={() => setCurrentStep('form')}
-            className="px-6 py-3 bg-white border border-[#D7D3CF] text-[#111111] font-bold rounded-lg hover:bg-[#ECEAE7] transition-colors"
+            className="inline-flex items-center justify-center gap-2 rounded-[5px] border border-[#D7D3CF] bg-white px-5 py-3 font-mono text-xs font-black uppercase tracking-wider text-[#111111] transition-all hover:border-[#102326] hover:bg-[#ECEAE7]"
           >
-            Update Profile
+            <Layers3 size={15} aria-hidden="true" /> Update profile
           </button>
           <button
+            type="button"
             onClick={() => window.print()}
-            className="px-6 py-3 bg-[#102326] text-white font-bold rounded-lg hover:bg-[#0a1819] transition-colors"
+            className="inline-flex items-center justify-center gap-2 rounded-[5px] bg-[#102326] px-5 py-3 font-mono text-xs font-black uppercase tracking-wider text-white transition-all hover:bg-[#0b191c]"
           >
-            Save as PDF
+            <Printer size={15} aria-hidden="true" /> Save as PDF
           </button>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
-  return null;
+  return (
+    <div className="space-y-6 pb-10">
+      <section
+        className="relative isolate overflow-hidden rounded-[8px] border border-[#102326] bg-[#071719] p-5 text-white shadow-[0_24px_70px_rgba(16,35,38,0.16)] sm:p-7 lg:p-8"
+      >
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,#071719_0%,#102326_58%,#17373B_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 -z-10 h-px bg-white/15" />
+
+        <div className="grid gap-8 xl:grid-cols-[1fr_380px] xl:items-center">
+          <div>
+            <div className="mb-5 inline-flex rounded-full border border-white/15 bg-white/[0.08] px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#D6E0DE]">
+              Career compass
+            </div>
+            <h1 className="max-w-3xl text-3xl font-black tracking-[-0.04em] text-white sm:text-4xl lg:text-5xl">
+              Turn scattered interests into a practical career map.
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#D6E0DE] sm:text-base">
+              Add your goals, interests, skills, and experience. Career Compass converts them into focused opportunities and a next-step roadmap you can act on.
+            </p>
+            <div className="mt-7 grid max-w-2xl grid-cols-3 gap-2">
+              {profileStats.map((stat) => (
+                <div key={stat.label} className="rounded-[5px] border border-white/10 bg-white/[0.07] p-3 backdrop-blur">
+                  <p className="font-mono text-[9px] font-bold uppercase tracking-wider text-[#B8C4C2]">{stat.label}</p>
+                  <p className="mt-1 text-sm font-black text-white sm:text-base">{stat.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[8px] border border-white/10 bg-white/[0.07] p-5 backdrop-blur">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#B8C4C2]">Profile strength</p>
+                <p className="mt-1 text-3xl font-black text-white">{completionScore}%</p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-[6px] bg-white/10 text-white">
+                <Target size={22} aria-hidden="true" />
+              </div>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full bg-[#F1A76F] transition-all" style={{ width: `${completionScore}%` }} />
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-[5px] bg-white/[0.08] p-2">
+                <p className="text-lg font-black text-white">{profile.interests.length}</p>
+                <p className="font-mono text-[9px] uppercase tracking-wider text-[#B8C4C2]">Interests</p>
+              </div>
+              <div className="rounded-[5px] bg-white/[0.08] p-2">
+                <p className="text-lg font-black text-white">{profile.skills.length}</p>
+                <p className="font-mono text-[9px] uppercase tracking-wider text-[#B8C4C2]">Skills</p>
+              </div>
+              <div className="rounded-[5px] bg-white/[0.08] p-2">
+                <p className="text-lg font-black text-white">{selectedExperienceCount}</p>
+                <p className="font-mono text-[9px] uppercase tracking-wider text-[#B8C4C2]">Signals</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <form
+        onSubmit={handleSubmit}
+        className="overflow-hidden rounded-[8px] border border-[#D7D3CF] bg-white shadow-sm"
+      >
+        {error && (
+          <div className="flex items-start gap-3 border-b border-red-200 bg-red-50 p-4 text-red-700">
+            <AlertCircle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <p className="text-sm font-semibold">{error}</p>
+          </div>
+        )}
+        {saved && !error && (
+          <div className="flex items-start gap-3 border-b border-green-200 bg-green-50 p-4 text-green-700">
+            <CheckCircle2 size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <p className="text-sm font-semibold">Profile saved. Loading your analysis.</p>
+          </div>
+        )}
+
+        <div className="grid gap-0 xl:grid-cols-[1fr_320px]">
+          <div className="space-y-7 p-5 sm:p-6 lg:p-7">
+            <section>
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-[#102326] text-white">
+                  <Target size={18} aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#C96A32]">Step 01</p>
+                  <h2 className="text-xl font-black tracking-tight text-[#111111]">Choose a direction</h2>
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                {goalOptions.map(({ id, label, description, icon }) => {
+                  const selected = profile.career_goal === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setProfile((current) => ({ ...current, career_goal: id }))}
+                      className={`group rounded-[7px] border p-4 text-left transition-all ${
+                        selected
+                          ? 'border-[#102326] bg-[#102326] text-white shadow-[0_16px_40px_rgba(16,35,38,0.14)]'
+                          : 'border-[#D7D3CF] bg-[#FAF9F7] text-[#111111] hover:-translate-y-0.5 hover:border-[#102326] hover:bg-white hover:shadow-sm'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[5px] ${selected ? 'bg-white/[0.12] text-white' : 'bg-white text-[#102326]'}`}>
+                          {React.createElement(icon, { size: 18, 'aria-hidden': true })}
+                        </div>
+                        <div>
+                          <h3 className={`font-black ${selected ? 'text-white' : 'text-[#111111]'}`}>{label}</h3>
+                          <p className={`mt-1 text-xs leading-relaxed ${selected ? 'text-[#D6E0DE]' : 'text-[#666666]'}`}>{description}</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="grid gap-5 lg:grid-cols-2">
+              <div className="rounded-[7px] border border-[#D7D3CF] bg-[#FAF9F7] p-4">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-[5px] bg-white text-[#102326]">
+                    <Heart size={17} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#C96A32]">Step 02</p>
+                    <h2 className="text-lg font-black text-[#111111]">Interests</h2>
+                  </div>
+                </div>
+                {profile.interests.length > 0 && <div className="mb-3">{renderSelectedChips(profile.interests, 'interests')}</div>}
+                <div className="mb-3 flex gap-2">
+                  <input
+                    type="text"
+                    value={newInterest}
+                    onChange={(event) => setNewInterest(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        addInterest();
+                      }
+                    }}
+                    placeholder="Type an interest..."
+                    className="min-w-0 flex-1"
+                  />
+                  <button type="button" onClick={addInterest} className="rounded-[5px] bg-[#102326] px-3 text-white transition-colors hover:bg-[#0b191c]" aria-label="Add interest">
+                    <Plus size={18} aria-hidden="true" />
+                  </button>
+                </div>
+                {renderSuggestionGrid(interestSuggestions, 'interests', setNewInterest)}
+              </div>
+
+              <div className="rounded-[7px] border border-[#D7D3CF] bg-[#FAF9F7] p-4">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-[5px] bg-white text-[#102326]">
+                    <Code size={17} aria-hidden="true" />
+                  </div>
+                  <div>
+                    <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#C96A32]">Step 03</p>
+                    <h2 className="text-lg font-black text-[#111111]">Skills</h2>
+                  </div>
+                </div>
+                {profile.skills.length > 0 && <div className="mb-3">{renderSelectedChips(profile.skills, 'skills')}</div>}
+                <div className="mb-3 flex gap-2">
+                  <input
+                    type="text"
+                    value={newSkill}
+                    onChange={(event) => setNewSkill(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        addSkill();
+                      }
+                    }}
+                    placeholder="Type a skill..."
+                    className="min-w-0 flex-1"
+                  />
+                  <button type="button" onClick={addSkill} className="rounded-[5px] bg-[#102326] px-3 text-white transition-colors hover:bg-[#0b191c]" aria-label="Add skill">
+                    <Plus size={18} aria-hidden="true" />
+                  </button>
+                </div>
+                {renderSuggestionGrid(skillSuggestions, 'skills', setNewSkill)}
+              </div>
+            </section>
+
+            <section>
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-[6px] bg-[#102326] text-white">
+                  <Briefcase size={18} aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#C96A32]">Step 04</p>
+                  <h2 className="text-xl font-black tracking-tight text-[#111111]">Experience signals</h2>
+                  <p className="mt-1 text-sm text-[#666666]">Select what you have done. Empty sections are fine; the roadmap will identify what to explore next.</p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-2">
+                {experienceOptions.map(({ key, icon, label, detail, prompt }) => {
+                  const selected = profile.experience[key];
+                  return (
+                    <div key={key} className={`rounded-[7px] border p-4 transition-all ${selected ? 'border-[#102326] bg-[#FAF9F7]' : 'border-[#D7D3CF] bg-white hover:border-[#102326]'}`}>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => toggleExperience(key)}
+                          className={`flex h-10 w-10 items-center justify-center rounded-[5px] border transition-colors ${selected ? 'border-[#102326] bg-[#102326] text-white' : 'border-[#D7D3CF] bg-[#FAF9F7] text-[#102326]'}`}
+                          aria-pressed={selected}
+                        >
+                          {selected ? <CheckCircle2 size={18} aria-hidden="true" /> : React.createElement(icon, { size: 18, 'aria-hidden': true })}
+                        </button>
+                        <button type="button" onClick={() => toggleExperience(key)} className="min-w-0 flex-1 text-left">
+                          <p className="font-bold text-[#111111]">{label}</p>
+                          <p className="text-xs text-[#666666]">{selected ? 'Selected. Add detail if useful.' : 'Tap to include this signal.'}</p>
+                        </button>
+                      </div>
+                      {selected && (
+                        <textarea
+                          value={profile.experience_details[detail]}
+                          onChange={(event) => updateExperienceDetail(detail, event.target.value)}
+                          placeholder={prompt}
+                          className="mt-3 min-h-20 w-full resize-y bg-white text-sm"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+
+          <aside className="border-t border-[#D7D3CF] bg-[#FAF9F7] p-5 xl:border-l xl:border-t-0">
+            <div className="sticky top-5 space-y-4">
+              <div className="rounded-[7px] border border-[#D7D3CF] bg-white p-4">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#C96A32]">Readiness</p>
+                <div className="mt-3 flex items-end justify-between">
+                  <p className="text-3xl font-black text-[#111111]">{completionScore}%</p>
+                  <Trophy size={24} className="text-[#C96A32]" aria-hidden="true" />
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#ECEAE7]">
+                  <div className="h-full rounded-full bg-[#102326] transition-all" style={{ width: `${completionScore}%` }} />
+                </div>
+                <p className="mt-3 text-xs leading-relaxed text-[#666666]">A stronger profile gives the analysis more signal, but you can submit with partial details.</p>
+              </div>
+
+              <div className="rounded-[7px] border border-[#D7D3CF] bg-white p-4">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#666666]">What you’ll get</p>
+                <ul className="mt-3 space-y-3 text-sm text-[#444444]">
+                  <li className="flex gap-2"><ChevronRight size={15} className="mt-0.5 shrink-0 text-[#C96A32]" aria-hidden="true" /> A clear read on your current standing.</li>
+                  <li className="flex gap-2"><ChevronRight size={15} className="mt-0.5 shrink-0 text-[#C96A32]" aria-hidden="true" /> Career opportunities matched to your profile.</li>
+                  <li className="flex gap-2"><ChevronRight size={15} className="mt-0.5 shrink-0 text-[#C96A32]" aria-hidden="true" /> A practical 6–12 month direction.</li>
+                </ul>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={`flex w-full items-center justify-center gap-2 rounded-[5px] px-5 py-3 font-mono text-xs font-black uppercase tracking-wider transition-all ${
+                  loading
+                    ? 'cursor-not-allowed bg-[#D7D3CF] text-[#666666]'
+                    : 'bg-[#102326] text-white shadow-[0_16px_40px_rgba(16,35,38,0.16)] hover:-translate-y-0.5 hover:bg-[#0b191c]'
+                }`}
+              >
+                {loading ? <Loader size={16} className="animate-spin" aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}
+                {loading ? 'Analyzing profile' : 'Get my career compass'}
+              </button>
+            </div>
+          </aside>
+        </div>
+      </form>
+    </div>
+  );
 };
 
 export default CareerCompass;
