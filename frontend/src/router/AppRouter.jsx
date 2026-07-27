@@ -28,6 +28,7 @@ import SyllabusExplorer from '../pages/SyllabusExplorer';
 import SmartFocusMode from '../pages/SmartFocusMode';
 import CareerCompass from '../pages/CareerCompass';
 import AICodingPractice from '../features/ai-coding-practice/AICodingPractice';
+import LanguagePractice from '../features/ai-coding-practice/LanguagePractice';
 
 const AppRouter = () => {
   return (
@@ -66,6 +67,10 @@ const AppRouter = () => {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="career" element={<CareerCompass />} />
           <Route path="coding-practice" element={<AICodingPractice />} />
+        </Route>
+
+        <Route path="/coding-practice/:language" element={<DashboardLayout />}>
+          <Route index element={<LanguagePractice />} />
         </Route>
 
         {/* Admin Route */}

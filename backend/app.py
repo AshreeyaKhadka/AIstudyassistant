@@ -146,6 +146,7 @@ def create_app():
     from routes.exam_prep import exam_prep_bp
     from routes.focus import focus_bp
     from routes.career import career_bp
+    from routes.execute import execute_bp
     
     oauth.init_app(app)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -161,6 +162,7 @@ def create_app():
     app.register_blueprint(exam_prep_bp, url_prefix='/exam-prep')
     app.register_blueprint(focus_bp, url_prefix='/focus')
     app.register_blueprint(career_bp, url_prefix='/career')
+    app.register_blueprint(execute_bp)
 
 
     # Ensure DB tables are created (useful for dev)
