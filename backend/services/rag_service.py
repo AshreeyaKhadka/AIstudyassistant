@@ -94,7 +94,7 @@ def _embed_texts(texts: list[str]) -> list[list[float]]:
     try:
         response = requests.post(
             url,
-            params={"key": api_key},
+            headers={"x-goog-api-key": api_key},
             json=payload,
             timeout=60,
         )

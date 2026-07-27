@@ -15,7 +15,9 @@ import {
   User,
   HelpCircle,
   FileText,
-  X
+  X,
+  Compass,
+  Code2
 } from 'lucide-react';
 
 const Sidebar = ({ user, isOpen, onClose }) => {
@@ -113,7 +115,18 @@ const Sidebar = ({ user, isOpen, onClose }) => {
               <NavItem to="/dashboard/syllabus" icon={<Book size={16} />} label="Official Syllabus" onClick={handleNavClick} />
               <NavItem to="/dashboard/exam-prep" icon={<FileText size={16} />} label="Exam Preparation" onClick={handleNavClick} />
               <NavItem to="/dashboard/mcq" icon={<HelpCircle size={16} />} label="MCQ Practice" onClick={handleNavClick} />
+              <NavItem to="/dashboard/coding-practice" icon={<Code2 size={16} />} label="AI Coding Practice" onClick={handleNavClick} />
               <NavItem to="/dashboard/chat" icon={<BookOpen size={16} />} label="AI Chat" onClick={handleNavClick} />
+            </div>
+          </div>
+
+          {/* Section: Career & Growth */}
+          <div>
+            <div className="px-3 mb-1.5 text-[10px] font-mono tracking-wider uppercase text-[#666666] font-semibold">
+              Career & Growth
+            </div>
+            <div className="space-y-0.5">
+              <NavItem to="/dashboard/career" icon={<Compass size={16} />} label="Career Compass" onClick={handleNavClick} />
             </div>
           </div>
         </nav>

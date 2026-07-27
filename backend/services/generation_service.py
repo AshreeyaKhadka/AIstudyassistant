@@ -45,7 +45,7 @@ def _call_gemini(prompt: str, temperature: float = 0.4, max_tokens: int = 32768)
     try:
         response = requests.post(
             f"{base_url}/models/{model}:generateContent",
-            params={"key": api_key},
+            headers={"x-goog-api-key": api_key},
             json=payload,
             timeout=120,
         )
