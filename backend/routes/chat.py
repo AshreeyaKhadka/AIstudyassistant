@@ -172,7 +172,7 @@ def send_message(user):
     try:
         response = requests.post(
             f"{Config.GEMINI_API_BASE_URL.rstrip('/')}/models/{Config.GEMINI_MODEL}:generateContent",
-            params={'key': Config.GEMINI_API_KEY},
+            headers={'x-goog-api-key': Config.GEMINI_API_KEY},
             json=payload,
             timeout=60,
         )
