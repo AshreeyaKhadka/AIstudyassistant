@@ -28,6 +28,8 @@ class GameRoom(db.Model):
     mode = db.Column(db.String(50), default='fff', nullable=False)
     status = db.Column(db.String(30), default='waiting', nullable=False)
     current_round = db.Column(db.Integer, default=0, nullable=False)
+    invite_code = db.Column(db.String(10), unique=True, nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime, nullable=True)
 
@@ -40,6 +42,10 @@ class GameRoomPlayer(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     display_name = db.Column(db.String(255), nullable=False)
     sid = db.Column(db.String(255), nullable=True)
+    avatar_id = db.Column(db.String(50), nullable=True)
+    ready = db.Column(db.Boolean, default=False, nullable=False)
+    connected = db.Column(db.Boolean, default=False, nullable=False)
+    last_seen_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     score = db.Column(db.Integer, default=0, nullable=False)
     joined_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -88,3 +94,21 @@ class ArcadePointEvent(db.Model):
     source_type = db.Column(db.String(50), nullable=False)
     source_id = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class ArcadeTopicMastery(db.Model):
+    __tablename__ = 'arcade_topic_mastery'
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'subject_id', 'subject', 'topic', name='uq_arcade_topic_mastery_scope'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=True)
+    subject = db.Column(db.String(255), nullable=False)
+    topic = db.Column(db.String(255), nullable=False)
+    attempts = db.Column(db.Integer, default=0, nullable=False)
+    correct = db.Column(db.Integer, default=0, nullable=False)
+    streak = db.Column(db.Integer, default=0, nullable=False)
+    mastery_score = db.Column(db.Integer, default=40, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

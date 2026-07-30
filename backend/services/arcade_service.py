@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
 from threading import Lock
 import random
+import secrets
 
 from config import db
 from models.arcade import (
     ArcadePointEvent,
+    ArcadeTopicMastery,
     GameRoom,
     GameRoomPlayer,
     GameRound,
@@ -341,6 +343,114 @@ DEFAULT_ARCADE_QUESTION_BANK = {
             'explanation': 'Retrospectives turn project outcomes into actionable organizational learning.',
         },
     ],
+    'Web Development': [
+        {
+            'question': 'Which HTML element is used for the main heading of a page?',
+            'options': {'A': '<h1>', 'B': '<head>', 'C': '<title>', 'D': '<header-only>'},
+            'correct': 'A',
+            'difficulty': 'easy',
+            'explanation': 'The h1 element represents the highest-level heading in page content.',
+        },
+        {
+            'question': 'Which CSS layout system is designed for rows and columns together?',
+            'options': {'A': 'Floats', 'B': 'CSS Grid', 'C': 'Inline text', 'D': 'Z-index'},
+            'correct': 'B',
+            'difficulty': 'easy',
+            'explanation': 'CSS Grid is a two-dimensional layout system for rows and columns.',
+        },
+        {
+            'question': 'Which JavaScript method selects the first element matching a CSS selector?',
+            'options': {'A': 'getFirst()', 'B': 'querySelector()', 'C': 'selectNode()', 'D': 'findElement()'},
+            'correct': 'B',
+            'difficulty': 'easy',
+            'explanation': 'document.querySelector returns the first element matching the selector.',
+        },
+        {
+            'question': 'Which HTTP method is normally used to retrieve a resource?',
+            'options': {'A': 'GET', 'B': 'DELETE', 'C': 'PATCH', 'D': 'CONNECT'},
+            'correct': 'A',
+            'difficulty': 'easy',
+            'explanation': 'GET requests retrieve a representation without changing the resource.',
+        },
+        {
+            'question': 'What does HTTP status 404 mean?',
+            'options': {'A': 'Created', 'B': 'Unauthorized', 'C': 'Not Found', 'D': 'Server restarted'},
+            'correct': 'C',
+            'difficulty': 'medium',
+            'explanation': '404 indicates that the requested resource could not be found.',
+        },
+        {
+            'question': 'Why is event delegation useful in a dynamic list?',
+            'options': {
+                'A': 'It removes all events',
+                'B': 'One ancestor can handle events for current and future children',
+                'C': 'It disables bubbling',
+                'D': 'It reloads the page',
+            },
+            'correct': 'B',
+            'difficulty': 'medium',
+            'explanation': 'Delegation uses event bubbling so one ancestor listener can handle many descendants.',
+        },
+    ],
+    'Cybersecurity': [
+        {
+            'question': 'Which practice makes a password account safer?',
+            'options': {'A': 'Reusing one password', 'B': 'Multi-factor authentication', 'C': 'Sharing passwords', 'D': 'Disabling updates'},
+            'correct': 'B',
+            'difficulty': 'easy',
+            'explanation': 'MFA adds another independent proof of identity beyond the password.',
+        },
+        {
+            'question': 'Which protocol protects ordinary web traffic in transit?',
+            'options': {'A': 'TLS', 'B': 'FTP', 'C': 'ARP', 'D': 'ICMP'},
+            'correct': 'A',
+            'difficulty': 'easy',
+            'explanation': 'TLS provides confidentiality and integrity for HTTPS traffic.',
+        },
+        {
+            'question': 'What is phishing?',
+            'options': {
+                'A': 'A backup method',
+                'B': 'A deceptive attempt to steal information',
+                'C': 'A type of compression',
+                'D': 'A network cable test',
+            },
+            'correct': 'B',
+            'difficulty': 'easy',
+            'explanation': 'Phishing impersonates a trusted party to trick victims into revealing information.',
+        },
+        {
+            'question': 'What does the principle of least privilege mean?',
+            'options': {
+                'A': 'Give every user admin access',
+                'B': 'Grant only permissions needed for the task',
+                'C': 'Never use passwords',
+                'D': 'Keep every port open',
+            },
+            'correct': 'B',
+            'difficulty': 'easy',
+            'explanation': 'Least privilege limits access to the minimum required permissions.',
+        },
+        {
+            'question': 'Which technique helps prevent SQL injection?',
+            'options': {'A': 'Parameterized queries', 'B': 'Longer URLs', 'C': 'More browser tabs', 'D': 'Disabling logs'},
+            'correct': 'A',
+            'difficulty': 'medium',
+            'explanation': 'Parameterized queries separate untrusted data from SQL instructions.',
+        },
+        {
+            'question': 'Why should software security updates be installed?',
+            'options': {
+                'A': 'They only change colors',
+                'B': 'They often patch known vulnerabilities',
+                'C': 'They remove encryption',
+                'D': 'They make passwords public',
+            },
+            'correct': 'B',
+            'difficulty': 'medium',
+            'explanation': 'Security updates commonly fix vulnerabilities attackers could exploit.',
+        },
+    ],
     'Data Structures': [
         {
             'question': 'Which data structure follows FIFO order?',
@@ -446,6 +556,14 @@ ROUND_DIFFICULTY = {
     10: 'hard',
 }
 
+RAID_ROUNDS = 12
+RAID_RESPONSE_LIMIT_MS = 18_000
+RAID_TYPE_ROTATION = ['build_answer', 'debug_strike', 'rapid_solve']
+PARTY_ROUNDS = 6
+PARTY_ROOM_TTL_MINUTES = 30
+PARTY_AVATARS = {'kai', 'lyra', 'noctis', 'mira'}
+PARTY_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
 _round_locks = {}
 _round_locks_guard = Lock()
 
@@ -453,6 +571,14 @@ _round_locks_guard = Lock()
 def clean_difficulty(value):
     difficulty = str(value or 'medium').strip().lower()
     return difficulty if difficulty in VALID_DIFFICULTIES else 'medium'
+
+
+def clean_nonnegative_int(value, maximum=None):
+    try:
+        cleaned = max(0, int(value or 0))
+    except (TypeError, ValueError):
+        cleaned = 0
+    return min(cleaned, maximum) if maximum is not None else cleaned
 
 
 def serialize_question(question, include_answer=False):
@@ -599,6 +725,291 @@ def get_questions_for_subject(user, subject_id=None, subject=None, count=10, dif
     return questions[:count]
 
 
+def _question_topic(question):
+    text = str(question.text or '').strip()
+    if not text:
+        return question.subject or 'Core concepts'
+    words = [
+        word.strip(',.?:;()[]{}"\'').lower()
+        for word in text.split()
+        if len(word.strip(',.?:;()[]{}"\'').lower()) > 4
+    ]
+    stop_words = {'which', 'what', 'when', 'where', 'about', 'could', 'would', 'should', 'primary'}
+    useful = [word for word in words if word not in stop_words]
+    if useful:
+        return ' '.join(useful[:3]).title()
+    return question.subject or 'Core concepts'
+
+
+def _mastery_for(user_id, subject_id, subject):
+    query = ArcadeTopicMastery.query.filter_by(user_id=user_id, subject=subject)
+    if subject_id:
+        query = query.filter(ArcadeTopicMastery.subject_id == subject_id)
+    return {row.topic: row for row in query.all()}
+
+
+def _serialize_mastery(row):
+    return {
+        'topic': row.topic,
+        'attempts': row.attempts,
+        'correct': row.correct,
+        'streak': row.streak,
+        'mastery_score': row.mastery_score,
+    }
+
+
+def _serialize_raid_question(question, index, mastery_score):
+    challenge_type = RAID_TYPE_ROTATION[index % len(RAID_TYPE_ROTATION)]
+    labels = {
+        'build_answer': 'Build the Answer',
+        'debug_strike': 'Find the Weak Point',
+        'rapid_solve': 'Rapid Solve',
+    }
+    return {
+        'id': question.id,
+        'round': index + 1,
+        'type': challenge_type,
+        'type_label': labels[challenge_type],
+        'subject': question.subject,
+        'topic': _question_topic(question),
+        'difficulty': question.difficulty,
+        'prompt': question.text,
+        'options': question.options,
+        'mastery_score': mastery_score,
+    }
+
+
+def _ghost_timeline(challenges):
+    score = 0
+    timeline = []
+    elapsed = 2500
+    for index, challenge in enumerate(challenges):
+        difficulty = clean_difficulty(challenge.get('difficulty'))
+        chance = {'easy': 0.82, 'medium': 0.66, 'hard': 0.52}[difficulty]
+        if random.random() <= chance:
+            score += DIFFICULTY_POINTS[difficulty] + random.choice([0, 10, 20])
+        elapsed += random.randint(4200, 7600)
+        timeline.append({
+            'at_ms': elapsed,
+            'score': score,
+            'round': index + 1,
+        })
+    return timeline
+
+
+def start_study_raid(user, subject_id=None, subject=None, avatar_id='navigator'):
+    subject_id, subject_name = resolve_subject(user, subject_id, subject)
+    questions = get_questions_for_subject(user, subject_id=subject_id, subject=subject_name, count=60)
+    if not questions:
+        return None
+
+    mastery_rows = _mastery_for(user.id, subject_id, subject_name)
+    weighted = []
+    for question in questions:
+        topic = _question_topic(question)
+        mastery = mastery_rows.get(topic)
+        score = mastery.mastery_score if mastery else 35
+        weighted.append((score, random.random(), question))
+    weighted.sort(key=lambda item: (item[0], item[1]))
+
+    selected = [question for _, _, question in weighted[:RAID_ROUNDS]]
+    room = GameRoom(
+        subject_id=subject_id,
+        created_by_id=user.id,
+        subject=subject_name,
+        mode='study_raid',
+        status='active',
+    )
+    db.session.add(room)
+    db.session.flush()
+    display_name = ' '.join(part for part in [user.first_name, user.last_name] if part) or user.name
+    db.session.add(GameRoomPlayer(room_id=room.id, user_id=user.id, display_name=display_name, sid=avatar_id, score=0))
+    for index, question in enumerate(selected):
+        db.session.add(GameRound(
+            room_id=room.id,
+            round_number=index + 1,
+            question_id=question.id,
+            difficulty=clean_difficulty(question.difficulty),
+        ))
+    db.session.commit()
+
+    challenges = []
+    for index, question in enumerate(selected):
+        topic = _question_topic(question)
+        mastery_score = mastery_rows.get(topic).mastery_score if mastery_rows.get(topic) else 35
+        challenges.append(_serialize_raid_question(question, index, mastery_score))
+
+    return {
+        'room_id': room.id,
+        'subject_id': subject_id,
+        'subject': subject_name,
+        'avatar_id': avatar_id,
+        'challenges': challenges,
+        'ghost': {
+            'name': 'Past Challenger',
+            'score': 0,
+            'timeline': _ghost_timeline(challenges),
+        },
+        'mastery': [_serialize_mastery(row) for row in mastery_rows.values()],
+    }
+
+
+def answer_study_raid(user, room_id, question_id, selected_option, response_time_ms=0, streak=0):
+    room = GameRoom.query.filter_by(
+        id=room_id,
+        created_by_id=user.id,
+        mode='study_raid',
+        status='active',
+    ).first()
+    if not room:
+        return None
+
+    played_round = (
+        GameRound.query.filter_by(
+            room_id=room.id,
+            locked=False,
+        )
+        .order_by(GameRound.round_number)
+        .first()
+    )
+    if not played_round or str(played_round.question_id) != str(question_id):
+        return None
+    question = Question.query.filter_by(id=played_round.question_id, user_id=user.id).first()
+    if not question:
+        return None
+
+    selected = str(selected_option or '').strip().upper()
+    correct = selected == str(question.correct_option or '').strip().upper()
+    difficulty = clean_difficulty(question.difficulty)
+    base_points = DIFFICULTY_POINTS[difficulty] if correct else 0
+    response_ms = clean_nonnegative_int(response_time_ms, RAID_RESPONSE_LIMIT_MS)
+    speed_bonus = max(0, 35 - int(response_ms / 500)) if correct else 0
+
+    prior_rounds = (
+        GameRound.query
+        .filter(
+            GameRound.room_id == room.id,
+            GameRound.round_number < played_round.round_number,
+            GameRound.locked.is_(True),
+        )
+        .order_by(GameRound.round_number.desc())
+        .all()
+    )
+    server_streak = 0
+    for prior_round in prior_rounds:
+        if prior_round.winner_user_id != user.id:
+            break
+        server_streak += 1
+    streak_bonus = min(75, server_streak * 10) if correct else 0
+    awarded = base_points + speed_bonus + streak_bonus
+
+    player = GameRoomPlayer.query.filter_by(room_id=room.id, user_id=user.id).first()
+    if player:
+        player.score += awarded
+
+    played_round.locked = True
+    played_round.locked_at = datetime.utcnow()
+    played_round.awarded_points = awarded
+    played_round.winner_user_id = user.id if correct else None
+    played_round.buzz_log = [{
+        'user_id': user.id,
+        'selected_option': selected,
+        'correct': correct,
+        'response_time_ms': response_ms,
+    }]
+
+    topic = _question_topic(question)
+    mastery = ArcadeTopicMastery.query.filter_by(
+        user_id=user.id,
+        subject_id=room.subject_id,
+        subject=room.subject,
+        topic=topic,
+    ).first()
+    if not mastery:
+        mastery = ArcadeTopicMastery(
+            user_id=user.id,
+            subject_id=room.subject_id,
+            subject=room.subject,
+            topic=topic,
+            attempts=0,
+            correct=0,
+            streak=0,
+            mastery_score=40,
+        )
+        db.session.add(mastery)
+    mastery.attempts += 1
+    if correct:
+        mastery.correct += 1
+        mastery.streak += 1
+    else:
+        mastery.streak = 0
+    accuracy = mastery.correct / max(1, mastery.attempts)
+    mastery.mastery_score = max(5, min(100, int((accuracy * 75) + min(mastery.streak * 5, 25))))
+
+    db.session.commit()
+    return {
+        'correct': correct,
+        'correct_option': question.correct_option,
+        'points': awarded,
+        'total_score': player.score if player else awarded,
+        'explanation': question.explanation,
+        'mastery': _serialize_mastery(mastery),
+    }
+
+
+def finish_study_raid(user, room_id, _answers):
+    room = GameRoom.query.filter_by(
+        id=room_id,
+        created_by_id=user.id,
+        mode='study_raid',
+        status='active',
+    ).first()
+    if not room:
+        return None
+    player = GameRoomPlayer.query.filter_by(room_id=room.id, user_id=user.id).first()
+    rounds = (
+        GameRound.query
+        .filter_by(room_id=room.id, locked=True)
+        .order_by(GameRound.round_number)
+        .all()
+    )
+    question_ids = [played_round.question_id for played_round in rounds]
+    questions = Question.query.filter(Question.id.in_(question_ids)).all() if question_ids else []
+    questions_by_id = {question.id: question for question in questions}
+    server_answers = []
+    for played_round in rounds:
+        question = questions_by_id.get(played_round.question_id)
+        attempt = (played_round.buzz_log or [{}])[0]
+        server_answers.append({
+            'question_id': played_round.question_id,
+            'selected': attempt.get('selected_option'),
+            'correct': played_round.winner_user_id == user.id,
+            'points': played_round.awarded_points,
+            'topic': _question_topic(question) if question else None,
+        })
+
+    total = len(rounds)
+    correct = sum(1 for played_round in rounds if played_round.winner_user_id == user.id)
+    points = player.score if player else sum(played_round.awarded_points for played_round in rounds)
+    room.status = 'completed'
+    room.completed_at = datetime.utcnow()
+    entry = ScoreboardEntry(
+        user_id=user.id,
+        subject_id=room.subject_id,
+        subject=room.subject,
+        mode='study_raid',
+        score=correct,
+        total_questions=total,
+        points=points,
+        answers_json=server_answers,
+    )
+    db.session.add(entry)
+    db.session.flush()
+    add_point_event(user.id, room.subject_id, room.subject, 'study_raid', points, 'scoreboard_entry', entry.id)
+    db.session.commit()
+    return entry
+
+
 def resolve_subject(user, subject_id=None, subject=None):
     if subject_id:
         found = Subject.query.filter_by(id=subject_id, user_id=user.id).first()
@@ -735,6 +1146,309 @@ def upsert_room_player(room, user, sid):
 
 def room_players(room_id):
     return GameRoomPlayer.query.filter_by(room_id=room_id).order_by(GameRoomPlayer.score.desc()).all()
+
+
+def _party_code():
+    for _ in range(20):
+        code = ''.join(secrets.choice(PARTY_CODE_ALPHABET) for _ in range(6))
+        if not GameRoom.query.filter_by(invite_code=code).first():
+            return code
+    raise RuntimeError('Could not allocate a unique party code')
+
+
+def _clean_party_avatar(avatar_id):
+    cleaned = str(avatar_id or '').strip().lower()
+    return cleaned if cleaned in PARTY_AVATARS else None
+
+
+def get_party_room(invite_code):
+    code = str(invite_code or '').strip().upper()
+    if not code:
+        return None
+    room = GameRoom.query.filter_by(invite_code=code, mode='party_duel').first()
+    if not room:
+        return None
+    if room.expires_at and room.expires_at <= datetime.utcnow() and room.status == 'waiting':
+        room.status = 'expired'
+        db.session.commit()
+        return None
+    return room
+
+
+def get_party_questions(owner, subject, count=PARTY_ROUNDS, exclude_ids=None):
+    ensure_default_arcade_questions(owner)
+    query = Question.query.filter_by(
+        user_id=owner.id,
+        subject=subject,
+        source_doc_id=None,
+    )
+    if exclude_ids:
+        query = query.filter(Question.id.notin_(exclude_ids))
+    questions = query.all()
+    difficulty_rank = {'easy': 0, 'medium': 1, 'hard': 2}
+    questions.sort(key=lambda item: (difficulty_rank[clean_difficulty(item.difficulty)], random.random()))
+    return questions[:count]
+
+
+def serialize_party_room(room, viewer_user_id=None):
+    players = room_players(room.id)
+    return {
+        'room_id': room.id,
+        'code': room.invite_code,
+        'subject_id': room.subject_id,
+        'subject': room.subject,
+        'status': room.status,
+        'current_round': room.current_round,
+        'host_user_id': room.created_by_id,
+        'self_user_id': viewer_user_id,
+        'expires_at': room.expires_at.isoformat() if room.expires_at else None,
+        'players': [
+            {
+                'user_id': player.user_id,
+                'display_name': player.display_name,
+                'avatar_id': player.avatar_id,
+                'score': player.score,
+                'ready': bool(player.ready),
+                'connected': bool(player.connected),
+                'is_host': player.user_id == room.created_by_id,
+            }
+            for player in players
+        ],
+    }
+
+
+def create_party_room(user, subject_id=None, subject=None, avatar_id=None):
+    avatar = _clean_party_avatar(avatar_id)
+    if not avatar:
+        raise ValueError('Choose a valid Arcade avatar.')
+    subject_id, subject_name = resolve_subject(user, subject_id, subject)
+    if not get_party_questions(user, subject_name, count=1):
+        raise LookupError('This subject does not have curated multiplayer questions yet.')
+
+    stale_rooms = GameRoom.query.filter_by(
+        created_by_id=user.id,
+        mode='party_duel',
+        status='waiting',
+    ).all()
+    for stale in stale_rooms:
+        stale.status = 'abandoned'
+
+    room = GameRoom(
+        subject_id=subject_id,
+        created_by_id=user.id,
+        subject=subject_name,
+        mode='party_duel',
+        status='waiting',
+        invite_code=_party_code(),
+        expires_at=datetime.utcnow() + timedelta(minutes=PARTY_ROOM_TTL_MINUTES),
+    )
+    db.session.add(room)
+    db.session.flush()
+    display_name = ' '.join(part for part in [user.first_name, user.last_name] if part) or user.name
+    db.session.add(GameRoomPlayer(
+        room_id=room.id,
+        user_id=user.id,
+        display_name=display_name,
+        avatar_id=avatar,
+        ready=False,
+        connected=False,
+        last_seen_at=datetime.utcnow(),
+        score=0,
+    ))
+    db.session.commit()
+    return room
+
+
+def join_party_room(user, invite_code, avatar_id):
+    avatar = _clean_party_avatar(avatar_id)
+    if not avatar:
+        raise ValueError('Choose a valid Arcade avatar.')
+    room = get_party_room(invite_code)
+    if not room:
+        raise LookupError('Party code is invalid or expired.')
+
+    existing = GameRoomPlayer.query.filter_by(room_id=room.id, user_id=user.id).first()
+    players = room_players(room.id)
+    if existing:
+        if room.status not in {'waiting', 'countdown', 'active'}:
+            raise LookupError('This party has already ended.')
+        if any(player.user_id != user.id and player.avatar_id == avatar for player in players):
+            raise ValueError('That avatar is already used in this party.')
+        existing.avatar_id = avatar
+        existing.last_seen_at = datetime.utcnow()
+        db.session.commit()
+        return room
+
+    if room.status != 'waiting':
+        raise LookupError('This party has already started.')
+    if user.id == room.created_by_id:
+        raise ValueError('The host is already in this party.')
+    if len(players) >= 2:
+        raise ValueError('This party is already full.')
+    if any(player.avatar_id == avatar for player in players):
+        raise ValueError('That avatar is already used. Choose a different operative.')
+
+    display_name = ' '.join(part for part in [user.first_name, user.last_name] if part) or user.name
+    db.session.add(GameRoomPlayer(
+        room_id=room.id,
+        user_id=user.id,
+        display_name=display_name,
+        avatar_id=avatar,
+        ready=False,
+        connected=False,
+        last_seen_at=datetime.utcnow(),
+        score=0,
+    ))
+    db.session.commit()
+    return room
+
+
+def connect_party_player(room, user, sid):
+    player = GameRoomPlayer.query.filter_by(room_id=room.id, user_id=user.id).first()
+    if not player:
+        return None
+    player.sid = sid
+    player.connected = True
+    player.last_seen_at = datetime.utcnow()
+    db.session.commit()
+    return player
+
+
+def set_party_ready(room, user, ready=True):
+    if room.status != 'waiting':
+        return None
+    player = GameRoomPlayer.query.filter_by(room_id=room.id, user_id=user.id).first()
+    if not player:
+        return None
+    player.ready = bool(ready)
+    player.last_seen_at = datetime.utcnow()
+    db.session.commit()
+    return player
+
+
+def party_can_start(room):
+    players = room_players(room.id)
+    return (
+        room.status == 'waiting'
+        and len(players) == 2
+        and all(player.ready and player.connected and player.avatar_id for player in players)
+        and len({player.avatar_id for player in players}) == 2
+    )
+
+
+def score_party_answer(game_round, player, selected_option):
+    lock = get_round_lock(game_round.id)
+    with lock:
+        db.session.refresh(game_round)
+        room = GameRoom.query.get(game_round.room_id)
+        if not room or room.mode != 'party_duel' or room.status != 'active' or game_round.locked:
+            return {'accepted': False, 'reason': 'round_locked'}
+
+        previous = game_round.buzz_log or []
+        if any(entry.get('user_id') == player.user_id for entry in previous):
+            return {'accepted': False, 'reason': 'already_answered'}
+
+        question = Question.query.get(game_round.question_id)
+        selected = str(selected_option or '').strip().upper()
+        correct = selected == str(question.correct_option or '').strip().upper()
+        arrival = datetime.utcnow()
+        elapsed = max((arrival - game_round.started_at).total_seconds(), 0)
+        entry = {
+            'user_id': player.user_id,
+            'selected_option': selected,
+            'correct': correct,
+            'server_received_at': arrival.isoformat(),
+        }
+        deltas = {}
+
+        if correct:
+            points = 100 + max(0, 20 - int(elapsed * 2))
+            player.score += points
+            deltas[player.user_id] = points
+            for opponent in room_players(room.id):
+                if opponent.user_id == player.user_id:
+                    continue
+                opponent.score -= 10
+                deltas[opponent.user_id] = -10
+            game_round.locked = True
+            game_round.locked_at = arrival
+            game_round.winner_user_id = player.user_id
+            game_round.winner_sid = player.sid
+            game_round.awarded_points = points
+            game_round.buzz_log = [*previous, entry]
+            db.session.commit()
+            return {
+                'accepted': True,
+                'correct': True,
+                'locked': True,
+                'winner_user_id': player.user_id,
+                'points': points,
+                'deltas': deltas,
+                'correct_option': question.correct_option,
+                'explanation': question.explanation,
+            }
+
+        player.score -= 20
+        deltas[player.user_id] = -20
+        attempts = [*previous, entry]
+        game_round.buzz_log = attempts
+        all_attempted = len({attempt.get('user_id') for attempt in attempts if attempt.get('user_id')}) >= len(room_players(room.id))
+        if all_attempted:
+            game_round.locked = True
+            game_round.locked_at = arrival
+        db.session.commit()
+        return {
+            'accepted': True,
+            'correct': False,
+            'locked': all_attempted,
+            'winner_user_id': None,
+            'points': -20,
+            'deltas': deltas,
+            'correct_option': question.correct_option if all_attempted else None,
+            'explanation': question.explanation if all_attempted else None,
+        }
+
+
+def lock_party_round_timeout(game_round):
+    lock = get_round_lock(game_round.id)
+    with lock:
+        db.session.refresh(game_round)
+        if game_round.locked:
+            return None
+        room = GameRoom.query.get(game_round.room_id)
+        if not room or room.mode != 'party_duel' or room.status != 'active':
+            return None
+
+        attempts = game_round.buzz_log or []
+        attempted_users = {entry.get('user_id') for entry in attempts if entry.get('user_id')}
+        deltas = {}
+        for player in room_players(room.id):
+            if player.user_id not in attempted_users:
+                player.score -= 10
+                deltas[player.user_id] = -10
+        question = Question.query.get(game_round.question_id)
+        game_round.locked = True
+        game_round.locked_at = datetime.utcnow()
+        game_round.buzz_log = [
+            *attempts,
+            {
+                'user_id': None,
+                'reason': 'timeout',
+                'server_received_at': datetime.utcnow().isoformat(),
+            },
+        ]
+        db.session.commit()
+        return {
+            'accepted': False,
+            'correct': False,
+            'locked': True,
+            'reason': 'timeout',
+            'winner_user_id': None,
+            'points': 0,
+            'deltas': deltas,
+            'correct_option': question.correct_option,
+            'explanation': question.explanation,
+        }
 
 
 def get_round_lock(round_id):

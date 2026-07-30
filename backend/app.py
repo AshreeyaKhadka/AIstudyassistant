@@ -127,10 +127,28 @@ def _ensure_arcade_schema():
     if 'game_rooms' not in inspector.get_table_names():
         return
 
-    columns = {column['name'] for column in inspector.get_columns('game_rooms')}
     with db.engine.begin() as connection:
-        if 'created_by_id' not in columns:
+        room_columns = {column['name'] for column in inspector.get_columns('game_rooms')}
+        if 'created_by_id' not in room_columns:
             connection.execute(text('ALTER TABLE game_rooms ADD COLUMN created_by_id INTEGER REFERENCES users(id) DEFAULT 1 NOT NULL'))
+        if 'invite_code' not in room_columns:
+            connection.execute(text('ALTER TABLE game_rooms ADD COLUMN invite_code VARCHAR(10)'))
+        if 'expires_at' not in room_columns:
+            connection.execute(text('ALTER TABLE game_rooms ADD COLUMN expires_at TIMESTAMP'))
+        connection.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS uq_game_rooms_invite_code ON game_rooms (invite_code)'))
+
+        if 'game_room_players' not in inspector.get_table_names():
+            return
+        player_columns = {column['name'] for column in inspector.get_columns('game_room_players')}
+        if 'avatar_id' not in player_columns:
+            connection.execute(text('ALTER TABLE game_room_players ADD COLUMN avatar_id VARCHAR(50)'))
+        if 'ready' not in player_columns:
+            connection.execute(text('ALTER TABLE game_room_players ADD COLUMN ready BOOLEAN DEFAULT 0 NOT NULL'))
+        if 'connected' not in player_columns:
+            connection.execute(text('ALTER TABLE game_room_players ADD COLUMN connected BOOLEAN DEFAULT 0 NOT NULL'))
+        if 'last_seen_at' not in player_columns:
+            connection.execute(text('ALTER TABLE game_room_players ADD COLUMN last_seen_at TIMESTAMP'))
+        connection.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS uq_game_room_user ON game_room_players (room_id, user_id)'))
 
 
 def _ensure_calendar_schema():
@@ -218,7 +236,7 @@ def create_app():
         from models.exam import Exam
         from models.focus import StudySession, UserAchievement
         from models.career import CareerProfile
-        from models.arcade import Question, GameRoom, GameRoomPlayer, GameRound, ScoreboardEntry, ArcadePointEvent
+        from models.arcade import Question, GameRoom, GameRoomPlayer, GameRound, ScoreboardEntry, ArcadePointEvent, ArcadeTopicMastery
 
         
         # We will set up pgvector later during DB migrations, 
