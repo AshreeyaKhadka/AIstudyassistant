@@ -233,3 +233,45 @@ def update_subject(user, upload_id):
         db.session.rollback()
         logger.error(f"Failed to update subject for upload {upload_id}: {e}")
         return jsonify({"error": "Failed to update subject"}), 500
+
+
+@upload_bp.route('/<int:upload_id>', methods=['GET'])
+@login_required
+def get_upload_detail(user, upload_id):
+    upload = StudentUpload.query.get(upload_id)
+    if not upload:
+        return jsonify({"error": "Upload not found"}), 404
+
+    if upload.user_id != user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    return jsonify({
+        "id": upload.id,
+        "filename": upload.filename,
+        "size_bytes": upload.size_bytes,
+        "subject": upload.subject,
+        "parsed_text": upload.parsed_text,
+        "created_at": upload.created_at
+    }), 200
+
+
+@upload_bp.route('/<int:upload_id>/file', methods=['GET'])
+@login_required
+def view_upload_file(user, upload_id):
+    from flask import send_file
+    upload = StudentUpload.query.get(upload_id)
+    if not upload:
+        return jsonify({"error": "Upload not found"}), 404
+
+    if upload.user_id != user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    if upload.file_url and os.path.exists(upload.file_url):
+        return send_file(
+            upload.file_url,
+            mimetype='application/pdf',
+            as_attachment=False,
+            download_name=upload.filename
+        )
+    return jsonify({"error": "File not found"}), 404
+

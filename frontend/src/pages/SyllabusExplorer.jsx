@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Search, Book, Clock, ChevronRight, FileText, Layout, List,
+    Search, Book, ChevronRight, FileText, Layout,
     MessageSquare, Plus, Trash2, Upload, AlertCircle, RefreshCw,
-    FolderOpen, Calendar, HelpCircle, ShieldAlert
+    FolderOpen, Calendar, ShieldAlert
 } from 'lucide-react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 
@@ -11,38 +10,32 @@ const SyllabusExplorer = () => {
     const { user } = useOutletContext();
     const navigate = useNavigate();
 
-    // User profile semesters
     const userSemester = user?.semester ? parseInt(user.semester) : 1;
 
-    // UI states
     const [selectedSemester, setSelectedSemester] = useState(userSemester);
     const [subjects, setSubjects] = useState([]);
     const [selectedSubject, setSelectedSubject] = useState(null);
     const [loadingSubjects, setLoadingSubjects] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Syllabus state
     const [syllabusMeta, setSyllabusMeta] = useState(null);
     const [loadingSyllabus, setLoadingSyllabus] = useState(false);
 
-    // Material uploads for selected subject
     const [materials, setMaterials] = useState([]);
     const [loadingMaterials, setLoadingMaterials] = useState(false);
 
-    // Subject Form state (Drawer/Modal)
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [subjectName, setSubjectName] = useState('');
     const [subjectCode, setSubjectCode] = useState('');
+    const [subjectCredits, setSubjectCredits] = useState(3);
     const [subjectSem, setSubjectSem] = useState(userSemester);
     const [isSubmitLoading, setIsSubmitLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
 
-    // Active upload parameters
     const [uploadProgress, setUploadProgress] = useState(null);
     const [replaceConfirm, setReplaceConfirm] = useState(false);
     const [uploadError, setUploadError] = useState('');
 
-    // Fetch subjects from the backend
     const fetchSubjects = async () => {
         setLoadingSubjects(true);
         try {
@@ -62,12 +55,10 @@ const SyllabusExplorer = () => {
         fetchSubjects();
     }, []);
 
-    // Count current backlog subjects (subjects where is_backlog = true)
     const backlogCount = useMemo(() => {
         return subjects.filter(s => s.is_backlog).length;
     }, [subjects]);
 
-    // Fetch syllabus metadata for selected subject
     const fetchSyllabusMeta = async (subjectId) => {
         setLoadingSyllabus(true);
         setSyllabusMeta(null);
@@ -88,14 +79,12 @@ const SyllabusExplorer = () => {
         }
     };
 
-    // Fetch materials for selected subject
     const fetchMaterials = async (subjectId) => {
         setLoadingMaterials(true);
         try {
             const res = await fetch('/api/upload/', { credentials: 'include' });
             if (res.ok) {
                 const allFiles = await res.json();
-                // Filter files belonging to this subject
                 setMaterials(allFiles.filter(item => item.subject_id === subjectId || item.subject === selectedSubject?.name));
             }
         } catch (err) {
@@ -105,7 +94,6 @@ const SyllabusExplorer = () => {
         }
     };
 
-    // Whenever selectedSubject changes, load its syllabus meta & materials
     useEffect(() => {
         if (selectedSubject) {
             fetchSyllabusMeta(selectedSubject.id);
@@ -116,7 +104,6 @@ const SyllabusExplorer = () => {
         }
     }, [selectedSubject]);
 
-    // Filtered subjects listed on left sidebar panel
     const filteredSubjects = useMemo(() => {
         return subjects.filter(sub => {
             const matchesSearch = sub.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -126,6 +113,10 @@ const SyllabusExplorer = () => {
         });
     }, [subjects, selectedSemester, searchTerm]);
 
+    const totalCredits = useMemo(() => {
+        return filteredSubjects.reduce((acc, curr) => acc + (parseInt(curr.credits) || 3), 0);
+    }, [filteredSubjects]);
+
     const handleCreateSubject = async (e) => {
         e.preventDefault();
         setErrorMessage('');
@@ -133,7 +124,7 @@ const SyllabusExplorer = () => {
 
         const isBacklog = subjectSem !== userSemester;
         if (isBacklog && backlogCount >= 4) {
-            setErrorMessage("Backlog limit reached (4/4). You cannot add more backlog subjects.");
+            setErrorMessage("Backlog limit reached (4/4). Cannot add more backlog subjects.");
             setIsSubmitLoading(false);
             return;
         }
@@ -146,6 +137,7 @@ const SyllabusExplorer = () => {
                 body: JSON.stringify({
                     name: subjectName,
                     code: subjectCode,
+                    credits: subjectCredits,
                     semester: subjectSem,
                     is_backlog: isBacklog
                 })
@@ -156,8 +148,8 @@ const SyllabusExplorer = () => {
                 setSubjects(prev => [data, ...prev]);
                 setSubjectName('');
                 setSubjectCode('');
+                setSubjectCredits(3);
                 setIsAddOpen(false);
-                // Switch semester view if necessary to show the newly added subject
                 setSelectedSemester(subjectSem);
             } else {
                 setErrorMessage(data.error || "Failed to create subject");
@@ -171,7 +163,7 @@ const SyllabusExplorer = () => {
 
     const handleDeleteSubject = async (subjectId, event) => {
         event.stopPropagation();
-        if (!confirm("Are you sure you want to delete this subject? All associated syllabus files, materials, and search embeddings will be lost.")) return;
+        if (!confirm("Are you sure you want to delete this subject?")) return;
 
         try {
             const res = await fetch(`/api/syllabus/subjects/${subjectId}`, {
@@ -217,8 +209,7 @@ const SyllabusExplorer = () => {
 
             const data = await res.json();
             if (res.ok) {
-                setUploadProgress('Indexing syllabus contents for search...');
-                // Wait briefly for background RAG ingestion trigger to load
+                setUploadProgress('Indexing syllabus contents...');
                 setTimeout(() => {
                     fetchSyllabusMeta(selectedSubject.id);
                     setUploadProgress(null);
@@ -287,516 +278,401 @@ const SyllabusExplorer = () => {
     };
 
     return (
-        <div className="flex flex-col gap-8 pb-12">
-            {/* Elegant Curriculum Header */}
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+        <div className="flex flex-col gap-6 pb-12">
+            {/* Curriculum Header */}
+            <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px] flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
-                        Syllabus & Course Manager
-                    </h1>
-                    <p className="text-slate-500 font-medium mt-1">
-                        Select subjects, upload official syllabi, and organize reference study materials.
-                    </p>
+                    <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-1">
+                        COURSE & SYLLABUS MANAGEMENT
+                    </div>
+                    <h1 className="text-2xl font-bold text-[#111111] tracking-tight">Syllabus Explorer</h1>
+                    <p className="text-xs text-[#666666] mt-0.5">Organize official syllabi and study materials by semester.</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 w-full xl:w-auto">
-                    {/* Search Field */}
-                    <div className="relative flex-1 xl:w-72 xl:flex-none">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+                    <div className="relative flex-1 xl:w-64 xl:flex-none">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666]" size={14} />
                         <input
                             type="text"
-                            placeholder="Find subject..."
-                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700"
+                            placeholder="Search subject..."
+                            className="w-full pl-9 pr-3 py-2 bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] text-xs font-mono text-[#111111] outline-none"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
 
-                    {/* Add Subject Button */}
                     <button
                         onClick={() => setIsAddOpen(true)}
-                        className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-lg shadow-blue-500/10 active:scale-95 transition-all"
+                        className="px-4 py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] font-mono text-xs font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5"
                     >
-                        <Plus size={18} />
-                        Add Subject
+                        <Plus size={14} />
+                        <span>ADD SUBJECT</span>
                     </button>
                 </div>
             </div>
 
-            {/* Split layout: Selector list vs Subject Detail View */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Main Content Split Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* Left Column: Term Architecture */}
+                <div className="lg:col-span-5 flex flex-col gap-6">
+                    <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-5">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-bold text-[#111111] tracking-tight">Term Architecture</h2>
+                            <div className="flex items-center gap-1.5 bg-[#F7F5F2] px-2 py-1 rounded-[2px] border border-[#D7D3CF]">
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#102326]"></div>
+                                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-[#666666]">Live Sync</span>
+                            </div>
+                        </div>
 
-                {/* Left Panel: Subject list grouped by semester */}
-                <div className="lg:col-span-4 flex flex-col gap-4">
-                    {/* Semester tab selectors */}
-                    <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-2.5">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Semester Selection</span>
-                        <div className="grid grid-cols-4 gap-1.5">
+                        {/* Semester Selectors (Pills) */}
+                        <div className="flex flex-wrap gap-2 mb-6">
                             {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
                                 <button
                                     key={sem}
                                     onClick={() => setSelectedSemester(sem)}
-                                    className={`py-2 text-xs font-extrabold rounded-lg transition-all ${selectedSemester === sem
-                                            ? 'bg-blue-600 text-white shadow-sm'
-                                            : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                                        }`}
+                                    className={`px-4 py-1.5 text-xs font-mono font-semibold rounded-[4px] border transition-colors ${
+                                        selectedSemester === sem
+                                            ? 'bg-[#102326] text-white border-[#102326]'
+                                            : 'bg-white text-[#666666] border-[#D7D3CF] hover:bg-[#ECEAE7] hover:text-[#111111]'
+                                    }`}
                                 >
-                                    S{sem}
-                                    {sem === userSemester && (
-                                        <span className="ml-1 text-[8px] bg-white/20 text-white px-1 py-0.5 rounded-full font-bold">Ref</span>
-                                    )}
+                                    Sem {sem}
                                 </button>
                             ))}
                         </div>
-                    </div>
 
-                    {/* Subject list */}
-                    <div className="flex flex-col gap-3">
-                        <div className="flex items-center justify-between pl-1">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                Semester {selectedSemester} Subjects
-                            </h3>
-                            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                                {filteredSubjects.length}
-                            </span>
-                        </div>
-
-                        <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1">
+                        {/* Subject List Cards */}
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                             {filteredSubjects.map((sub) => (
                                 <div
                                     key={sub.id}
                                     onClick={() => setSelectedSubject(sub)}
-                                    className={`group flex items-center justify-between p-4 rounded-2xl text-left border cursor-pointer swap-indicator transition-all duration-200 ${selectedSubject?.id === sub.id
-                                            ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/10'
-                                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-350'
-                                        }`}
+                                    className={`relative p-5 rounded-[4px] border cursor-pointer transition-colors overflow-hidden ${
+                                        selectedSubject?.id === sub.id
+                                            ? 'bg-[#F7F5F2] border-[#102326]'
+                                            : 'bg-white border-[#D7D3CF] hover:border-[#102326]'
+                                    }`}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-xl transition-colors ${selectedSubject?.id === sub.id ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'
-                                            }`}>
-                                            <Book size={18} />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <span className="font-bold text-sm line-clamp-1 leading-snug">{sub.name}</span>
-                                            <p className={`text-[10px] uppercase font-semibold mt-0.5 tracking-wider ${selectedSubject?.id === sub.id ? 'text-white/70' : 'text-slate-400'
-                                                }`}>
-                                                {sub.code || 'No Code'} {sub.is_backlog ? '· Backlog' : ''}
-                                            </p>
-                                        </div>
+                                    {/* Background decorative text */}
+                                    <div className="absolute right-[-10%] top-1/2 -translate-y-1/2 text-7xl font-bold opacity-[0.03] pointer-events-none whitespace-nowrap">
+                                        {sub.code || sub.name.substring(0, 3).toUpperCase()}
                                     </div>
-                                    <div className="flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={(e) => handleDeleteSubject(sub.id, e)}
-                                            className={`p-1.5 rounded-lg transition-colors ${selectedSubject?.id === sub.id
-                                                    ? 'hover:bg-white/10 text-white/80 hover:text-white'
-                                                    : 'hover:bg-slate-100 text-slate-400 hover:text-rose-500'
-                                                }`}
-                                            title="Delete Subject"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                        <ChevronRight size={16} />
+                                    
+                                    <div className="relative z-10 flex flex-col h-full justify-between">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="bg-[#102326] text-white px-2 py-0.5 rounded-[2px] text-[10px] font-mono font-bold uppercase">
+                                                        {sub.code || 'NO CODE'}
+                                                    </span>
+                                                    <span className="bg-[#ECEAE7] text-[#111111] px-2 py-0.5 rounded-[2px] text-[10px] font-mono font-bold uppercase">
+                                                        {sub.credits || 3} Credits
+                                                    </span>
+                                                    {sub.is_backlog && (
+                                                        <span className="bg-[#C96A32] text-white px-2 py-0.5 rounded-[2px] text-[10px] font-mono font-bold uppercase">
+                                                            BACKLOG
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={(e) => handleDeleteSubject(sub.id, e)}
+                                                    className="text-[#D7D3CF] hover:text-[#C96A32] transition-colors"
+                                                    title="Delete Subject"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                            <h3 className="text-base font-bold text-[#111111] mb-6 tracking-tight pr-8">{sub.name}</h3>
+                                        </div>
+
+                                        <div className="flex items-center justify-between mt-auto">
+                                            <div className="flex items-center gap-3 flex-1 max-w-[60%]">
+                                                <div className="flex-1 h-1 bg-[#ECEAE7] rounded-full overflow-hidden">
+                                                    <div className="h-full bg-[#102326] rounded-full w-[0%]"></div>
+                                                </div>
+                                                <span className="text-[10px] font-mono text-[#666666] font-semibold whitespace-nowrap">0% Covered</span>
+                                            </div>
+                                            <div className="flex items-center -space-x-1">
+                                                <div className="w-5 h-5 rounded-full border border-[#D7D3CF] bg-white flex items-center justify-center text-[8px] font-mono font-bold text-[#666666] z-30">L</div>
+                                                <div className="w-5 h-5 rounded-full border border-[#D7D3CF] bg-white flex items-center justify-center text-[8px] font-mono font-bold text-[#666666] z-20">T</div>
+                                                <div className="w-5 h-5 rounded-full border border-[#D7D3CF] bg-[#102326] flex items-center justify-center text-[8px] font-mono font-bold text-white z-10">P</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
 
                             {filteredSubjects.length === 0 && (
-                                <div className="flex flex-col items-center justify-center py-12 text-slate-400 bg-white rounded-2xl border border-slate-200/60 border-dashed">
-                                    <FolderOpen size={36} className="mb-2 text-slate-300" />
-                                    <p className="font-bold text-xs uppercase tracking-wider text-slate-400">No subjects here</p>
-                                    <button
-                                        onClick={() => {
-                                            setSubjectSem(selectedSemester);
-                                            setIsAddOpen(true);
-                                        }}
-                                        className="text-xs text-blue-600 font-bold hover:underline mt-1.5"
-                                    >
-                                        Add a subject to Semester {selectedSemester}
-                                    </button>
+                                <div className="p-8 text-center bg-[#FAF9F7] border border-[#D7D3CF] border-dashed rounded-[4px]">
+                                    <h4 className="text-sm font-bold text-[#111111] mb-1">No Subjects</h4>
+                                    <p className="text-xs font-mono text-[#666666]">Click "Add Subject" to populate Semester {selectedSemester}.</p>
                                 </div>
                             )}
-                        </div>
-
-                        {/* Backlogs limits summary indicator */}
-                        <div className="bg-slate-50 border border-slate-200/50 p-3.5 rounded-2xl mt-1 text-slate-600 text-xs">
-                            <div className="flex items-center justify-between font-bold">
-                                <span className="flex items-center gap-1.5">
-                                    <AlertCircle size={14} className="text-blue-500" />
-                                    Backlog Subjects Capacity
-                                </span>
-                                <span className={backlogCount >= 4 ? "text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full" : "text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full"}>
-                                    {backlogCount} / 4 Allowed
-                                </span>
-                            </div>
-                            <p className="text-slate-400 font-medium mt-1 leading-relaxed">
-                                Backlog subjects occupy previous sem tags. You can add them in S1-S8 dropdown.
-                            </p>
                         </div>
                     </div>
                 </div>
 
-                {/* Right Panel: Detailed view for Selected Subject */}
-                <div className="lg:col-span-8">
-                    <AnimatePresence mode="wait">
-                        {selectedSubject ? (
-                            <motion.div
-                                key={selectedSubject.id}
-                                initial={{ opacity: 0, y: 15 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -15 }}
-                                transition={{ duration: 0.25 }}
-                                className="flex flex-col gap-6"
-                            >
-                                <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-8">
+                {/* Right Column: Detailed View or Empty State */}
+                <div className="lg:col-span-7">
+                    {selectedSubject ? (
+                        <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px] space-y-6">
+                            {/* Subject Header */}
+                            <div className="pb-4 border-b border-[#D7D3CF]">
+                                <div className="flex items-center gap-2 mb-1 text-[10px] font-mono uppercase font-semibold text-[#666666]">
+                                    <span className="bg-[#ECEAE7] text-[#111111] px-2 py-0.5 rounded-[2px]">
+                                        SEMESTER {selectedSubject.semester}
+                                    </span>
+                                    {selectedSubject.is_backlog && (
+                                        <span className="bg-[#C96A32] text-white px-2 py-0.5 rounded-[2px]">
+                                            BACKLOG
+                                        </span>
+                                    )}
+                                    {selectedSubject.code && (
+                                        <span>CODE: {selectedSubject.code}</span>
+                                    )}
+                                </div>
+                                <h2 className="text-xl font-bold text-[#111111] tracking-tight">{selectedSubject.name}</h2>
+                            </div>
 
-                                    {/* Subject Main Identity Card */}
-                                    <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-                                        <div>
-                                            <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                <span className="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md uppercase tracking-wider">
-                                                    Semester {selectedSubject.semester}
-                                                </span>
-                                                {selectedSubject.is_backlog && (
-                                                    <span className="text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md uppercase tracking-wider">
-                                                        Backlog
-                                                    </span>
-                                                )}
-                                                {selectedSubject.code && (
-                                                    <span className="text-[10px] font-extrabold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
-                                                        {selectedSubject.code}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight leading-tight">
-                                                {selectedSubject.name}
-                                            </h2>
-                                        </div>
+                            {/* Section 1: Syllabus Panel */}
+                            <div className="border border-[#D7D3CF] bg-[#FAF9F7] rounded-[4px] p-5 space-y-4">
+                                <div className="flex items-center justify-between pb-3 border-b border-[#D7D3CF]">
+                                    <h3 className="text-xs font-mono uppercase tracking-wider text-[#111111] font-semibold flex items-center gap-2">
+                                        <Layout size={14} className="text-[#102326]" />
+                                        Official Course Syllabus
+                                    </h3>
+                                    <span className="text-[10px] font-mono text-[#666666]">1 PDF per subject</span>
+                                </div>
+
+                                {loadingSyllabus ? (
+                                    <div className="py-4 text-center text-xs font-mono text-[#666666] flex items-center justify-center gap-2">
+                                        <RefreshCw size={14} className="animate-spin text-[#102326]" />
+                                        Loading syllabus metadata...
                                     </div>
-
-                                    {/* SECTION 1: ONE SYLLABUS CONSTRAINT PANEL */}
-                                    <div className="bg-slate-50/70 border border-slate-150 p-6 rounded-3xl flex flex-col gap-5">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                                <Layout size={16} className="text-blue-600" />
-                                                Official Course Syllabus
-                                            </h3>
-                                            <span className="text-xs font-bold text-slate-400">Limit: 1 PDF per Subject</span>
-                                        </div>
-
-                                        {loadingSyllabus ? (
-                                            <div className="flex items-center gap-2.5 py-4 text-xs font-bold text-slate-400 justify-center">
-                                                <RefreshCw className="animate-spin text-blue-500" size={16} />
-                                                Loading official syllabus data...
-                                            </div>
-                                        ) : syllabusMeta ? (
-                                            /* Active Syllabus File Display */
-                                            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                                                <div className="flex items-center gap-3.5 w-full md:w-auto">
-                                                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                                                        <FileText size={24} />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="font-bold text-slate-800 text-sm truncate">{syllabusMeta.filename}</p>
-                                                        <p className="text-[11px] text-slate-400 font-semibold mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                            <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(syllabusMeta.uploaded_at).toLocaleDateString()}</span>
-                                                            <span>•</span>
-                                                            <span>{(syllabusMeta.size_bytes / 1024).toFixed(1)} KB</span>
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-                                                    <button
-                                                        onClick={() => navigate(`/dashboard/chat?subject=${encodeURIComponent(selectedSubject.name)}&subject_id=${selectedSubject.id}&doc_type=syllabus`)}
-                                                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold shadow-sm active:scale-95 transition-all w-full md:w-auto justify-center"
-                                                    >
-                                                        <MessageSquare size={14} />
-                                                        Chat Syllabus
-                                                    </button>
-
-                                                    {/* Overwrite Trigger Input */}
-                                                    <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold cursor-pointer active:scale-95 transition-all text-center w-full md:w-auto justify-center">
-                                                        <Upload size={14} />
-                                                        Replace
-                                                        <input
-                                                            type="file"
-                                                            accept=".pdf"
-                                                            className="hidden"
-                                                            onChange={(e) => handleUploadSyllabus(e, true)}
-                                                        />
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            /* Active Syllabus Empty State (Prompt Upload) */
-                                            <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-8 flex flex-col items-center justify-center text-center">
-                                                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 mb-3">
-                                                    <Upload size={22} />
-                                                </div>
-                                                <h4 className="font-bold text-slate-700 text-sm">No Syllabus Uploaded</h4>
-                                                <p className="text-slate-400 text-xs mt-1.5 max-w-sm mb-4 leading-relaxed">
-                                                    Upload the official curriculum PDF/syllabus for this subject to run scoped AI study and chapter planning.
+                                ) : syllabusMeta ? (
+                                    <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <FileText size={20} className="text-[#102326] shrink-0" />
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-bold text-[#111111] truncate">{syllabusMeta.filename}</p>
+                                                <p className="text-[10px] font-mono text-[#666666] mt-0.5">
+                                                    Uploaded {new Date(syllabusMeta.uploaded_at).toLocaleDateString()} • {(syllabusMeta.size_bytes / 1024).toFixed(0)} KB
                                                 </p>
-
-                                                <label className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer shadow-md shadow-blue-500/10 transition-all select-none">
-                                                    <Upload size={14} />
-                                                    Upload Syllabus
-                                                    <input
-                                                        type="file"
-                                                        accept=".pdf"
-                                                        className="hidden"
-                                                        onChange={(e) => handleUploadSyllabus(e, false)}
-                                                    />
-                                                </label>
                                             </div>
-                                        )}
+                                        </div>
 
-                                        {/* Status notifications / indicators */}
-                                        {uploadProgress && (
-                                            <div className="bg-blue-50 text-blue-700 p-3 rounded-xl text-xs font-bold flex items-center gap-2.5">
-                                                <RefreshCw size={14} className="animate-spin text-blue-500" />
-                                                {uploadProgress}
-                                            </div>
-                                        )}
-
-                                        {uploadError && (
-                                            <div className="bg-rose-50 text-rose-700 border border-rose-100 p-3.5 rounded-xl text-xs font-bold flex items-center gap-2">
-                                                <AlertCircle size={15} className="text-rose-500 flex-shrink-0" />
-                                                {uploadError}
-                                            </div>
-                                        )}
-
-                                        {replaceConfirm && (
-                                            <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex flex-col gap-3">
-                                                <div className="flex gap-2 text-amber-800 text-xs font-bold">
-                                                    <ShieldAlert size={16} className="text-amber-600 flex-shrink-0" />
-                                                    <span>A syllabus file already exists for this subject. Replacing it will overwrite old search index embeddings. Continue?</span>
-                                                </div>
-                                                <div className="flex gap-2 self-end">
-                                                    <button
-                                                        onClick={() => setReplaceConfirm(false)}
-                                                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-650 hover:bg-slate-50 text-[11px] font-bold"
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                    <label className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold cursor-pointer select-none">
-                                                        Yes, Overwrite
-                                                        <input
-                                                            type="file"
-                                                            accept=".pdf"
-                                                            className="hidden"
-                                                            onChange={(e) => handleUploadSyllabus(e, true)}
-                                                        />
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* SECTION 2: SUBJECT REFERENCE MATERIALS */}
-                                    <div className="flex flex-col gap-5">
-                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                                            <div>
-                                                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
-                                                    <Book size={16} className="text-blue-600" />
-                                                    Reference Study Materials
-                                                </h3>
-                                                <p className="text-slate-400 text-xs mt-1">Files uploaded here are isolated specifically for RAG chat under this subject.</p>
-                                            </div>
-
-                                            <label className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl cursor-pointer transition-all flex-shrink-0">
-                                                <Plus size={14} />
-                                                Add Material
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => navigate(`/dashboard/chat?subject=${encodeURIComponent(selectedSubject.name)}&subject_id=${selectedSubject.id}&doc_type=syllabus`)}
+                                                className="px-3 py-1.5 bg-[#102326] text-white rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5 hover:bg-[#0b191c] transition-colors"
+                                            >
+                                                <MessageSquare size={13} />
+                                                <span>CHAT</span>
+                                            </button>
+                                            <label className="px-3 py-1.5 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-colors">
+                                                <Upload size={13} />
+                                                <span>REPLACE</span>
                                                 <input
                                                     type="file"
                                                     accept=".pdf"
                                                     className="hidden"
-                                                    onChange={handleUploadMaterial}
+                                                    onChange={(e) => handleUploadSyllabus(e, true)}
                                                 />
                                             </label>
                                         </div>
-
-                                        {loadingMaterials ? (
-                                            <div className="flex items-center justify-center gap-2 py-6 text-xs text-slate-400 font-bold">
-                                                <RefreshCw size={14} className="animate-spin text-blue-500" />
-                                                Loading materials count...
-                                            </div>
-                                        ) : materials.length > 0 ? (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {materials.map((file) => (
-                                                    <div
-                                                        key={file.id}
-                                                        className="group bg-white p-4.5 rounded-2xl border border-slate-150 hover:shadow-lg hover:shadow-slate-100 hover:border-blue-200 transition-all flex justify-between items-center gap-3"
-                                                    >
-                                                        <div className="flex items-center gap-3 min-w-0">
-                                                            <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                                <FileText size={20} />
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <p className="font-bold text-slate-800 text-xs truncate leading-snug">{file.filename}</p>
-                                                                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                                                                    {new Date(file.created_at).toLocaleDateString()} · {(file.size_bytes / 1024).toFixed(0)} KB
-                                                                </p>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-1.5">
-                                                            <button
-                                                                onClick={() => navigate(`/dashboard/chat?subject=${encodeURIComponent(selectedSubject.name)}&subject_id=${selectedSubject.id}&doc_type=material`)}
-                                                                className="p-2 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white rounded-lg transition-colors border border-blue-100/50"
-                                                                title="Chat focusing on this material"
-                                                            >
-                                                                <MessageSquare size={13} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteMaterial(file.id)}
-                                                                className="p-2 hover:bg-rose-50 text-slate-350 hover:text-rose-600 rounded-lg transition-colors"
-                                                                title="Delete file"
-                                                            >
-                                                                <Trash2 size={13} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center py-10 bg-slate-50/60 rounded-2xl border border-slate-200/60 border-dashed text-slate-400">
-                                                <FileText size={24} className="mb-1.5 text-slate-300" />
-                                                <p className="font-bold text-xs uppercase tracking-wider">No materials uploaded yet</p>
-                                                <label className="text-[11px] text-blue-600 font-bold hover:underline mt-1 cursor-pointer">
-                                                    Upload reference PDF
-                                                    <input
-                                                        type="file"
-                                                        accept=".pdf"
-                                                        className="hidden"
-                                                        onChange={handleUploadMaterial}
-                                                    />
-                                                </label>
-                                            </div>
-                                        )}
                                     </div>
-
-                                    {/* Scoped Chat Box */}
-                                    <div className="mt-4 pt-6 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 bg-blue-50/30 p-5 rounded-2xl">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-500/10">
-                                                <MessageSquare size={18} />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-slate-800 text-sm">Focus AI Chat on Subject</h4>
-                                                <p className="text-xs text-slate-500 leading-snug mt-0.5">
-                                                    Chat with the study assistant scope-limited to references and/or syllabus.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => navigate(`/dashboard/chat?subject=${encodeURIComponent(selectedSubject.name)}&subject_id=${selectedSubject.id}`)}
-                                            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-extrabold shadow-sm active:scale-95 transition-all w-full md:w-auto"
-                                        >
-                                            Open Chat (All Subject Docs)
-                                        </button>
+                                ) : (
+                                    <div className="bg-white border border-dashed border-[#D7D3CF] rounded-[4px] p-6 text-center">
+                                        <Upload size={24} className="text-[#666666] mx-auto mb-2" />
+                                        <h4 className="text-xs font-bold text-[#111111]">No Syllabus Uploaded</h4>
+                                        <p className="text-xs font-mono text-[#666666] mt-1 max-w-sm mx-auto mb-3">
+                                            Upload the official curriculum PDF to enable chapter planning and scoped assistance.
+                                        </p>
+                                        <label className="px-4 py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider cursor-pointer inline-flex items-center gap-1.5 transition-colors">
+                                            <Upload size={14} />
+                                            <span>UPLOAD SYLLABUS</span>
+                                            <input
+                                                type="file"
+                                                accept=".pdf"
+                                                className="hidden"
+                                                onChange={(e) => handleUploadSyllabus(e, false)}
+                                            />
+                                        </label>
                                     </div>
+                                )}
 
-                                </div>
-                            </motion.div>
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center py-24 bg-white rounded-[2.5rem] border border-slate-100 border-dashed shadow-sm">
-                                <div className="bg-slate-50 p-8 rounded-full mb-6">
-                                    <FileText size={48} className="text-slate-300" />
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-700 mb-2">Workspace & Subject details</h3>
-                                <p className="text-center max-w-sm px-6 text-slate-400 font-medium text-sm leading-relaxed">
-                                    Select or create a subject in the left column. From there you can manage the official syllabus mapping and index materials for testing.
-                                </p>
+                                {uploadProgress && (
+                                    <div className="p-3 bg-white border border-[#D7D3CF] rounded-[4px] text-xs font-mono text-[#102326] flex items-center gap-2">
+                                        <RefreshCw size={14} className="animate-spin" />
+                                        <span>{uploadProgress}</span>
+                                    </div>
+                                )}
+
+                                {uploadError && (
+                                    <div className="p-3 bg-[#FFFDFB] border border-[#D7D3CF] rounded-[4px] text-xs font-mono text-[#C96A32] flex items-center gap-2">
+                                        <AlertCircle size={14} />
+                                        <span>{uploadError}</span>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </AnimatePresence>
+
+                            {/* Section 2: Reference Materials */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between pb-2 border-b border-[#D7D3CF]">
+                                    <h3 className="text-xs font-mono uppercase tracking-wider text-[#111111] font-semibold flex items-center gap-2">
+                                        <Book size={14} className="text-[#102326]" />
+                                        Reference Study Materials
+                                    </h3>
+                                    <label className="px-3 py-1.5 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider cursor-pointer flex items-center gap-1 transition-colors">
+                                        <Plus size={13} />
+                                        <span>ADD MATERIAL</span>
+                                        <input
+                                            type="file"
+                                            accept=".pdf"
+                                            className="hidden"
+                                            onChange={handleUploadMaterial}
+                                        />
+                                    </label>
+                                </div>
+
+                                {materials.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {materials.map((file) => (
+                                            <div
+                                                key={file.id}
+                                                className="p-3.5 bg-white border border-[#D7D3CF] rounded-[4px] flex justify-between items-center"
+                                            >
+                                                <div className="min-w-0 pr-2">
+                                                    <p className="text-xs font-bold text-[#111111] truncate">{file.filename}</p>
+                                                    <p className="text-[10px] font-mono text-[#666666] mt-0.5">
+                                                        {new Date(file.created_at).toLocaleDateString()} • {(file.size_bytes / 1024).toFixed(0)} KB
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    <button
+                                                        onClick={() => navigate(`/dashboard/chat?subject=${encodeURIComponent(selectedSubject.name)}&subject_id=${selectedSubject.id}&doc_type=material`)}
+                                                        className="p-1.5 bg-[#F7F5F2] border border-[#D7D3CF] text-[#102326] rounded-[4px] hover:bg-[#102326] hover:text-white transition-colors"
+                                                        title="Chat Material"
+                                                    >
+                                                        <MessageSquare size={13} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteMaterial(file.id)}
+                                                        className="p-1.5 border border-[#D7D3CF] text-[#666666] hover:text-[#C96A32] rounded-[4px] transition-colors"
+                                                        title="Delete File"
+                                                    >
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="p-6 text-center text-xs font-mono text-[#666666] border border-dashed border-[#D7D3CF] bg-[#FAF9F7] rounded-[4px]">
+                                        No reference materials uploaded yet.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="h-full hidden lg:flex">
+                            {/* Empty State replaced with stats overview based on Image 1 */}
+                            <div className="w-full flex items-end gap-6 h-full pb-8">
+                                <div className="bg-white p-5 border border-[#D7D3CF] rounded-[4px] flex-1">
+                                    <p className="text-[10px] font-mono uppercase text-[#666666] font-semibold mb-2">Total Credits</p>
+                                    <p className="text-3xl font-bold text-[#111111]">{totalCredits}</p>
+                                </div>
+                                <div className="bg-white p-5 border border-[#D7D3CF] rounded-[4px] flex-1">
+                                    <p className="text-[10px] font-mono uppercase text-[#666666] font-semibold mb-2">Subjects</p>
+                                    <p className="text-3xl font-bold text-[#111111]">{filteredSubjects.length}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* MODAL: ADD SUBJECT DRAWER */}
+            {/* Modal: Add Subject */}
             {isAddOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl border border-slate-100"
-                    >
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-extrabold text-slate-800">Add New Subject</h3>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
+                    <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 max-w-md w-full space-y-4 shadow-xl">
+                        <div className="flex justify-between items-center pb-2 border-b border-[#D7D3CF]">
+                            <h3 className="text-sm font-bold text-[#111111] uppercase font-mono">Add New Subject</h3>
                             <button
                                 onClick={() => { setIsAddOpen(false); setErrorMessage(''); }}
-                                className="text-slate-450 hover:text-slate-700 font-bold p-1 hover:bg-slate-50 rounded-lg"
+                                className="text-[#666666] hover:text-[#111111]"
                             >
-                                Cancel
+                                CANCEL
                             </button>
                         </div>
 
                         <form onSubmit={handleCreateSubject} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-450 uppercase mb-2">Subject Name</label>
+                                <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Subject Name</label>
                                 <input
                                     type="text"
                                     required
-                                    placeholder="e.g. Mathematics IV"
-                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-700"
+                                    placeholder="e.g. Operating Systems"
+                                    className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs text-[#111111] outline-none transition-colors"
                                     value={subjectName}
                                     onChange={(e) => setSubjectName(e.target.value)}
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-450 uppercase mb-2">Semester</label>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="col-span-1">
+                                    <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Semester</label>
                                     <select
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-700"
+                                        className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs text-[#111111] outline-none transition-colors"
                                         value={subjectSem}
                                         onChange={(e) => setSubjectSem(parseInt(e.target.value))}
                                     >
                                         {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
-                                            <option key={s} value={s}>Semester {s}</option>
+                                            <option key={s} value={s}>Sem {s}</option>
                                         ))}
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-450 uppercase mb-2">Code (Optional)</label>
+                                <div className="col-span-1">
+                                    <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Code</label>
                                     <input
                                         type="text"
-                                        placeholder="e.g. MTH211"
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-700"
+                                        placeholder="e.g. CMP321"
+                                        required
+                                        className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs text-[#111111] outline-none transition-colors uppercase"
                                         value={subjectCode}
-                                        onChange={(e) => setSubjectCode(e.target.value)}
+                                        onChange={(e) => setSubjectCode(e.target.value.toUpperCase())}
+                                    />
+                                </div>
+                                <div className="col-span-1">
+                                    <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Credits</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="6"
+                                        required
+                                        className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs text-[#111111] outline-none transition-colors"
+                                        value={subjectCredits}
+                                        onChange={(e) => setSubjectCredits(parseInt(e.target.value))}
                                     />
                                 </div>
                             </div>
 
-                            {/* Backlog alerts */}
-                            {subjectSem !== userSemester && (
-                                <div className="bg-amber-50 text-amber-800 border border-amber-200/50 p-3 rounded-xl text-xs flex gap-2.5 font-bold">
-                                    <AlertCircle size={16} className="text-amber-600 flex-shrink-0" />
-                                    <div>
-                                        Adding as Backlog subject (allocated sem different than user current sem {userSemester}).
-                                        <span className="block mt-0.5 text-slate-400">Backlog subjects count: {backlogCount}/4</span>
-                                    </div>
-                                </div>
-                            )}
-
                             {errorMessage && (
-                                <div className="p-3 bg-rose-50 border border-rose-100 text-rose-700 text-xs font-bold rounded-xl flex items-center gap-2">
-                                    <AlertCircle size={15} />
+                                <div className="p-2.5 bg-[#FFFDFB] border border-[#D7D3CF] text-[#C96A32] text-xs font-mono rounded-[4px]">
                                     {errorMessage}
                                 </div>
                             )}
 
                             <button
                                 type="submit"
-                                disabled={isSubmitLoading || (subjectSem !== userSemester && backlogCount >= 4)}
-                                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/10 active:scale-[98] transition-all disabled:opacity-50"
+                                disabled={isSubmitLoading}
+                                className="w-full py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors disabled:opacity-50 mt-2"
                             >
-                                {isSubmitLoading ? 'Submitting...' : 'Save Subject'}
+                                {isSubmitLoading ? 'SAVING...' : 'SAVE SUBJECT'}
                             </button>
                         </form>
-                    </motion.div>
+                    </div>
                 </div>
             )}
         </div>

@@ -17,7 +17,21 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from config import Config, db
 from models.content import StudentUpload
 
+# For Phase 3: Hybrid Search and Reranking
+from rank_bm25 import BM25Okapi
+import numpy as np
+
 logger = logging.getLogger(__name__)
+
+# Lazy load reranker to save memory/startup time
+_reranker = None
+def get_reranker():
+    global _reranker
+    if _reranker is None:
+        from sentence_transformers import CrossEncoder
+        logger.info("Loading CrossEncoder reranker...")
+        _reranker = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', max_length=512)
+    return _reranker
 
 # ---------------------------------------------------------------------------
 # ChromaDB client (persistent, SQLite-backed)
@@ -44,21 +58,32 @@ def _get_collection():
 # 1. Chunking
 # ---------------------------------------------------------------------------
 _splitter = RecursiveCharacterTextSplitter(
-    chunk_size=512,
-    chunk_overlap=50,
+    chunk_size=1000,
+    chunk_overlap=200,
     length_function=len,
     separators=["\n\n", "\n", ". ", " ", ""],
     is_separator_regex=False,
 )
 
 
-def chunk_text(text: str) -> list[str]:
-    """Split raw document text into overlapping chunks."""
-    if not text or not text.strip():
-        return []
-    chunks = _splitter.split_text(text)
-    # Filter out near-empty chunks
-    return [c for c in chunks if len(c.strip()) > 30]
+def chunk_document_pages(pages: list[dict]) -> list[dict]:
+    """Split page texts into chunks, retaining page metadata."""
+    chunks_with_metadata = []
+    
+    for page in pages:
+        text = page.get("text", "")
+        page_num = page.get("page_num", 1)
+        if not text.strip():
+            continue
+            
+        page_chunks = _splitter.split_text(text)
+        for chunk in page_chunks:
+            if len(chunk.strip()) > 30:
+                chunks_with_metadata.append({
+                    "text": chunk,
+                    "page_num": page_num
+                })
+    return chunks_with_metadata
 
 
 # ---------------------------------------------------------------------------
@@ -94,7 +119,7 @@ def _embed_texts(texts: list[str]) -> list[list[float]]:
     try:
         response = requests.post(
             url,
-            params={"key": api_key},
+            headers={"x-goog-api-key": api_key},
             json=payload,
             timeout=60,
         )
@@ -130,21 +155,49 @@ def embed_texts_batched(texts: list[str]) -> list[list[float]]:
 # ---------------------------------------------------------------------------
 # 3. Full embed-and-store pipeline for a document
 # ---------------------------------------------------------------------------
-def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str):
+def embed_document(upload_id: int, user_id: int = None, filename: str = None, parsed_text: str = None):
     """
-    End-to-end: chunk text → embed → store in ChromaDB.
-    Called after a PDF is uploaded and parsed.
+    End-to-end: parse PDF -> chunk text → embed → store in ChromaDB.
+    Called after a PDF is uploaded.
     Updates embedding_status in DB on success/failure.
     """
+    import fitz # PyMuPDF
+    import os
+    
     # Mark as indexing
     upload = StudentUpload.query.get(upload_id)
     if upload:
         upload.embedding_status = 'indexing'
+        user_id = user_id or upload.user_id
+        filename = filename or upload.filename
         db.session.commit()
+    else:
+        logger.warning(f"Upload {upload_id} not found in DB.")
+        return 0
+
+    # Delete any existing embeddings to prevent orphaned chunks if re-embedding
+    delete_document_embeddings(upload_id)
 
     try:
-        chunks = chunk_text(parsed_text)
-        if not chunks:
+        pages = []
+        filepath = upload.file_url if upload else None
+        if filepath and os.path.exists(filepath):
+            try:
+                doc = fitz.open(filepath)
+                for i, page in enumerate(doc):
+                    text = page.get_text()
+                    if text.strip():
+                        pages.append({"text": text, "page_num": i + 1})
+                doc.close()
+            except Exception as e:
+                logger.error(f"Error reading PDF for embedding: {e}")
+        
+        # Fallback to parsed_text if PDF parsing fails
+        if not pages and parsed_text:
+            pages = [{"text": parsed_text, "page_num": 1}]
+
+        chunks_data = chunk_document_pages(pages)
+        if not chunks_data:
             logger.warning(f"No valid chunks for upload {upload_id}")
             if upload:
                 upload.embedding_status = 'failed'
@@ -152,10 +205,11 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
                 db.session.commit()
             return 0
 
-        logger.info(f"Embedding {len(chunks)} chunks for upload {upload_id} ({filename})")
+        chunks_text = [c["text"] for c in chunks_data]
+        logger.info(f"Embedding {len(chunks_text)} chunks for upload {upload_id} ({filename})")
 
         # Embed all chunks
-        embeddings = embed_texts_batched(chunks)
+        embeddings = embed_texts_batched(chunks_text)
 
         # Prepare ChromaDB upsert data
         collection = _get_collection()
@@ -163,17 +217,18 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
         subject_id = upload.subject_id if upload else None
         doc_type = upload.doc_type if upload else 'material'
 
-        ids = [f"upload_{upload_id}_chunk_{i}" for i in range(len(chunks))]
+        ids = [f"upload_{upload_id}_chunk_{i}" for i in range(len(chunks_text))]
         metadatas = [
             {
                 "upload_id": upload_id,
                 "user_id": user_id,
                 "filename": filename,
                 "chunk_index": i,
+                "page_num": chunks_data[i]["page_num"],
                 "subject_id": subject_id,
                 "doc_type": doc_type,
             }
-            for i in range(len(chunks))
+            for i in range(len(chunks_text))
         ]
 
         # Upsert in batches of 100 (ChromaDB recommendation)
@@ -183,7 +238,7 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
             collection.upsert(
                 ids=ids[i:end],
                 embeddings=embeddings[i:end],
-                documents=chunks[i:end],
+                documents=chunks_text[i:end],
                 metadatas=metadatas[i:end],
             )
 
@@ -193,8 +248,8 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
             upload.embedding_error = None
             db.session.commit()
 
-        logger.info(f"Successfully embedded {len(chunks)} chunks for upload {upload_id}")
-        return len(chunks)
+        logger.info(f"Successfully embedded {len(chunks_text)} chunks for upload {upload_id}")
+        return len(chunks_text)
 
     except Exception as e:
         logger.error(f"Embedding failed for upload {upload_id}: {e}")
@@ -225,6 +280,9 @@ def retrieve_context(upload_id: int = None, query: str = None, top_k: int = 8, f
             if v is not None:
                 where_filter[k] = v
 
+    if not where_filter:
+        where_filter = None
+
     if query:
         # Embed the query
         query_embedding = _embed_texts([query])[0]
@@ -248,11 +306,13 @@ def retrieve_context(upload_id: int = None, query: str = None, top_k: int = 8, f
         metadatas = results.get("metadatas", [[]])[0]
         distances = results.get("distances", [[]])[0]
         for doc, meta, dist in zip(documents, metadatas, distances):
-            chunks.append({
-                "text": doc,
-                "metadata": meta,
-                "score": 1 - dist if dist is not None else 1.0,  # Convert distance to similarity
-            })
+            score = 1 - dist if dist is not None else 1.0
+            if score >= 0.2:  # Threshold for relevance
+                chunks.append({
+                    "text": doc,
+                    "metadata": meta,
+                    "score": score,
+                })
     else:
         documents = results.get("documents", [])
         metadatas = results.get("metadatas", [])
@@ -263,12 +323,101 @@ def retrieve_context(upload_id: int = None, query: str = None, top_k: int = 8, f
                 "score": 1.0,
             })
 
-    # Sort by chunk_index for coherent ordering when no query
+        # Sort by chunk_index for coherent ordering when no query
     if not query:
         chunks.sort(key=lambda c: c["metadata"].get("chunk_index", 0))
         chunks = chunks[:top_k]
 
     return chunks
+
+
+def retrieve_context_advanced(upload_id: int = None, query: str = None, top_k: int = 8, filter_metadata: dict = None) -> list[dict]:
+    """
+    Phase 3: Hybrid Search (Dense + BM25 Sparse) + CrossEncoder Reranking
+    """
+    if not query:
+        return retrieve_context(upload_id, None, top_k, filter_metadata)
+
+    # 1. Fetch chunks using Dense Retrieval (over-fetch)
+    top_n = top_k * 4
+    dense_chunks = retrieve_context(upload_id, query, top_k=top_n, filter_metadata=filter_metadata)
+
+    # 2. Sparse Search (BM25)
+    # We fetch up to 300 chunks from this specific scope to build BM25 index
+    collection = _get_collection()
+    where_filter = {}
+    if upload_id is not None:
+        where_filter["upload_id"] = upload_id
+    if filter_metadata:
+        for k, v in filter_metadata.items():
+            if v is not None:
+                where_filter[k] = v
+
+    if not where_filter:
+        where_filter = None
+
+    results = collection.get(where=where_filter, include=["documents", "metadatas"], limit=300)
+    all_docs = results.get("documents", [])
+    all_metas = results.get("metadatas", [])
+    
+    sparse_chunks = []
+    if all_docs:
+        tokenized_corpus = [doc.lower().split() for doc in all_docs]
+        bm25 = BM25Okapi(tokenized_corpus)
+        tokenized_query = query.lower().split()
+        bm25_scores = bm25.get_scores(tokenized_query)
+        
+        # Get top-N from BM25
+        top_bm25_indices = np.argsort(bm25_scores)[::-1][:top_n]
+        for idx in top_bm25_indices:
+            if bm25_scores[idx] > 0:
+                sparse_chunks.append({
+                    "text": all_docs[idx],
+                    "metadata": all_metas[idx],
+                    "score": bm25_scores[idx]
+                })
+
+    # 3. Reciprocal Rank Fusion (RRF)
+    def compute_rrf(chunks_list, k=60):
+        rrf_scores = {}
+        chunks_map = {}
+        for rank, chunk in enumerate(chunks_list):
+            chunk_id = f"{chunk['metadata']['upload_id']}_{chunk['metadata']['chunk_index']}"
+            chunks_map[chunk_id] = chunk
+            rrf_scores[chunk_id] = rrf_scores.get(chunk_id, 0.0) + 1.0 / (k + rank + 1)
+        return rrf_scores, chunks_map
+
+    dense_rrf, dense_map = compute_rrf(dense_chunks)
+    sparse_rrf, sparse_map = compute_rrf(sparse_chunks)
+
+    # Combine RRF scores
+    combined_scores = {}
+    combined_map = {**dense_map, **sparse_map}
+    for chunk_id in combined_map:
+        combined_scores[chunk_id] = dense_rrf.get(chunk_id, 0.0) + sparse_rrf.get(chunk_id, 0.0)
+
+    # Sort by RRF and take top 2*K for reranking
+    sorted_fused = sorted(combined_scores.items(), key=lambda x: x[1], reverse=True)[:top_k * 2]
+    fused_chunks = [combined_map[cid] for cid, score in sorted_fused]
+
+    if not fused_chunks:
+        return []
+
+    # 4. Reranking (Cross-Encoder)
+    reranker = get_reranker()
+    pairs = [[query, chunk["text"]] for chunk in fused_chunks]
+    try:
+        rerank_scores = reranker.predict(pairs)
+        for chunk, r_score in zip(fused_chunks, rerank_scores):
+            chunk["score"] = float(r_score)  # Replace score with rerank score
+        
+        # Sort by rerank score
+        fused_chunks.sort(key=lambda c: c["score"], reverse=True)
+    except Exception as e:
+        logger.error(f"Reranking failed: {e}")
+
+    # Return final top-K
+    return fused_chunks[:top_k]
 
 
 def get_full_context(upload_id: int, max_chunks: int = 15) -> str:
@@ -294,9 +443,18 @@ def get_full_context(upload_id: int, max_chunks: int = 15) -> str:
     paired = paired[:max_chunks]
 
     context_parts = []
+    current_length = 0
+    MAX_CONTEXT_CHARS = 24000
     for doc, meta in paired:
         idx = meta.get("chunk_index", "?")
-        context_parts.append(f"[Section {idx}]\n{doc}")
+        page_num = meta.get("page_num", "?")
+        part = f"[Section {idx} | Page {page_num}]\n{doc}"
+        
+        if current_length + len(part) > MAX_CONTEXT_CHARS:
+            break
+            
+        context_parts.append(part)
+        current_length += len(part)
 
     return "\n\n---\n\n".join(context_parts)
 

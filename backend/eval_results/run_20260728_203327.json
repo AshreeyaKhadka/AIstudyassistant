@@ -1,0 +1,1006 @@
+{
+  "timestamp": "2026-07-28T20:30:19.699514",
+  "queries_count": 3,
+  "results": {
+    "Dense Vector Search": {
+      "k=3": {
+        "queries": [
+          {
+            "query": "What is the role of a data scientist?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 1,
+                "judge_reasoning": "The chunk contains a heading titled 'Role of Data Scientist,' which indicates the topic is present in the source material. However, it provides no substantive information or description of what the role actually entails, acting only as a table of contents entry."
+              },
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The provided text discusses the challenges of large datasets and the technologies used to address them in the context of a course description. It does not mention or define the role of a data scientist."
+              },
+              {
+                "text": "they answer these challenges.\n \nObjective of the Course:- To introduce student to current scenarios of big data \nand provide various facets of big data. It also provides them with technologies \nplaying key role in it and equips them with necessary knowledge to use them for \nsolving various big data problems in different domains.\n \nCourse Contents\n1\nIntroduction to Big Data\n8 hrs\n1.1\nBig Data Overview\n1.2\nBackground of Data Analytics\n1.3\nRole of Distributed System in Big Data\n1.4\nRole of Data Scientist\n1.5",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 1,
+                "judge_reasoning": "The chunk identifies 'Role of Data Scientist' as a specific topic within a course syllabus and mentions that they 'answer these challenges' related to big data, but it does not provide a substantive description or definition of what the role actually entails."
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.6666666666666666
+          },
+          {
+            "query": "How many hours for Google File System?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 2,
+                "judge_reasoning": "The chunk explicitly states that 'Google File System' is allocated '7 hrs', which directly and substantively answers the query."
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The chunk lists the Google File System as a reference for a big data scenario but provides no information regarding the number of hours or time duration allocated to the topic."
+              },
+              {
+                "text": "file system operation on it using commands provided, monitor cluster \nperformance\n2.\nMap-Reduce: Write various MR programs dealing with different aspects of it \nas studied in course\n3.\nHbase: Setup of Hbase in single node and distributed mode, write program \nto write into hbase and query it\n4.\nElastic Search: Setup elastic search in single mode and distributed mode, \nDefine template, Write data in it and finally query it\n \n5.\nFinal Assignment: A final assignment covering all aspect studied in order to",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The chunk does not mention Google File System specifically, nor does it contain any information regarding time duration or hours. It appears to be a list of lab assignments for various big data technologies."
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.6666666666666666
+          },
+          {
+            "query": "What is the optimization goal?",
+            "retrieved_chunks": [
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The provided text discusses general challenges in big data storage, analysis, and search, and introduces a course on the subject. It does not mention or define any specific optimization goal."
+              },
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "\ufffd On each sequence of pass, mark the pair (r, s) if for any a \u03b5 \u03a3, \u03b4(r, a) = p and \u03b4(s, a) = q \nand (p, q) is already marked. \n\ufffd After a pass in which no new pairs are to be marked, stop \n\ufffd Then marked pairs (p, q) are those for which p q and unmarked pairs are those for which  \np \u2261 q. \n \nExample \n \n \n \nNow to solve this problem first we should determine weather the pair is distinguishable or not. \n \n \n \n \n \n \n \n \n \n \n \nFor pair (b, a) \nFor more notes visit https://collegenote.pythonanywhere.com",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          }
+        ],
+        "summary": {
+          "hit_rate": 0.0,
+          "precision_at_k": 0.0,
+          "recall_at_k": 0.0,
+          "context_relevance": 0.4444444444444444
+        }
+      },
+      "k=5": {
+        "queries": [
+          {
+            "query": "What is the role of a data scientist?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "they answer these challenges.\n \nObjective of the Course:- To introduce student to current scenarios of big data \nand provide various facets of big data. It also provides them with technologies \nplaying key role in it and equips them with necessary knowledge to use them for \nsolving various big data problems in different domains.\n \nCourse Contents\n1\nIntroduction to Big Data\n8 hrs\n1.1\nBig Data Overview\n1.2\nBackground of Data Analytics\n1.3\nRole of Distributed System in Big Data\n1.4\nRole of Data Scientist\n1.5",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "4.\nhttp://hadoop.apache.org/\n5.\nhttp://hbase.apache.org/  \n6.\nhttp://www.elasticsearch.org/guide/\n7.\nTom White, Hadoop: The Definitive Guide\n8.\nLars George, Hbase: The Definitive Guide\n9.\nJason Rutherglen, Ryan Tabora, Jack Krupansky, Lucene and Solr: The \nDefinitive Guide",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          },
+          {
+            "query": "How many hours for Google File System?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "file system operation on it using commands provided, monitor cluster \nperformance\n2.\nMap-Reduce: Write various MR programs dealing with different aspects of it \nas studied in course\n3.\nHbase: Setup of Hbase in single node and distributed mode, write program \nto write into hbase and query it\n4.\nElastic Search: Setup elastic search in single mode and distributed mode, \nDefine template, Write data in it and finally query it\n \n5.\nFinal Assignment: A final assignment covering all aspect studied in order to",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "3.5\nScalability goal\n3.6\nFault tolerance\n3.7\nOptimization and data locality\n3.8\nParallel Efficiency of Map-Reduce\n \n4\nNoSQL\n6 Hrs\n4.1\nStructured and Unstructured Data\n4.2\nTaxonomy of NoSQL Implementation\n4.3\nDiscussion of basic architecture of Hbase, Cassandra and MongoDb\n \n5\nSearching and Indexing Big Data\n7 Hrs\n5.1\nFull text Indexing and Searching\n5.2\nIndexing with Lucene\n5.3\nDistributed Searching with elasticsearch\n \n6\nCase Study: Hadoop\n5 Hrs\n6.1\nIntroduction to Hadoop Environment\n6.2\nData Flow\n6.3",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          },
+          {
+            "query": "What is the optimization goal?",
+            "retrieved_chunks": [
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "\ufffd On each sequence of pass, mark the pair (r, s) if for any a \u03b5 \u03a3, \u03b4(r, a) = p and \u03b4(s, a) = q \nand (p, q) is already marked. \n\ufffd After a pass in which no new pairs are to be marked, stop \n\ufffd Then marked pairs (p, q) are those for which p q and unmarked pairs are those for which  \np \u2261 q. \n \nExample \n \n \n \nNow to solve this problem first we should determine weather the pair is distinguishable or not. \n \n \n \n \n \n \n \n \n \n \n \nFor pair (b, a) \nFor more notes visit https://collegenote.pythonanywhere.com",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "the strings we want to accept. This is what the regular expression offer that the automata do not. \nMany system uses regular expression as input language. Some of them are: \n \n\uf0b7 Search commands such as UNIX grep. \n\uf0b7 Lexical analyzer generator such as LEX or FLEX. Lexical analyzer is a component of \ncompiler that breaks the source program into logical unit called tokens. \n \nDefining Regular expressions \n \nA regular expression is built up out of simpler regular expression using a set of defining rules.",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "they answer these challenges.\n \nObjective of the Course:- To introduce student to current scenarios of big data \nand provide various facets of big data. It also provides them with technologies \nplaying key role in it and equips them with necessary knowledge to use them for \nsolving various big data problems in different domains.\n \nCourse Contents\n1\nIntroduction to Big Data\n8 hrs\n1.1\nBig Data Overview\n1.2\nBackground of Data Analytics\n1.3\nRole of Distributed System in Big Data\n1.4\nRole of Data Scientist\n1.5",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The provided text chunk describes the objectives and introductory contents of a Big Data course. It does not mention or address any specific optimization goal."
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          }
+        ],
+        "summary": {
+          "hit_rate": 0.0,
+          "precision_at_k": 0.0,
+          "recall_at_k": 0.0,
+          "context_relevance": 0.0
+        }
+      },
+      "k=10": {
+        "queries": [
+          {
+            "query": "What is the role of a data scientist?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "they answer these challenges.\n \nObjective of the Course:- To introduce student to current scenarios of big data \nand provide various facets of big data. It also provides them with technologies \nplaying key role in it and equips them with necessary knowledge to use them for \nsolving various big data problems in different domains.\n \nCourse Contents\n1\nIntroduction to Big Data\n8 hrs\n1.1\nBig Data Overview\n1.2\nBackground of Data Analytics\n1.3\nRole of Distributed System in Big Data\n1.4\nRole of Data Scientist\n1.5",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "4.\nhttp://hadoop.apache.org/\n5.\nhttp://hbase.apache.org/  \n6.\nhttp://www.elasticsearch.org/guide/\n7.\nTom White, Hadoop: The Definitive Guide\n8.\nLars George, Hbase: The Definitive Guide\n9.\nJason Rutherglen, Ryan Tabora, Jack Krupansky, Lucene and Solr: The \nDefinitive Guide",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "6.2\nData Flow\n6.3\nHadoop I/O\n6.4\nQuery languages for Hadoop\n6.5\nHadoop and Amazon Cloud\n \nPractical\nStudent will get opportunity to work in big data technologies using various \ndummy as well as real world problems that will cover all the aspects discussed in \ncourse. It will help them gain practical insights in knowing about problems faced \nand how to tackle them using knowledge of tools learned in course.\n1.\nHDFS: Setup a hdfs in a single node to multi node cluster, perform basic",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "file system operation on it using commands provided, monitor cluster \nperformance\n2.\nMap-Reduce: Write various MR programs dealing with different aspects of it \nas studied in course\n3.\nHbase: Setup of Hbase in single node and distributed mode, write program \nto write into hbase and query it\n4.\nElastic Search: Setup elastic search in single mode and distributed mode, \nDefine template, Write data in it and finally query it\n \n5.\nFinal Assignment: A final assignment covering all aspect studied in order to",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Big Data Technologies\n \nCourse Code\n \nLevel\nB.E.\nLecture\n3\nProgram\nComputer Engineering/Software \nEngineering/Computer Science and \nInformation Technology\nTutorial\n1\nYear\nIV\nPractical\n \nCourse Proposed by Sumit Shrestha, Kushum Sharma\n \n \nExamination \nScheme\n \n \n \nInternal\nFinal\nExamination \nDuration\nRemarks\n20\n80\n3 Hrs\nInternal Assessment may include minor \ntests,\nassignments and small project works\n \nCourse Description: - The growth of information systems has given rise to large",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "3.5\nScalability goal\n3.6\nFault tolerance\n3.7\nOptimization and data locality\n3.8\nParallel Efficiency of Map-Reduce\n \n4\nNoSQL\n6 Hrs\n4.1\nStructured and Unstructured Data\n4.2\nTaxonomy of NoSQL Implementation\n4.3\nDiscussion of basic architecture of Hbase, Cassandra and MongoDb\n \n5\nSearching and Indexing Big Data\n7 Hrs\n5.1\nFull text Indexing and Searching\n5.2\nIndexing with Lucene\n5.3\nDistributed Searching with elasticsearch\n \n6\nCase Study: Hadoop\n5 Hrs\n6.1\nIntroduction to Hadoop Environment\n6.2\nData Flow\n6.3",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "the strings we want to accept. This is what the regular expression offer that the automata do not. \nMany system uses regular expression as input language. Some of them are: \n \n\uf0b7 Search commands such as UNIX grep. \n\uf0b7 Lexical analyzer generator such as LEX or FLEX. Lexical analyzer is a component of \ncompiler that breaks the source program into logical unit called tokens. \n \nDefining Regular expressions \n \nA regular expression is built up out of simpler regular expression using a set of defining rules.",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          },
+          {
+            "query": "How many hours for Google File System?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "file system operation on it using commands provided, monitor cluster \nperformance\n2.\nMap-Reduce: Write various MR programs dealing with different aspects of it \nas studied in course\n3.\nHbase: Setup of Hbase in single node and distributed mode, write program \nto write into hbase and query it\n4.\nElastic Search: Setup elastic search in single mode and distributed mode, \nDefine template, Write data in it and finally query it\n \n5.\nFinal Assignment: A final assignment covering all aspect studied in order to",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "3.5\nScalability goal\n3.6\nFault tolerance\n3.7\nOptimization and data locality\n3.8\nParallel Efficiency of Map-Reduce\n \n4\nNoSQL\n6 Hrs\n4.1\nStructured and Unstructured Data\n4.2\nTaxonomy of NoSQL Implementation\n4.3\nDiscussion of basic architecture of Hbase, Cassandra and MongoDb\n \n5\nSearching and Indexing Big Data\n7 Hrs\n5.1\nFull text Indexing and Searching\n5.2\nIndexing with Lucene\n5.3\nDistributed Searching with elasticsearch\n \n6\nCase Study: Hadoop\n5 Hrs\n6.1\nIntroduction to Hadoop Environment\n6.2\nData Flow\n6.3",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "6.2\nData Flow\n6.3\nHadoop I/O\n6.4\nQuery languages for Hadoop\n6.5\nHadoop and Amazon Cloud\n \nPractical\nStudent will get opportunity to work in big data technologies using various \ndummy as well as real world problems that will cover all the aspects discussed in \ncourse. It will help them gain practical insights in knowing about problems faced \nand how to tackle them using knowledge of tools learned in course.\n1.\nHDFS: Setup a hdfs in a single node to multi node cluster, perform basic",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "4.\nhttp://hadoop.apache.org/\n5.\nhttp://hbase.apache.org/  \n6.\nhttp://www.elasticsearch.org/guide/\n7.\nTom White, Hadoop: The Definitive Guide\n8.\nLars George, Hbase: The Definitive Guide\n9.\nJason Rutherglen, Ryan Tabora, Jack Krupansky, Lucene and Solr: The \nDefinitive Guide",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "they answer these challenges.\n \nObjective of the Course:- To introduce student to current scenarios of big data \nand provide various facets of big data. It also provides them with technologies \nplaying key role in it and equips them with necessary knowledge to use them for \nsolving various big data problems in different domains.\n \nCourse Contents\n1\nIntroduction to Big Data\n8 hrs\n1.1\nBig Data Overview\n1.2\nBackground of Data Analytics\n1.3\nRole of Distributed System in Big Data\n1.4\nRole of Data Scientist\n1.5",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Big Data Technologies\n \nCourse Code\n \nLevel\nB.E.\nLecture\n3\nProgram\nComputer Engineering/Software \nEngineering/Computer Science and \nInformation Technology\nTutorial\n1\nYear\nIV\nPractical\n \nCourse Proposed by Sumit Shrestha, Kushum Sharma\n \n \nExamination \nScheme\n \n \n \nInternal\nFinal\nExamination \nDuration\nRemarks\n20\n80\n3 Hrs\nInternal Assessment may include minor \ntests,\nassignments and small project works\n \nCourse Description: - The growth of information systems has given rise to large",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The chunk provides general course information for a Big Data Technologies course, including total lecture and tutorial hours for the entire course, but it does not mention Google File System or the specific hours allocated to that topic."
+              },
+              {
+                "text": "(\u03b4(h,1), \u03b4(g,1)) = (c, e) -marked. \nThus (a, e), (b, h) and (d, f) are equivalent pairs of states. \n \nHence the minimized DFA is \n \n \n \nSee another simple approaches from Asesh Kumar Pandey\u201fs Book. \nFor more notes visit https://collegenote.pythonanywhere.com",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The chunk discusses DFA minimization and state equivalence in automata theory, which is entirely unrelated to the Google File System or any time-related metrics for it."
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          },
+          {
+            "query": "What is the optimization goal?",
+            "retrieved_chunks": [
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The provided text discusses general challenges related to data storage, analysis, and search, and introduces a course on the subject. It does not mention or define a specific optimization goal."
+              },
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The chunk is a syllabus or table of contents that lists 'Optimization for large scale data' and 'Scalability goal' as topics. It does not provide any substantive information or an actual answer to what the optimization goal is; it only contains superficial keyword matches."
+              },
+              {
+                "text": "\ufffd On each sequence of pass, mark the pair (r, s) if for any a \u03b5 \u03a3, \u03b4(r, a) = p and \u03b4(s, a) = q \nand (p, q) is already marked. \n\ufffd After a pass in which no new pairs are to be marked, stop \n\ufffd Then marked pairs (p, q) are those for which p q and unmarked pairs are those for which  \np \u2261 q. \n \nExample \n \n \n \nNow to solve this problem first we should determine weather the pair is distinguishable or not. \n \n \n \n \n \n \n \n \n \n \n \nFor pair (b, a) \nFor more notes visit https://collegenote.pythonanywhere.com",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 1,
+                "judge_reasoning": "The chunk describes the technical steps of the Table Filling Algorithm, which is used for DFA minimization (an optimization process). While it explains how to identify equivalent states, it does not explicitly state that the 'optimization goal' is to minimize the number of states in the automaton."
+              },
+              {
+                "text": "the strings we want to accept. This is what the regular expression offer that the automata do not. \nMany system uses regular expression as input language. Some of them are: \n \n\uf0b7 Search commands such as UNIX grep. \n\uf0b7 Lexical analyzer generator such as LEX or FLEX. Lexical analyzer is a component of \ncompiler that breaks the source program into logical unit called tokens. \n \nDefining Regular expressions \n \nA regular expression is built up out of simpler regular expression using a set of defining rules.",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The provided text discusses the definition and applications of regular expressions, such as their use in search commands and lexical analyzers. It does not mention optimization or any specific optimization goals."
+              },
+              {
+                "text": "they answer these challenges.\n \nObjective of the Course:- To introduce student to current scenarios of big data \nand provide various facets of big data. It also provides them with technologies \nplaying key role in it and equips them with necessary knowledge to use them for \nsolving various big data problems in different domains.\n \nCourse Contents\n1\nIntroduction to Big Data\n8 hrs\n1.1\nBig Data Overview\n1.2\nBackground of Data Analytics\n1.3\nRole of Distributed System in Big Data\n1.4\nRole of Data Scientist\n1.5",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The chunk describes a pedagogical objective (demonstrating student problem-solving capability) rather than a technical or mathematical optimization goal. It does not contain information relevant to the query."
+              },
+              {
+                "text": "file system operation on it using commands provided, monitor cluster \nperformance\n2.\nMap-Reduce: Write various MR programs dealing with different aspects of it \nas studied in course\n3.\nHbase: Setup of Hbase in single node and distributed mode, write program \nto write into hbase and query it\n4.\nElastic Search: Setup elastic search in single mode and distributed mode, \nDefine template, Write data in it and finally query it\n \n5.\nFinal Assignment: A final assignment covering all aspect studied in order to",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Minimization of DFA \n \nGiven a DFA M, that accepts a language L (M). Now, configure a DFA M \u2017. During the \ncourse of minimization, it involves identifying the equivalent states and distinguishable \nstates. \n \n \nFor more notes visit https://collegenote.pythonanywhere.com\nCompiled by Tej Shahi  \nPage 47 \n \nEquivalent States: Two states p & q are called equivalent states, denoted by p \u2261 q if and \nonly if for each input string x,  \u0302 (p, x) is a final state if and only if  \u0302(q, x) is a final state.",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Distinguishable state: Two states p & q are said to be distinguishable states if (for any) \nthere exists a string x, such that  \u0302(p, x) is a final state  \u0302(q, x) is not a final state. \n \nFor minimization, the table filling algorithm is used. The steps of the algorithm are; \nFor identifying the pairs (p, q) with p \u2260 q; \n \n\ufffd List all the pairs of states for which p \u2260 q. \n\ufffd Make a sequence of passes through each pairs. \n\ufffd On first pass, mark the pair for which exactly one element is final (F).",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "(\u03b4(h,1), \u03b4(g,1)) = (c, e) -marked. \nThus (a, e), (b, h) and (d, f) are equivalent pairs of states. \n \nHence the minimized DFA is \n \n \n \nSee another simple approaches from Asesh Kumar Pandey\u201fs Book. \nFor more notes visit https://collegenote.pythonanywhere.com",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.1
+          }
+        ],
+        "summary": {
+          "hit_rate": 0.0,
+          "precision_at_k": 0.0,
+          "recall_at_k": 0.0,
+          "context_relevance": 0.03333333333333333
+        }
+      }
+    },
+    "Hybrid + Rerank Search": {
+      "k=3": {
+        "queries": [
+          {
+            "query": "What is the role of a data scientist?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "they answer these challenges.\n \nObjective of the Course:- To introduce student to current scenarios of big data \nand provide various facets of big data. It also provides them with technologies \nplaying key role in it and equips them with necessary knowledge to use them for \nsolving various big data problems in different domains.\n \nCourse Contents\n1\nIntroduction to Big Data\n8 hrs\n1.1\nBig Data Overview\n1.2\nBackground of Data Analytics\n1.3\nRole of Distributed System in Big Data\n1.4\nRole of Data Scientist\n1.5",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          },
+          {
+            "query": "How many hours for Google File System?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "file system operation on it using commands provided, monitor cluster \nperformance\n2.\nMap-Reduce: Write various MR programs dealing with different aspects of it \nas studied in course\n3.\nHbase: Setup of Hbase in single node and distributed mode, write program \nto write into hbase and query it\n4.\nElastic Search: Setup elastic search in single mode and distributed mode, \nDefine template, Write data in it and finally query it\n \n5.\nFinal Assignment: A final assignment covering all aspect studied in order to",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          },
+          {
+            "query": "What is the optimization goal?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 1,
+                "judge_reasoning": "The chunk mentions 'Optimization for large scale data' and 'Scalability goal' as topics in a syllabus, but it does not provide the actual content or definition of what the optimization goal is."
+              },
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Distinguishable state: Two states p & q are said to be distinguishable states if (for any) \nthere exists a string x, such that  \u0302(p, x) is a final state  \u0302(q, x) is not a final state. \n \nFor minimization, the table filling algorithm is used. The steps of the algorithm are; \nFor identifying the pairs (p, q) with p \u2260 q; \n \n\ufffd List all the pairs of states for which p \u2260 q. \n\ufffd Make a sequence of passes through each pairs. \n\ufffd On first pass, mark the pair for which exactly one element is final (F).",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.3333333333333333
+          }
+        ],
+        "summary": {
+          "hit_rate": 0.0,
+          "precision_at_k": 0.0,
+          "recall_at_k": 0.0,
+          "context_relevance": 0.1111111111111111
+        }
+      },
+      "k=5": {
+        "queries": [
+          {
+            "query": "What is the role of a data scientist?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "they answer these challenges.\n \nObjective of the Course:- To introduce student to current scenarios of big data \nand provide various facets of big data. It also provides them with technologies \nplaying key role in it and equips them with necessary knowledge to use them for \nsolving various big data problems in different domains.\n \nCourse Contents\n1\nIntroduction to Big Data\n8 hrs\n1.1\nBig Data Overview\n1.2\nBackground of Data Analytics\n1.3\nRole of Distributed System in Big Data\n1.4\nRole of Data Scientist\n1.5",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "6.2\nData Flow\n6.3\nHadoop I/O\n6.4\nQuery languages for Hadoop\n6.5\nHadoop and Amazon Cloud\n \nPractical\nStudent will get opportunity to work in big data technologies using various \ndummy as well as real world problems that will cover all the aspects discussed in \ncourse. It will help them gain practical insights in knowing about problems faced \nand how to tackle them using knowledge of tools learned in course.\n1.\nHDFS: Setup a hdfs in a single node to multi node cluster, perform basic",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The provided text is a course syllabus or outline focusing on Hadoop, big data technologies, and practical lab exercises. It does not define or describe the role of a data scientist."
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          },
+          {
+            "query": "How many hours for Google File System?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "The chunk lists the Google File System as a reference but does not provide any information regarding the number of hours or duration associated with it as requested in the query."
+              },
+              {
+                "text": "file system operation on it using commands provided, monitor cluster \nperformance\n2.\nMap-Reduce: Write various MR programs dealing with different aspects of it \nas studied in course\n3.\nHbase: Setup of Hbase in single node and distributed mode, write program \nto write into hbase and query it\n4.\nElastic Search: Setup elastic search in single mode and distributed mode, \nDefine template, Write data in it and finally query it\n \n5.\nFinal Assignment: A final assignment covering all aspect studied in order to",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "3.5\nScalability goal\n3.6\nFault tolerance\n3.7\nOptimization and data locality\n3.8\nParallel Efficiency of Map-Reduce\n \n4\nNoSQL\n6 Hrs\n4.1\nStructured and Unstructured Data\n4.2\nTaxonomy of NoSQL Implementation\n4.3\nDiscussion of basic architecture of Hbase, Cassandra and MongoDb\n \n5\nSearching and Indexing Big Data\n7 Hrs\n5.1\nFull text Indexing and Searching\n5.2\nIndexing with Lucene\n5.3\nDistributed Searching with elasticsearch\n \n6\nCase Study: Hadoop\n5 Hrs\n6.1\nIntroduction to Hadoop Environment\n6.2\nData Flow\n6.3",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Each regular expression \u2017r\u2018 denotes a language L(r). The defining rules specify how L(r) is \nformed by combining in various ways the languages denoted by the sub expressions of \u2017r\u2018. \n \nHere is the method: \n \nLet \u03a3 be an alphabet, the regular expression over the alphabet \u03a3 are defined inductively \nas follows; \n \nBasic steps: \n \n-\u03a6 is a regular expression representing empty language. \n-\u0404 is a regular expression representing the language of empty strings. i.e.{ \u0404}",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          },
+          {
+            "query": "What is the optimization goal?",
+            "retrieved_chunks": [
+              {
+                "text": "3.5\nScalability goal\n3.6\nFault tolerance\n3.7\nOptimization and data locality\n3.8\nParallel Efficiency of Map-Reduce\n \n4\nNoSQL\n6 Hrs\n4.1\nStructured and Unstructured Data\n4.2\nTaxonomy of NoSQL Implementation\n4.3\nDiscussion of basic architecture of Hbase, Cassandra and MongoDb\n \n5\nSearching and Indexing Big Data\n7 Hrs\n5.1\nFull text Indexing and Searching\n5.2\nIndexing with Lucene\n5.3\nDistributed Searching with elasticsearch\n \n6\nCase Study: Hadoop\n5 Hrs\n6.1\nIntroduction to Hadoop Environment\n6.2\nData Flow\n6.3",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Distinguishable state: Two states p & q are said to be distinguishable states if (for any) \nthere exists a string x, such that  \u0302(p, x) is a final state  \u0302(q, x) is not a final state. \n \nFor minimization, the table filling algorithm is used. The steps of the algorithm are; \nFor identifying the pairs (p, q) with p \u2260 q; \n \n\ufffd List all the pairs of states for which p \u2260 q. \n\ufffd Make a sequence of passes through each pairs. \n\ufffd On first pass, mark the pair for which exactly one element is final (F).",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "the strings we want to accept. This is what the regular expression offer that the automata do not. \nMany system uses regular expression as input language. Some of them are: \n \n\uf0b7 Search commands such as UNIX grep. \n\uf0b7 Lexical analyzer generator such as LEX or FLEX. Lexical analyzer is a component of \ncompiler that breaks the source program into logical unit called tokens. \n \nDefining Regular expressions \n \nA regular expression is built up out of simpler regular expression using a set of defining rules.",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          }
+        ],
+        "summary": {
+          "hit_rate": 0.0,
+          "precision_at_k": 0.0,
+          "recall_at_k": 0.0,
+          "context_relevance": 0.0
+        }
+      },
+      "k=10": {
+        "queries": [
+          {
+            "query": "What is the role of a data scientist?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "they answer these challenges.\n \nObjective of the Course:- To introduce student to current scenarios of big data \nand provide various facets of big data. It also provides them with technologies \nplaying key role in it and equips them with necessary knowledge to use them for \nsolving various big data problems in different domains.\n \nCourse Contents\n1\nIntroduction to Big Data\n8 hrs\n1.1\nBig Data Overview\n1.2\nBackground of Data Analytics\n1.3\nRole of Distributed System in Big Data\n1.4\nRole of Data Scientist\n1.5",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "amount of data which do not qualify as traditional definition of data. This scenario \nhas given us new possibilities but at same time pose serious challenges. Such \nchallenges lies in effective storage, analysis and search of such large set of data. \nFortunately, a number of technologies have been developed that answer such \nchallenges. This course introduces this scenario along with technologies and how \nthey answer these challenges.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "6.2\nData Flow\n6.3\nHadoop I/O\n6.4\nQuery languages for Hadoop\n6.5\nHadoop and Amazon Cloud\n \nPractical\nStudent will get opportunity to work in big data technologies using various \ndummy as well as real world problems that will cover all the aspects discussed in \ncourse. It will help them gain practical insights in knowing about problems faced \nand how to tackle them using knowledge of tools learned in course.\n1.\nHDFS: Setup a hdfs in a single node to multi node cluster, perform basic",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Big Data Technologies\n \nCourse Code\n \nLevel\nB.E.\nLecture\n3\nProgram\nComputer Engineering/Software \nEngineering/Computer Science and \nInformation Technology\nTutorial\n1\nYear\nIV\nPractical\n \nCourse Proposed by Sumit Shrestha, Kushum Sharma\n \n \nExamination \nScheme\n \n \n \nInternal\nFinal\nExamination \nDuration\nRemarks\n20\n80\n3 Hrs\nInternal Assessment may include minor \ntests,\nassignments and small project works\n \nCourse Description: - The growth of information systems has given rise to large",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Application of regular languages: \n \nValidation: Determining that a string complies with a set of formatting \nconstraints. Like email address validation, password validation etc. \n \nSearch and Selection: Identifying a subset of items from a larger set on the \nbasis of a pattern match. \n \nTokenization: Converting a sequence of characters into words, tokens (like \nkeywords, identifiers) for later interpretation. \n \nAlgebraic Rules/laws for regular expression",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "the strings we want to accept. This is what the regular expression offer that the automata do not. \nMany system uses regular expression as input language. Some of them are: \n \n\uf0b7 Search commands such as UNIX grep. \n\uf0b7 Lexical analyzer generator such as LEX or FLEX. Lexical analyzer is a component of \ncompiler that breaks the source program into logical unit called tokens. \n \nDefining Regular expressions \n \nA regular expression is built up out of simpler regular expression using a set of defining rules.",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "3.5\nScalability goal\n3.6\nFault tolerance\n3.7\nOptimization and data locality\n3.8\nParallel Efficiency of Map-Reduce\n \n4\nNoSQL\n6 Hrs\n4.1\nStructured and Unstructured Data\n4.2\nTaxonomy of NoSQL Implementation\n4.3\nDiscussion of basic architecture of Hbase, Cassandra and MongoDb\n \n5\nSearching and Indexing Big Data\n7 Hrs\n5.1\nFull text Indexing and Searching\n5.2\nIndexing with Lucene\n5.3\nDistributed Searching with elasticsearch\n \n6\nCase Study: Hadoop\n5 Hrs\n6.1\nIntroduction to Hadoop Environment\n6.2\nData Flow\n6.3",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "i.e. \u03a6.r = r. \u03a6 = \u03a6 \n6. Idempotent law of union: For any regular expression r representing the      \n   regular language L(r), r + r = r. This is the idempotent law of union. \n7. Law of closure: for any regular expression r, representing the regular  \n   language L(r),then \n-(r*)*=r* \n-Closure of \u03a6 = \u03a6* = \u0404 \n-Closure of \u0404 = \u0404* = \u0404 \n-Positive closure of r, r+ = rr*. \nExamples \n \nConsider \u03a3 = {0, 1}, then some regular expressions over \u03a3 are ; \n\uf0b7 0*10* is RE that represents language {w|w contains a single 1}",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          },
+          {
+            "query": "How many hours for Google File System?",
+            "retrieved_chunks": [
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "demonstrate problem solving capability of students in big data scenario.\n \nReferences\n1.\nJeffrey Dean, Sanjay Ghemawat, MapReduce:Simplified Data Processing on \nLarge Clusters\n2.\nSanjay Ghemawat, Howard Gobioff, and Shun-Tak Leung, The Google File \nSystem\n3.\nFay Chang, Jeffrey Dean, Sanjay Ghemawat, Wilson C. Hsieh, Deborah \nA. Wallach, Mike Burrows, Tushar Chandra, Andrew Fikes, and Robert E. \nGruber, Bigtable: A Distributed Storage System for Structured Data\n4.\nhttp://hadoop.apache.org/\n5.",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "For pair (f, e) \n(\u03b4(f, 0), \u03b4(e, 0)) = (c, h) \u2013 marked \n \nFor pair (g, e) \n(\u03b4(g, 0), \u03b4(e, 0)) = (g, h) \u2013 unmarked \n(\u03b4(g,1), \u03b4(e,1)) = (e, f) -marked. \n \nFor pair (h, e) \n(\u03b4(h, 0), \u03b4(e, 0)) = (g, h) \u2013 unmarked \n(\u03b4(h,1), \u03b4(e,1)) = (c, f) -marked. \n \nFor pair (g, f) \n(\u03b4(g, 0), \u03b4(f, 0)) = (g, c) \u2013 marked \n \nFor pair (h, f) \n(\u03b4(h, 0), \u03b4(f, 0)) = (g, c) \u2013 marked \n \nFor pair (h, g) \n(\u03b4(h, 0), \u03b4(g, 0)) = (g, g) \u2013 unmarked \n(\u03b4(h,1), \u03b4(g,1)) = (c, e) -marked.",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "(\u03b4(h, 0), \u03b4(a, 0)) = (g, h) \u2013unmarked \n(\u03b4(h, 1), \u03b4(a 1) = (c, f) \u2013 marked \nTherefore (h, a) is distinguishable. \n \nFor pair (d, b) \n(\u03b4(d, 0), \u03b4(b,0)) = (c, g) \u2013 marked \nTherefore (d, b) is distinguishable. \n \nFor pair (e, b) \n(\u03b4(e, 0), \u03b4(b,0)) = (h, g) \u2013unmarked \n(\u03b4(e, 1), \u03b4(b,1) = (f, c) \u2013 marked. \n \nFor pair (f, b) \n(\u03b4(f, 0), \u03b4(b,0)) = (c, g) \u2013 marked \n \nFor pair (g, b) \n(\u03b4(g, 0), \u03b4(b, 0)) = (g, g) \u2013 unmarked \n(\u03b4(h, 1), \u03b4(b, 1)) = (e, c) \u2013 marked \n \nFor pair (h, b)",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "file system operation on it using commands provided, monitor cluster \nperformance\n2.\nMap-Reduce: Write various MR programs dealing with different aspects of it \nas studied in course\n3.\nHbase: Setup of Hbase in single node and distributed mode, write program \nto write into hbase and query it\n4.\nElastic Search: Setup elastic search in single mode and distributed mode, \nDefine template, Write data in it and finally query it\n \n5.\nFinal Assignment: A final assignment covering all aspect studied in order to",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Then p= q+r+s and r>0 \n \nNow, 0p1q(1r)k1s=0p1q+rk+s \nOnly those strings in 0p1q+rk+s belongs to L fpr k =1 otherwise not. \nHence the language is not regular. \n \nCase III \nV contains 0\u2018s and 1\u2018s both. Then, suppose, \nu = 0p, v = 0q1r, w = 1s; \np+q = r+s and q+r>0 \n \nNow, uvkw = 0p(0q1r)k1s= 0p+qk1rk+s \nOnly those strings in 0p+qk1rk+s belongs to L for k=1, otherwise not. (As it contains 0 after \n1 for k>1 in the string.) \nHence the language is not regular. \n \nMinimization of DFA",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Compiled by Tej Shahi  \nPage 48 \n \n(\u03b4(b, 0 ), \u03b4(a, 0)) = (g, h) \u2013 unmarked \n(\u03b4(b, 1), \u03b4(a, 1)) = (c, f) \u2013 marked \n \nFor pair (d, a) \n(\u03b4(d, 0), \u03b4(a, 0)) = (c, b) \u2013 marked \nTherefore (d, a) is distinguishable. \n \nFor pair (e, a) \n(\u03b4(e, 0), \u03b4(a, 0)) = (h, h) \u2013 unmarked. \n(\u03b4(e, 1), \u03b4(a, 1)) = (f, f) \u2013unmarked. \n[(e, a) is not distinguishable)] \n \nFor pair (g, a) \n(\u03b4(g, 0), \u03b4( a, 0)) = (a, g) \u2013 unmarked. \n(\u03b4(g, 1), \u03b4(a, 1)) = (e, f) \u2013 unmarked \n \nFor pair (h, a) \n(\u03b4(h, 0), \u03b4(a, 0)) = (g, h) \u2013unmarked",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Solution: \nLet L is a regular language. Then by pumping lemma, there are strings u, v, w with v\u22651 such \nthat uvkw \u03b5 L for k\u22650. \n \nCase I: \nLet v contain 0\u2018s only. Then, suppose u = 0p, v = 0q,w = 0r1s ; \nThen we must have p+q+r = s (as we have 0r1r) and q>0 \n \nNow, uvkw = 0p(0q)k0r1s=0p+qk+r1s \nOnly these strings in 0p+qk+r1s belongs to L for k=1 otherwise not. \nHence we conclude that the language is not regular. \n \nCase II \nLet v contains 1\u2018s only. Then u= 0p1q, v= 1r, w=1s \nThen p= q+r+s and r>0",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Here, the path from starting to accepting state go first through the automaton for \nr1, where it must follow a path labeled by a string in L(r1), and then through the \nautomaton for r2, where it follows a path labeled by a string in L(r2). Thus, the \nlanguage accepted by above automaton is L(r1).L(r2). \n \n3. For *(Kleen closure) \nNow, r* Can be constructed as; \n \nClearly language of this \u0404-NFA is L(r*) as it can also just \u0404 as well as string in",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Distinguishable state: Two states p & q are said to be distinguishable states if (for any) \nthere exists a string x, such that  \u0302(p, x) is a final state  \u0302(q, x) is not a final state. \n \nFor minimization, the table filling algorithm is used. The steps of the algorithm are; \nFor identifying the pairs (p, q) with p \u2260 q; \n \n\ufffd List all the pairs of states for which p \u2260 q. \n\ufffd Make a sequence of passes through each pairs. \n\ufffd On first pass, mark the pair for which exactly one element is final (F).",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          },
+          {
+            "query": "What is the optimization goal?",
+            "retrieved_chunks": [
+              {
+                "text": "3.5\nScalability goal\n3.6\nFault tolerance\n3.7\nOptimization and data locality\n3.8\nParallel Efficiency of Map-Reduce\n \n4\nNoSQL\n6 Hrs\n4.1\nStructured and Unstructured Data\n4.2\nTaxonomy of NoSQL Implementation\n4.3\nDiscussion of basic architecture of Hbase, Cassandra and MongoDb\n \n5\nSearching and Indexing Big Data\n7 Hrs\n5.1\nFull text Indexing and Searching\n5.2\nIndexing with Lucene\n5.3\nDistributed Searching with elasticsearch\n \n6\nCase Study: Hadoop\n5 Hrs\n6.1\nIntroduction to Hadoop Environment\n6.2\nData Flow\n6.3",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "1.4\nRole of Data Scientist\n1.5\nCurrent Trend in Big Data Analytics\n \n2\nGoogle File System\n7 hrs\n2.1\nArchitecture\n2.2\nAvailability\n2.3\nFault tolerance\n \n2.4\nOptimization for large scale data\n \n3\nMap-Reduce Framework \n10 hrs\n3.1\nBasics of functional programming\n3.1.1 Fundamentals of functional programming\n3.1.2 Real world problems modeling in functional style\n3.2\nMap reduce fundamentals\n3.3\nData flow (Architecture)\n3.4\nReal world problems\n3.5\nScalability goal\n3.6\nFault tolerance\n3.7",
+                "filename": "Big_Data_Syllabus.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Distinguishable state: Two states p & q are said to be distinguishable states if (for any) \nthere exists a string x, such that  \u0302(p, x) is a final state  \u0302(q, x) is not a final state. \n \nFor minimization, the table filling algorithm is used. The steps of the algorithm are; \nFor identifying the pairs (p, q) with p \u2260 q; \n \n\ufffd List all the pairs of states for which p \u2260 q. \n\ufffd Make a sequence of passes through each pairs. \n\ufffd On first pass, mark the pair for which exactly one element is final (F).",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "the strings we want to accept. This is what the regular expression offer that the automata do not. \nMany system uses regular expression as input language. Some of them are: \n \n\uf0b7 Search commands such as UNIX grep. \n\uf0b7 Lexical analyzer generator such as LEX or FLEX. Lexical analyzer is a component of \ncompiler that breaks the source program into logical unit called tokens. \n \nDefining Regular expressions \n \nA regular expression is built up out of simpler regular expression using a set of defining rules.",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Minimization of DFA \n \nGiven a DFA M, that accepts a language L (M). Now, configure a DFA M \u2017. During the \ncourse of minimization, it involves identifying the equivalent states and distinguishable \nstates. \n \n \nFor more notes visit https://collegenote.pythonanywhere.com\nCompiled by Tej Shahi  \nPage 47 \n \nEquivalent States: Two states p & q are called equivalent states, denoted by p \u2261 q if and \nonly if for each input string x,  \u0302 (p, x) is a final state if and only if  \u0302(q, x) is a final state.",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Then p= q+r+s and r>0 \n \nNow, 0p1q(1r)k1s=0p1q+rk+s \nOnly those strings in 0p1q+rk+s belongs to L fpr k =1 otherwise not. \nHence the language is not regular. \n \nCase III \nV contains 0\u2018s and 1\u2018s both. Then, suppose, \nu = 0p, v = 0q1r, w = 1s; \np+q = r+s and q+r>0 \n \nNow, uvkw = 0p(0q1r)k1s= 0p+qk1rk+s \nOnly those strings in 0p+qk1rk+s belongs to L for k=1, otherwise not. (As it contains 0 after \n1 for k>1 in the string.) \nHence the language is not regular. \n \nMinimization of DFA",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "(s+t)r = sr+tr ------ right distribution. \n \n4. Identity law: \u03a6 is identity for union. i.e. for any regular expression \nr representing regular expression L(r). \n \nr + \u03a6 = \u03a6 + r = r i.e. \u03a6Ur=r. \n\u0404 is identity for concatenation. i.e. \u0404.r = r = r. \u0404 \n \n5. Annihilator: An annihilator for an operator is a value such that when \nthe operator is applied to the annihilator and some other value, the \nresult is annihilator. \u03a6 is annihilator for concatenation.  \ni.e. \u03a6.r = r. \u03a6 = \u03a6",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "Thus, \nWe have, L (M U N) = L(M) U L(N) \n \n \nFinite Automata and Regular expression \nThe regular expression approach for describing language is fundamentally different from the \nfinite automaton approach. However, these two notations turn out to represent exactly the same \nset of languages, which we call regular languages. In order to show that the RE define the same \nclass of language as Finite automata, we must show that: \n \n1)Any language define by one of these finite automata is also defined by RE.",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "(\u03b4(h,1), \u03b4(g,1)) = (c, e) -marked. \nThus (a, e), (b, h) and (d, f) are equivalent pairs of states. \n \nHence the minimized DFA is \n \n \n \nSee another simple approaches from Asesh Kumar Pandey\u201fs Book. \nFor more notes visit https://collegenote.pythonanywhere.com",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              },
+              {
+                "text": "- if \u2017a\u2018 is a symbol in \u03a3, then \u2017a\u2018 is a regular expression representing the language {a}. \n \nNow the following operations over basic regular expression define the complex regular \nexpression as: \n \n-if \u2017r\u2018 and \u2017s\u2018 are the regular expressions representing the language L(r) and L(s) then \n \n\uf0b7 r U s is a regular expression denoting the language L(r) U L(s). \n\uf0b7 r.s is a regular expression denoting the language  L(r).L(s). \n\uf0b7 r* is a regular expression denoting the language (L(r))*.",
+                "filename": "TOC-chapter3.pdf",
+                "is_relevant_ground_truth": false,
+                "judge_score": 0,
+                "judge_reasoning": "Evaluation failed: AI service error: 429 Client Error: Too Many Requests for url: https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+              }
+            ],
+            "hit": false,
+            "relevant_count": 0,
+            "precision": 0.0,
+            "recall": 0.0,
+            "avg_relevance_score": 0.0
+          }
+        ],
+        "summary": {
+          "hit_rate": 0.0,
+          "precision_at_k": 0.0,
+          "recall_at_k": 0.0,
+          "context_relevance": 0.0
+        }
+      }
+    }
+  }
+}

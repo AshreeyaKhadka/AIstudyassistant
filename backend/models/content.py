@@ -10,6 +10,7 @@ class Subject(db.Model):
     name = db.Column(db.String(255), nullable=False)
     semester = db.Column(db.Integer, nullable=False)
     code = db.Column(db.String(50), nullable=True)
+    credits = db.Column(db.Integer, default=3, nullable=True)
     is_current = db.Column(db.Boolean, default=True, nullable=False)
     is_backlog = db.Column(db.Boolean, default=False, nullable=False)
     description = db.Column(db.Text, nullable=True)

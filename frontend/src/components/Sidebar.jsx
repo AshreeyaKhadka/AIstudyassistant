@@ -1,9 +1,8 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useClerk } from '@clerk/react';
-import { motion } from 'framer-motion';
 import {
-  Library,
+  GraduationCap,
   LogOut,
   LayoutDashboard,
   BrainCircuit,
@@ -13,11 +12,15 @@ import {
   Target,
   LineChart,
   CalendarCheck,
-  Settings,
-  User
+  User,
+  HelpCircle,
+  FileText,
+  X,
+  Compass,
+  Code2
 } from 'lucide-react';
 
-const Sidebar = ({ user }) => {
+const Sidebar = ({ user, isOpen, onClose }) => {
   const navigate = useNavigate();
   const { signOut } = useClerk();
 
@@ -25,102 +28,153 @@ const Sidebar = ({ user }) => {
     signOut({ redirectUrl: '/' });
   };
 
+  const handleNavClick = () => {
+    if (onClose) onClose();
+  };
+
   return (
-    <aside className="w-[280px] bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 relative z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-      {/* Logo Area */}
-      <div
-        className="h-20 flex items-center gap-3 px-6 cursor-pointer mb-2 mt-2"
-        onClick={(e) => {
-          if (e.detail === 3 && user?.role === 'admin') {
-            navigate('/system-core-admin');
-          }
-        }}
-        title={user?.role === 'admin' ? "Secret: Triple click for Admin" : ""}
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 bg-black/40 z-30 lg:hidden backdrop-blur-xs transition-opacity"
+        />
+      )}
+
+      {/* Sidebar Container */}
+      <aside
+        className={`
+          fixed lg:static inset-y-0 left-0 z-40
+          w-[250px] bg-[#ECEAE7] border-r border-[#D7D3CF]
+          flex flex-col h-screen select-none shrink-0
+          transition-transform duration-200 ease-in-out
+          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
       >
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-blue-500/20 flex-shrink-0">
-          <Library className="text-white" size={24} strokeWidth={2.5} />
-        </div>
-        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600 tracking-tight truncate">
-          AiStudy
-        </span>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-4 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
-
-        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-2 px-3">Overview</div>
-        <NavItem to="/dashboard" icon={<LayoutDashboard size={20} />} label="Dashboard" end />
-        <NavItem to="/dashboard/progress" icon={<LineChart size={20} />} label="Progress Tracker" />
-
-        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Personalized Learning</div>
-        <NavItem to="/dashboard/flashcards" icon={<BrainCircuit size={20} />} label="Flashcards" />
-        <NavItem to="/dashboard/revision" icon={<CalendarCheck size={20} />} label="Calendar" />
-
-        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 px-3">Practice & Materials</div>
-        <NavItem to="/dashboard/upload" icon={<FileUp size={20} />} label="Uploaded Materials" />
-        <NavItem to="/dashboard/syllabus" icon={<Book size={20} />} label="Official Syllabus" />
-        <NavItem to="/dashboard/exam-prep" icon={<Target size={20} />} label="Exam Preparation" />
-        <NavItem to="/dashboard/mcq" icon={<Library size={20} />} label="MCQ Practice" />
-
-        <div className="mt-auto pt-4"></div>
-        <NavItem to="/dashboard/profile" icon={<User size={20} />} label="Profile" />
-      </nav>
-
-      {/* Bottom Actions */}
-      <div className="p-4 border-t border-slate-100 bg-white">
-        <div className="bg-slate-50 rounded-2xl p-3 mb-3 border border-slate-100/50 relative overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-100 to-indigo-100 flex items-center justify-center text-blue-700 font-bold border border-white shadow-sm flex-shrink-0">
-              {user?.username?.charAt(0).toUpperCase() || 'U'}
+        {/* Brand Header */}
+        <div
+          className="h-16 flex items-center justify-between px-5 border-b border-[#D7D3CF] bg-[#ECEAE7] cursor-pointer"
+          onClick={(e) => {
+            if (e.detail === 3 && user?.role === 'admin') {
+              navigate('/system-core-admin');
+            }
+          }}
+          title={user?.role === 'admin' ? "Secret: Triple click for Admin" : ""}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 bg-[#102326] rounded-[4px] flex items-center justify-center text-white shrink-0">
+              <GraduationCap size={18} strokeWidth={2.2} />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-800 truncate">{user?.username}</p>
-              <p className="text-xs text-slate-500 truncate">{user?.college}</p>
+            <span className="text-base font-bold text-[#111111] tracking-tight">
+              AiStudy
+            </span>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="p-1 text-[#666666] hover:text-[#111111] lg:hidden"
+            title="Close menu"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Navigation Groups */}
+        <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto custom-scrollbar">
+          {/* Section: Overview */}
+          <div>
+            <div className="px-3 mb-1.5 text-[10px] font-mono tracking-wider uppercase text-[#666666] font-semibold">
+              Overview
+            </div>
+            <div className="space-y-0.5">
+              <NavItem to="/dashboard" icon={<LayoutDashboard size={16} />} label="Dashboard" end onClick={handleNavClick} />
+              <NavItem to="/dashboard/progress" icon={<LineChart size={16} />} label="Progress Tracker" onClick={handleNavClick} />
             </div>
           </div>
+
+          {/* Section: Personalized Learning */}
+          <div>
+            <div className="px-3 mb-1.5 text-[10px] font-mono tracking-wider uppercase text-[#666666] font-semibold">
+              Personalized Learning
+            </div>
+            <div className="space-y-0.5">
+              <NavItem to="/dashboard/focus" icon={<Target size={16} />} label="Smart Focus Mode" onClick={handleNavClick} />
+              <NavItem to="/dashboard/flashcards" icon={<BrainCircuit size={16} />} label="Flashcards" onClick={handleNavClick} />
+              <NavItem to="/dashboard/revision" icon={<CalendarCheck size={16} />} label="Calendar" onClick={handleNavClick} />
+            </div>
+          </div>
+
+          {/* Section: Practice & Materials */}
+          <div>
+            <div className="px-3 mb-1.5 text-[10px] font-mono tracking-wider uppercase text-[#666666] font-semibold">
+              Practice & Materials
+            </div>
+            <div className="space-y-0.5">
+              <NavItem to="/dashboard/upload" icon={<FileUp size={16} />} label="Uploaded Materials" onClick={handleNavClick} />
+              <NavItem to="/dashboard/syllabus" icon={<Book size={16} />} label="Official Syllabus" onClick={handleNavClick} />
+              <NavItem to="/dashboard/exam-prep" icon={<FileText size={16} />} label="Exam Preparation" onClick={handleNavClick} />
+              <NavItem to="/dashboard/mcq" icon={<HelpCircle size={16} />} label="MCQ Practice" onClick={handleNavClick} />
+              <NavItem to="/dashboard/coding-practice" icon={<Code2 size={16} />} label="AI Coding Practice" onClick={handleNavClick} />
+              <NavItem to="/dashboard/chat" icon={<BookOpen size={16} />} label="AI Chat" onClick={handleNavClick} />
+            </div>
+          </div>
+
+          {/* Section: Career & Growth */}
+          <div>
+            <div className="px-3 mb-1.5 text-[10px] font-mono tracking-wider uppercase text-[#666666] font-semibold">
+              Career & Growth
+            </div>
+            <div className="space-y-0.5">
+              <NavItem to="/dashboard/career" icon={<Compass size={16} />} label="Career Compass" onClick={handleNavClick} />
+            </div>
+          </div>
+        </nav>
+
+        {/* User Profile & Sign Out Footer */}
+        <div className="p-3 border-t border-[#D7D3CF] bg-[#ECEAE7]">
+          <div className="flex items-center gap-2.5 px-2 py-2 mb-2 rounded-[4px]">
+            <div className="w-8 h-8 rounded-full bg-[#102326] text-white flex items-center justify-center text-xs font-bold shrink-0">
+              <User size={16} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-[#111111] truncate">
+                {user?.username || 'Student'}
+              </p>
+              <p className="text-[11px] text-[#666666] truncate">
+                {user?.college || user?.department || 'Computer Engineering'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 py-1.5 px-3 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#102326] hover:text-white rounded-[4px] transition-colors font-mono text-[11px] font-semibold tracking-wider uppercase"
+          >
+            <LogOut size={13} />
+            SIGN OUT
+          </button>
         </div>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium text-sm group"
-        >
-          <LogOut size={20} className="group-hover:translate-x-1 transition-transform" />
-          Sign Out
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 
-const NavItem = ({ to, icon, label, end = false }) => {
+const NavItem = ({ to, icon, label, end = false, onClick }) => {
   return (
     <NavLink
       to={to}
       end={end}
+      onClick={onClick}
       className={({ isActive }) => `
-        w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative group
+        w-full flex items-center gap-2.5 px-3 py-2 rounded-[4px] text-xs font-medium transition-colors
         ${isActive
-          ? 'text-blue-700 bg-blue-50/80 shadow-sm'
-          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}
+          ? 'bg-[#102326] text-white font-semibold'
+          : 'text-[#444444] hover:bg-[#DCD9D5] hover:text-[#111111]'}
       `}
     >
-      {({ isActive }) => (
-        <>
-          {isActive && (
-            <motion.div
-              layoutId="activeNavIndicator"
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-blue-600 rounded-r-full"
-            />
-          )}
-          <div className={`
-            flex items-center justify-center p-1.5 rounded-lg transition-colors
-            ${isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'}
-          `}>
-            {icon}
-          </div>
-          <span className="truncate">{label}</span>
-        </>
-      )}
+      <span className="shrink-0">{icon}</span>
+      <span className="truncate">{label}</span>
     </NavLink>
   );
 };

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, 
   Plus, 
@@ -8,54 +7,43 @@ import {
   Check, 
   Clock, 
   Trash2, 
-  Edit3, 
-  Sparkles, 
   AlertCircle, 
   Flame, 
   Target, 
-  TrendingUp,
   SlidersHorizontal,
   X,
   CheckCircle2,
   CalendarCheck,
-  GraduationCap,
-  BookOpen,
-  FileText
+  GraduationCap
 } from 'lucide-react';
 
 const EXAM_TYPES = [
-  { value: 'ut', label: 'Unit Test', color: 'bg-amber-500', textColor: 'text-amber-600', bgLight: 'bg-amber-50', border: 'border-amber-200' },
-  { value: 'assessment', label: 'Assessment', color: 'bg-blue-500', textColor: 'text-blue-600', bgLight: 'bg-blue-50', border: 'border-blue-200' },
-  { value: 'final', label: 'Final Board', color: 'bg-rose-500', textColor: 'text-rose-600', bgLight: 'bg-rose-50', border: 'border-rose-200' },
+  { value: 'ut', label: 'Unit Test', color: 'bg-[#C96A32]', textColor: 'text-[#C96A32]', bgLight: 'bg-[#FAF9F7]', border: 'border-[#D7D3CF]' },
+  { value: 'assessment', label: 'Assessment', color: 'bg-[#102326]', textColor: 'text-[#102326]', bgLight: 'bg-[#ECEAE7]', border: 'border-[#D7D3CF]' },
+  { value: 'final', label: 'Final Board', color: 'bg-[#111111]', textColor: 'text-[#111111]', bgLight: 'bg-[#ECEAE7]', border: 'border-[#111111]' },
 ];
 
 const getExamStyle = (type) => EXAM_TYPES.find(e => e.value === type) || EXAM_TYPES[0];
 
 const RevisionPlanner = () => {
-  // Calendar Navigation State
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState('month');
   
-  // Plans & Data State
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // Exams State
   const [exams, setExams] = useState([]);
   const [examsLoading, setExamsLoading] = useState(true);
   
-  // Filters State
   const [subjectFilter, setSubjectFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   
-  // Modals & Active Plan State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [activePlan, setActivePlan] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // Exam Modal State
   const [isExamModalOpen, setIsExamModalOpen] = useState(false);
   const [examForm, setExamForm] = useState({
     title: '',
@@ -65,7 +53,6 @@ const RevisionPlanner = () => {
     description: '',
   });
 
-  // Form State
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -77,7 +64,6 @@ const RevisionPlanner = () => {
     status: 'pending'
   });
 
-  // Drag and Drop State
   const [draggedPlanId, setDraggedPlanId] = useState(null);
 
   const showToast = (message, type = 'success') => {
@@ -85,7 +71,6 @@ const RevisionPlanner = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Fetch Revision Plans
   const fetchPlans = async () => {
     try {
       setLoading(true);
@@ -101,7 +86,6 @@ const RevisionPlanner = () => {
     }
   };
 
-  // Fetch Exams
   const fetchExams = async () => {
     try {
       setExamsLoading(true);
@@ -121,7 +105,6 @@ const RevisionPlanner = () => {
     fetchExams();
   }, []);
 
-  // Form Actions
   const handleOpenCreateModal = (dateStr = '') => {
     const defaultDate = dateStr || new Date().toISOString().split('T')[0];
     setFormData({
@@ -157,7 +140,7 @@ const RevisionPlanner = () => {
   const handleSavePlan = async (e) => {
     e.preventDefault();
     if (!formData.title || !formData.revision_date) {
-      showToast('Title and Date are required!', 'error');
+      showToast('Title and Date are required.', 'error');
       return;
     }
 
@@ -192,10 +175,10 @@ const RevisionPlanner = () => {
       const savedPlan = await res.json();
 
       setPlans(prev => prev.map(p => (p.id === tempId || p.id === activePlan?.id) ? savedPlan : p));
-      showToast(modalMode === 'create' ? 'Revision task created!' : 'Revision task updated!');
+      showToast(modalMode === 'create' ? 'Task created.' : 'Task updated.');
     } catch (err) {
       console.error(err);
-      showToast('Failed to save revision task. Rolling back...', 'error');
+      showToast('Failed to save task.', 'error');
       fetchPlans();
     }
   };
@@ -204,7 +187,7 @@ const RevisionPlanner = () => {
     const nextStatus = plan.status === 'completed' ? 'pending' : 'completed';
     
     setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, status: nextStatus } : p));
-    showToast(nextStatus === 'completed' ? 'Task marked complete!' : 'Task marked pending.');
+    showToast(nextStatus === 'completed' ? 'Task completed.' : 'Task pending.');
 
     try {
       const res = await fetch(`/api/revision-plans/${plan.id}/status`, {
@@ -219,7 +202,7 @@ const RevisionPlanner = () => {
       setPlans(prev => prev.map(p => p.id === plan.id ? updated : p));
     } catch (err) {
       console.error(err);
-      showToast('Failed to update status. Rolling back...', 'error');
+      showToast('Failed to update status.', 'error');
       fetchPlans();
     }
   };
@@ -229,7 +212,7 @@ const RevisionPlanner = () => {
 
     const planToDelete = plans.find(p => p.id === id);
     setPlans(prev => prev.filter(p => p.id !== id));
-    showToast('Revision task deleted.');
+    showToast('Task deleted.');
 
     try {
       const res = await fetch(`/api/revision-plans/${id}`, {
@@ -240,16 +223,15 @@ const RevisionPlanner = () => {
       if (!res.ok) throw new Error('Failed to delete task');
     } catch (err) {
       console.error(err);
-      showToast('Failed to delete task. Rolling back...', 'error');
+      showToast('Failed to delete task.', 'error');
       setPlans(prev => [...prev, planToDelete]);
     }
   };
 
-  // Exam Handlers
   const handleCreateExam = async (e) => {
     e.preventDefault();
     if (!examForm.title || !examForm.exam_date || !examForm.subject) {
-      showToast('Title, subject, and date are required!', 'error');
+      showToast('Title, subject, and date are required.', 'error');
       return;
     }
 
@@ -274,10 +256,10 @@ const RevisionPlanner = () => {
       if (!res.ok) throw new Error('Failed to create exam');
       const saved = await res.json();
       setExams(prev => prev.map(e => e.id === tempId ? saved : e));
-      showToast('Exam added to calendar!');
+      showToast('Exam added.');
     } catch (err) {
       console.error(err);
-      showToast('Failed to add exam. Rolling back...', 'error');
+      showToast('Failed to add exam.', 'error');
       fetchExams();
     }
   };
@@ -297,12 +279,11 @@ const RevisionPlanner = () => {
       if (!res.ok) throw new Error('Failed');
     } catch (err) {
       console.error(err);
-      showToast('Failed to remove exam. Rolling back...', 'error');
+      showToast('Failed to remove exam.', 'error');
       setExams(prev => [...prev, examToDelete]);
     }
   };
 
-  // Drag and Drop Handlers
   const handleDragStart = (id) => {
     setDraggedPlanId(id);
   };
@@ -328,14 +309,13 @@ const RevisionPlanner = () => {
       setPlans(prev => prev.map(p => p.id === draggedPlanId ? updated : p));
     } catch (err) {
       console.error(err);
-      showToast('Rescheduling failed. Rolling back...', 'error');
+      showToast('Rescheduling failed.', 'error');
       fetchPlans();
     } finally {
       setDraggedPlanId(null);
     }
   };
 
-  // Calendar Helpers
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -387,19 +367,10 @@ const RevisionPlanner = () => {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'high': return 'bg-rose-50 border-rose-100 text-rose-600 border';
-      case 'medium': return 'bg-blue-50 border-blue-100 text-blue-600 border';
-      case 'low': return 'bg-slate-50 border-slate-100 text-slate-500 border';
-      default: return 'bg-slate-50 border-slate-100 text-slate-500 border';
-    }
-  };
-
-  const getPriorityDot = (priority) => {
-    switch (priority) {
-      case 'high': return 'bg-rose-500';
-      case 'medium': return 'bg-blue-500';
-      case 'low': return 'bg-slate-400';
-      default: return 'bg-slate-400';
+      case 'high': return 'bg-[#FAF9F7] border-[#C96A32] text-[#C96A32] border';
+      case 'medium': return 'bg-white border-[#D7D3CF] text-[#102326] border';
+      case 'low': return 'bg-[#FAF9F7] border-[#D7D3CF] text-[#666666] border';
+      default: return 'bg-white border-[#D7D3CF] text-[#666666] border';
     }
   };
 
@@ -424,117 +395,114 @@ const RevisionPlanner = () => {
   const getExamsForDate = (dateStr) => exams.filter(e => e.exam_date === dateStr);
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1600px] mx-auto pb-10 relative">
+    <div className="flex flex-col gap-6 pb-12">
       {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
-            className={`fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl border text-sm font-bold shadow-lg flex items-center gap-2.5 backdrop-blur-xl ${
-              toast.type === 'error' 
-                ? 'bg-rose-50/90 border-rose-100 text-rose-600 shadow-rose-500/5' 
-                : 'bg-emerald-50/90 border-emerald-100 text-emerald-600 shadow-emerald-500/5'
-            }`}
-          >
-            {toast.type === 'error' ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
-            {toast.message}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {toast && (
+        <div className={`fixed top-6 right-6 z-50 px-4 py-2.5 rounded-[4px] border text-xs font-mono flex items-center gap-2 ${
+          toast.type === 'error' 
+            ? 'bg-[#FFFDFB] border-[#D7D3CF] text-[#C96A32]' 
+            : 'bg-white border-[#102326] text-[#102326]'
+        }`}>
+          {toast.type === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
+          <span>{toast.message}</span>
+        </div>
+      )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2.5">
-            <CalendarCheck className="text-indigo-600" size={24} /> Calendar
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">Plan revision sessions, track exams, and stay on top of your schedule.</p>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-1">
+            REVISION & EXAM SCHEDULER
+          </div>
+          <h1 className="text-2xl font-bold text-[#111111] tracking-tight flex items-center gap-2">
+            <CalendarCheck size={20} className="text-[#102326]" />
+            Revision Planner
+          </h1>
+          <p className="text-xs text-[#666666] mt-0.5">Plan revision sessions and track upcoming exams.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button 
             onClick={() => { setExamForm({ title: '', exam_type: 'ut', subject: 'Operating Systems', exam_date: new Date().toISOString().split('T')[0], description: '' }); setIsExamModalOpen(true); }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-white border-2 border-indigo-200 text-indigo-700 rounded-2xl text-sm font-extrabold hover:bg-indigo-50 transition-all hover:scale-[1.01]"
+            className="px-4 py-2 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5"
           >
-            <GraduationCap size={16} strokeWidth={2.5} />
-            Add Exam
+            <GraduationCap size={14} />
+            <span>ADD EXAM</span>
           </button>
           <button 
             onClick={() => handleOpenCreateModal()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-2xl text-sm font-extrabold hover:bg-indigo-700 shadow-md shadow-indigo-500/10 transition-all hover:scale-[1.01]"
+            className="px-4 py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5"
           >
-            <Plus size={16} strokeWidth={2.5} />
-            Schedule Session
+            <Plus size={14} />
+            <span>SCHEDULE SESSION</span>
           </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        <motion.div whileHover={{ y: -2 }} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group">
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/30 group-hover:scale-105 transition-transform duration-300">
-            <Target size={20} />
+      {/* Metrics Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-[4px] p-4 border border-[#D7D3CF] flex items-center gap-3">
+          <div className="w-9 h-9 rounded-[4px] bg-[#ECEAE7] text-[#102326] flex items-center justify-center font-mono">
+            <Target size={18} />
           </div>
           <div>
-            <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">{completedCount}</h3>
-            <p className="text-xs font-semibold text-slate-400 mt-0.5">Sessions Completed</p>
+            <h3 className="text-xl font-bold text-[#111111] font-mono">{completedCount}</h3>
+            <p className="text-[10px] font-mono text-[#666666] uppercase">COMPLETED SESSIONS</p>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div whileHover={{ y: -2 }} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group">
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100/30 group-hover:scale-105 transition-transform duration-300">
-            <Clock size={20} />
+        <div className="bg-white rounded-[4px] p-4 border border-[#D7D3CF] flex items-center gap-3">
+          <div className="w-9 h-9 rounded-[4px] bg-[#ECEAE7] text-[#102326] flex items-center justify-center font-mono">
+            <Clock size={18} />
           </div>
           <div>
-            <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">{totalStudyHours.toFixed(1)}h</h3>
-            <p className="text-xs font-semibold text-slate-400 mt-0.5">Total Study Hours</p>
+            <h3 className="text-xl font-bold text-[#111111] font-mono">{totalStudyHours.toFixed(1)}h</h3>
+            <p className="text-[10px] font-mono text-[#666666] uppercase">TOTAL STUDY HOURS</p>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div whileHover={{ y: -2 }} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group">
-          <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center border border-amber-100/30 group-hover:scale-105 transition-transform duration-300">
-            <Flame size={20} className="animate-bounce" />
+        <div className="bg-white rounded-[4px] p-4 border border-[#D7D3CF] flex items-center gap-3">
+          <div className="w-9 h-9 rounded-[4px] bg-[#ECEAE7] text-[#C96A32] flex items-center justify-center font-mono">
+            <Flame size={18} />
           </div>
           <div>
-            <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">14 Days</h3>
-            <p className="text-xs font-semibold text-slate-400 mt-0.5">Active Study Streak</p>
+            <h3 className="text-xl font-bold text-[#111111] font-mono">14 Days</h3>
+            <p className="text-[10px] font-mono text-[#666666] uppercase">ACTIVE STREAK</p>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div whileHover={{ y: -2 }} className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] flex items-center gap-4 group">
-          <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100/30 group-hover:scale-105 transition-transform duration-300">
-            <GraduationCap size={20} />
+        <div className="bg-white rounded-[4px] p-4 border border-[#D7D3CF] flex items-center gap-3">
+          <div className="w-9 h-9 rounded-[4px] bg-[#ECEAE7] text-[#102326] flex items-center justify-center font-mono">
+            <GraduationCap size={18} />
           </div>
           <div>
-            <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">{exams.length}</h3>
-            <p className="text-xs font-semibold text-slate-400 mt-0.5">Upcoming Exams</p>
+            <h3 className="text-xl font-bold text-[#111111] font-mono">{exams.length}</h3>
+            <p className="text-[10px] font-mono text-[#666666] uppercase">UPCOMING EXAMS</p>
           </div>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Controls */}
-      <div className="bg-white rounded-2xl p-4.5 border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.012)] flex flex-col md:flex-row justify-between items-center gap-4">
+      {/* Control bar */}
+      <div className="bg-white rounded-[4px] p-4 border border-[#D7D3CF] flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-          <div className="flex bg-slate-50 border border-slate-100 p-1 rounded-xl shadow-sm">
-            <button onClick={handlePrev} className="p-2 text-slate-500 hover:text-slate-700 hover:bg-white rounded-lg transition-colors">
-              <ChevronLeft size={16} />
+          <div className="flex bg-[#ECEAE7] border border-[#D7D3CF] p-0.5 rounded-[4px]">
+            <button onClick={handlePrev} className="p-1.5 text-[#111111] hover:bg-white rounded-[2px] transition-colors">
+              <ChevronLeft size={14} />
             </button>
-            <button onClick={handleNext} className="p-2 text-slate-500 hover:text-slate-700 hover:bg-white rounded-lg transition-colors">
-              <ChevronRight size={16} />
+            <button onClick={handleNext} className="p-1.5 text-[#111111] hover:bg-white rounded-[2px] transition-colors">
+              <ChevronRight size={14} />
             </button>
           </div>
-          <h3 className="text-base font-extrabold text-slate-700 tracking-tight">
+          <h3 className="text-sm font-bold font-mono text-[#111111] uppercase tracking-wider">
             {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </h3>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-          <div className="flex bg-slate-50 border border-slate-100 p-1 rounded-xl shadow-sm">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <div className="flex bg-[#ECEAE7] border border-[#D7D3CF] p-0.5 rounded-[4px]">
             {['month', 'week', 'day'].map((mode) => (
               <button key={mode} onClick={() => setViewMode(mode)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
-                  viewMode === mode ? 'bg-white text-indigo-600 shadow-sm border border-slate-100/50' : 'text-slate-500 hover:text-slate-700'
+                className={`px-3 py-1 rounded-[2px] text-xs font-mono uppercase font-semibold transition-colors ${
+                  viewMode === mode ? 'bg-[#102326] text-white' : 'text-[#666666] hover:text-[#111111]'
                 }`}
               >
                 {mode}
@@ -542,21 +510,19 @@ const RevisionPlanner = () => {
             ))}
           </div>
 
-          <div className="h-6 w-px bg-slate-100 hidden sm:block"></div>
-
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 p-1 rounded-xl">
-            <SlidersHorizontal size={12} className="text-slate-400 ml-2" />
+          <div className="flex items-center gap-2 bg-white border border-[#D7D3CF] px-2 py-1 rounded-[4px]">
+            <SlidersHorizontal size={12} className="text-[#666666]" />
             <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}
-              className="bg-transparent text-xs font-bold text-slate-600 focus:outline-none pr-3 cursor-pointer py-1"
+              className="bg-transparent text-xs font-mono text-[#111111] outline-none cursor-pointer"
             >
               <option value="All">All Subjects</option>
               {subjects.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 p-1 rounded-xl">
+          <div className="flex items-center gap-2 bg-white border border-[#D7D3CF] px-2 py-1 rounded-[4px]">
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-transparent text-xs font-bold text-slate-600 focus:outline-none pr-3 cursor-pointer py-1"
+              className="bg-transparent text-xs font-mono text-[#111111] outline-none cursor-pointer"
             >
               <option value="All">All Status</option>
               <option value="pending">Pending</option>
@@ -566,21 +532,17 @@ const RevisionPlanner = () => {
         </div>
       </div>
 
-      {/* Main Calendar + Sidebar */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        
-        {/* Calendar Grid */}
-        <div className="xl:col-span-3 bg-white rounded-[2rem] border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] overflow-hidden flex flex-col min-h-[600px]">
-          
-          <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
+        <div className="xl:col-span-3 bg-white rounded-[4px] border border-[#D7D3CF] overflow-hidden flex flex-col min-h-[500px]">
+          <div className="grid grid-cols-7 border-b border-[#D7D3CF] bg-[#FAF9F7]">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-              <div key={d} className="py-3 text-center text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{d}</div>
+              <div key={d} className="py-2 text-center text-[10px] font-mono uppercase text-[#666666] font-semibold">{d}</div>
             ))}
           </div>
 
-          {/* Monthly View */}
           {viewMode === 'month' && (
-            <div className="grid grid-cols-7 flex-1 divide-x divide-y divide-slate-100">
+            <div className="grid grid-cols-7 flex-1 divide-x divide-y divide-[#D7D3CF]">
               {getDaysInMonth(currentDate).map((dayObj, index) => {
                 const dateStr = dayObj.date.toISOString().split('T')[0];
                 const dayPlans = filteredPlans.filter(p => p.revision_date === dateStr);
@@ -592,27 +554,26 @@ const RevisionPlanner = () => {
                     key={index} 
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => handleDrop(dateStr)}
-                    className={`min-h-[100px] p-2 flex flex-col gap-1 transition-all relative ${
-                      dayObj.isCurrentMonth ? 'bg-white' : 'bg-slate-50/30'
-                    } ${isToday ? 'bg-indigo-50/20' : ''}`}
+                    className={`min-h-[90px] p-2 flex flex-col gap-1 relative ${
+                      dayObj.isCurrentMonth ? 'bg-white' : 'bg-[#FAF9F7]'
+                    } ${isToday ? 'bg-[#ECEAE7]' : ''}`}
                   >
                     <div className="flex justify-between items-center mb-1">
-                      <span className={`text-xs font-bold ${
+                      <span className={`text-xs font-mono font-bold ${
                         isToday 
-                          ? 'w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20' 
-                          : dayObj.isCurrentMonth ? 'text-slate-700' : 'text-slate-300'
+                          ? 'w-5 h-5 rounded-[2px] bg-[#102326] text-white flex items-center justify-center text-[10px]' 
+                          : dayObj.isCurrentMonth ? 'text-[#111111]' : 'text-[#666666]'
                       }`}>
                         {dayObj.date.getDate()}
                       </span>
                       <button 
                         onClick={() => handleOpenCreateModal(dateStr)}
-                        className="opacity-0 hover:opacity-100 p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-all"
+                        className="text-[#666666] hover:text-[#111111]"
                       >
-                        <Plus size={12} />
+                        <Plus size={10} />
                       </button>
                     </div>
 
-                    {/* Exam Markers */}
                     {dayExams.length > 0 && (
                       <div className="flex flex-col gap-0.5 mb-1">
                         {dayExams.map(exam => {
@@ -620,33 +581,28 @@ const RevisionPlanner = () => {
                           return (
                             <div 
                               key={exam.id}
-                              className={`px-1.5 py-0.5 rounded-md text-[8px] font-extrabold uppercase tracking-wider truncate ${style.bgLight} ${style.textColor} border ${style.border}`}
-                              title={`${exam.title} - ${exam.subject}`}
+                              className={`px-1 py-0.5 rounded-[2px] text-[8px] font-mono uppercase tracking-wider truncate ${style.bgLight} ${style.textColor} border ${style.border}`}
                             >
-                              {exam.exam_type === 'ut' ? 'UT' : exam.exam_type === 'assessment' ? 'ASS' : 'FIN'}: {exam.subject.substring(0, 12)}
+                              {exam.exam_type === 'ut' ? 'UT' : 'EXAM'}: {exam.subject.substring(0, 10)}
                             </div>
                           );
                         })}
                       </div>
                     )}
 
-                    {/* Revision Tasks */}
-                    <div className="flex-1 flex flex-col gap-1 overflow-y-auto max-h-[85px] custom-scrollbar">
+                    <div className="flex-1 flex flex-col gap-1 overflow-y-auto max-h-[75px]">
                       {dayPlans.map(plan => (
                         <div 
                           key={plan.id}
                           draggable
                           onDragStart={() => handleDragStart(plan.id)}
                           onClick={() => handleOpenEditModal(plan)}
-                          className={`p-1.5 rounded-lg text-[10px] font-bold truncate cursor-grab active:cursor-grabbing hover:translate-x-0.5 transition-transform flex items-center gap-1.5 border shadow-sm ${
+                          className={`p-1 rounded-[2px] text-[9px] font-mono truncate cursor-pointer flex items-center gap-1 border ${
                             plan.status === 'completed'
-                              ? 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                              ? 'bg-[#FAF9F7] border-[#D7D3CF] text-[#666666] line-through'
                               : getPriorityColor(plan.priority)
                           }`}
                         >
-                          <span className={`w-1.5 h-1.5 rounded-full ${
-                            plan.status === 'completed' ? 'bg-slate-300' : getPriorityDot(plan.priority)
-                          }`}></span>
                           <span className="truncate">{plan.title}</span>
                         </div>
                       ))}
@@ -657,9 +613,8 @@ const RevisionPlanner = () => {
             </div>
           )}
 
-          {/* Weekly View */}
           {viewMode === 'week' && (
-            <div className="grid grid-cols-7 flex-1 divide-x divide-slate-100 min-h-[450px]">
+            <div className="grid grid-cols-7 flex-1 divide-x divide-[#D7D3CF] min-h-[400px]">
               {getDaysInWeek(currentDate).map((day, idx) => {
                 const dateStr = day.toISOString().split('T')[0];
                 const dayPlans = filteredPlans.filter(p => p.revision_date === dateStr);
@@ -670,22 +625,19 @@ const RevisionPlanner = () => {
                   <div key={idx}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => handleDrop(dateStr)}
-                    className={`p-4 flex flex-col gap-3 min-h-[400px] transition-all ${isToday ? 'bg-indigo-50/20' : ''}`}
+                    className={`p-3 flex flex-col gap-2 min-h-[350px] ${isToday ? 'bg-[#ECEAE7]' : ''}`}
                   >
-                    <div className="text-center pb-2 border-b border-slate-100">
-                      <span className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">{day.toLocaleDateString('en-US', { weekday: 'short' })}</span>
-                      <span className={`inline-block mt-1 text-sm font-black w-7 h-7 rounded-full flex items-center justify-center ${
-                        isToday ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-700'
-                      }`}>{day.getDate()}</span>
+                    <div className="text-center pb-2 border-b border-[#D7D3CF]">
+                      <span className="block text-[9px] font-mono text-[#666666] uppercase">{day.toLocaleDateString('en-US', { weekday: 'short' })}</span>
+                      <span className={`inline-block mt-0.5 text-xs font-mono font-bold ${isToday ? 'bg-[#102326] text-white px-1.5 rounded-[2px]' : 'text-[#111111]'}`}>{day.getDate()}</span>
                     </div>
 
-                    {/* Exam markers for week view */}
                     {dayExams.length > 0 && (
                       <div className="flex flex-col gap-1">
                         {dayExams.map(exam => {
                           const style = getExamStyle(exam.exam_type);
                           return (
-                            <div key={exam.id} className={`px-2 py-1 rounded-lg text-[9px] font-extrabold uppercase ${style.bgLight} ${style.textColor} border ${style.border}`}>
+                            <div key={exam.id} className={`px-1.5 py-0.5 rounded-[2px] text-[8px] font-mono uppercase ${style.bgLight} ${style.textColor} border ${style.border}`}>
                               {exam.title}
                             </div>
                           );
@@ -693,25 +645,22 @@ const RevisionPlanner = () => {
                       </div>
                     )}
 
-                    <div className="flex-1 flex flex-col gap-2 overflow-y-auto max-h-[350px] custom-scrollbar">
+                    <div className="flex-1 flex flex-col gap-1.5 overflow-y-auto">
                       {dayPlans.map(plan => (
                         <div key={plan.id}
                           draggable
                           onDragStart={() => handleDragStart(plan.id)}
                           onClick={() => handleOpenEditModal(plan)}
-                          className={`p-3 rounded-xl border cursor-grab active:cursor-grabbing hover:-translate-y-0.5 transition-all flex flex-col gap-1.5 shadow-sm ${
+                          className={`p-2 rounded-[2px] border cursor-pointer flex flex-col gap-1 font-mono ${
                             plan.status === 'completed'
-                              ? 'bg-slate-50 border-slate-200 text-slate-400 line-through'
+                              ? 'bg-[#FAF9F7] border-[#D7D3CF] text-[#666666] line-through'
                               : getPriorityColor(plan.priority)
                           }`}
                         >
-                          <div className="flex items-center gap-1.5">
-                            <span className={`w-2 h-2 rounded-full ${plan.status === 'completed' ? 'bg-slate-300' : getPriorityDot(plan.priority)}`}></span>
-                            <span className="font-bold text-xs truncate">{plan.title}</span>
-                          </div>
+                          <span className="font-bold text-xs truncate">{plan.title}</span>
                           {plan.start_time && (
-                            <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
-                              <Clock size={10} /> {plan.start_time} - {plan.end_time}
+                            <span className="text-[9px] text-[#666666] flex items-center gap-1">
+                              <Clock size={9} /> {plan.start_time} - {plan.end_time}
                             </span>
                           )}
                         </div>
@@ -723,370 +672,197 @@ const RevisionPlanner = () => {
             </div>
           )}
 
-          {/* Daily View */}
           {viewMode === 'day' && (
-            <div className="p-6 flex-1 flex flex-col gap-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="p-5 flex-1 flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-[#D7D3CF] pb-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl font-black text-slate-800">{currentDate.getDate()}</span>
+                  <span className="text-2xl font-mono font-bold text-[#111111]">{currentDate.getDate()}</span>
                   <div>
-                    <h4 className="font-extrabold text-slate-700">{currentDate.toLocaleDateString('en-US', { weekday: 'long' })}</h4>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                    <h4 className="font-bold text-xs text-[#111111]">{currentDate.toLocaleDateString('en-US', { weekday: 'long' })}</h4>
+                    <p className="text-[10px] font-mono text-[#666666] uppercase">{currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => handleOpenCreateModal(currentDate.toISOString().split('T')[0])}
-                  className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 text-indigo-600 text-xs font-bold rounded-xl transition-colors shadow-sm"
+                  className="px-3 py-1.5 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono uppercase"
                 >
-                  Schedule Session
+                  SCHEDULE SESSION
                 </button>
               </div>
 
-              {/* Day's Exams */}
-              {getExamsForDate(currentDate.toISOString().split('T')[0]).length > 0 && (
-                <div className="space-y-2">
-                  {getExamsForDate(currentDate.toISOString().split('T')[0]).map(exam => {
-                    const style = getExamStyle(exam.exam_type);
-                    return (
-                      <div key={exam.id} className={`flex items-center justify-between p-3 rounded-xl border ${style.bgLight} ${style.border}`}>
-                        <div className="flex items-center gap-3">
-                          <GraduationCap size={18} className={style.textColor} />
-                          <div>
-                            <p className={`text-sm font-bold ${style.textColor}`}>{exam.title}</p>
-                            <p className="text-xs text-slate-500">{exam.subject} &middot; {exam.exam_type.toUpperCase()}</p>
-                          </div>
-                        </div>
-                        <button onClick={() => handleDeleteExam(exam.id)} className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="flex-1 overflow-y-auto max-h-[380px] divide-y divide-slate-100">
+              <div className="flex-1 overflow-y-auto divide-y divide-[#D7D3CF]">
                 {filteredPlans.filter(p => p.revision_date === currentDate.toISOString().split('T')[0]).map(plan => (
                   <div key={plan.id}
                     onClick={() => handleOpenEditModal(plan)}
-                    className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 group cursor-pointer hover:bg-slate-50/40 px-2 rounded-xl transition-colors"
+                    className="py-3 flex justify-between items-center gap-3 cursor-pointer hover:bg-[#FAF9F7] px-2 rounded-[4px]"
                   >
-                    <div className="flex gap-3.5 items-start">
-                      <div className="mt-1">
-                        <input type="checkbox" checked={plan.status === 'completed'}
-                          onChange={(e) => { e.stopPropagation(); handleToggleStatus(plan); }}
-                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 focus:ring-2 cursor-pointer transition-colors"
-                        />
-                      </div>
+                    <div className="flex gap-3 items-center">
+                      <input type="checkbox" checked={plan.status === 'completed'}
+                        onChange={(e) => { e.stopPropagation(); handleToggleStatus(plan); }}
+                        className="w-4 h-4 rounded-[2px] border-[#D7D3CF] text-[#102326] cursor-pointer"
+                      />
                       <div>
-                        <h4 className={`font-bold text-sm ${plan.status === 'completed' ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{plan.title}</h4>
-                        <p className="text-xs text-slate-400 mt-1">{plan.description || 'No description provided'}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100/30">{plan.subject}</span>
-                          {plan.start_time && (
-                            <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1">
-                              <Clock size={11} /> {plan.start_time} - {plan.end_time}
-                            </span>
-                          )}
-                        </div>
+                        <h4 className={`font-bold text-xs ${plan.status === 'completed' ? 'text-[#666666] line-through' : 'text-[#111111]'}`}>{plan.title}</h4>
+                        <p className="text-[10px] font-mono text-[#666666]">{plan.subject} {plan.start_time ? `• ${plan.start_time} - ${plan.end_time}` : ''}</p>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 self-end sm:self-center">
-                      <span className={`px-2.5 py-1 text-[9px] font-extrabold uppercase rounded-lg border tracking-wide ${getPriorityColor(plan.priority)}`}>
-                        {plan.priority} Priority
-                      </span>
-                      <button onClick={(e) => { e.stopPropagation(); handleDeletePlan(plan.id); }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); handleDeletePlan(plan.id); }}
+                      className="p-1 text-[#666666] hover:text-[#C96A32]"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 ))}
-                
-                {filteredPlans.filter(p => p.revision_date === currentDate.toISOString().split('T')[0]).length === 0 && (
-                  <div className="py-12 flex flex-col items-center justify-center text-center">
-                    <CalendarIcon size={32} className="text-slate-300 mb-2.5" />
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">No study slots scheduled</p>
-                  </div>
-                )}
               </div>
             </div>
           )}
         </div>
 
         {/* Sidebar */}
-        <div className="flex flex-col gap-6">
-          
-          {/* Exam Legend */}
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-6">
-            <h3 className="text-sm font-bold text-slate-800 tracking-tight mb-3">Exam Types</h3>
-            <div className="space-y-2">
+        <div className="flex flex-col gap-4">
+          <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-4 space-y-2">
+            <h3 className="text-[10px] font-mono uppercase text-[#666666] font-semibold pb-2 border-b border-[#D7D3CF]">EXAM TYPES</h3>
+            <div className="space-y-1.5">
               {EXAM_TYPES.map(type => (
-                <div key={type.value} className="flex items-center gap-2.5">
-                  <span className={`w-3 h-3 rounded-full ${type.color}`}></span>
-                  <span className="text-xs font-bold text-slate-600">{type.label}</span>
+                <div key={type.value} className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-[2px] ${type.color}`}></span>
+                  <span className="text-xs font-mono text-[#111111]">{type.label}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Upcoming Exams */}
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-6 flex flex-col min-h-[280px] max-h-[350px] overflow-hidden">
-            <div className="border-b border-slate-100/80 pb-4 mb-4">
-              <h3 className="text-base font-bold text-slate-800 tracking-tight">Upcoming Exams</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Next 30 Days</p>
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
-              {exams.filter(e => {
-                const d = new Date(e.exam_date);
-                const now = new Date();
-                const limit = new Date();
-                limit.setDate(limit.getDate() + 30);
-                return d >= now && d <= limit;
-              }).slice(0, 5).map(exam => {
+          <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-4 space-y-3 flex-1">
+            <h3 className="text-[10px] font-mono uppercase text-[#666666] font-semibold pb-2 border-b border-[#D7D3CF]">UPCOMING EXAMS</h3>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {exams.map(exam => {
                 const style = getExamStyle(exam.exam_type);
                 return (
-                  <div key={exam.id} className={`p-3 rounded-xl border ${style.bgLight} ${style.border} flex items-center justify-between`}>
+                  <div key={exam.id} className={`p-2.5 rounded-[4px] border ${style.bgLight} ${style.border} flex items-center justify-between`}>
                     <div>
                       <p className={`text-xs font-bold ${style.textColor}`}>{exam.title}</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">{exam.subject}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        {new Date(exam.exam_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </p>
+                      <p className="text-[9px] font-mono text-[#666666]">{exam.subject} • {exam.exam_date}</p>
                     </div>
-                    <button onClick={() => handleDeleteExam(exam.id)} className="p-1 text-slate-400 hover:text-rose-500 transition-colors">
+                    <button onClick={() => handleDeleteExam(exam.id)} className="text-[#666666] hover:text-[#C96A32]">
                       <Trash2 size={12} />
                     </button>
                   </div>
                 );
               })}
               {exams.length === 0 && (
-                <div className="py-8 flex flex-col items-center justify-center text-center">
-                  <GraduationCap size={28} className="text-slate-300 mb-2" />
-                  <p className="text-xs font-bold text-slate-400">No exams scheduled</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Upcoming Revision */}
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-[0_4px_16px_rgba(0,0,0,0.015)] p-6 flex flex-col min-h-[320px] max-h-[420px] overflow-hidden">
-            <div className="border-b border-slate-100/80 pb-4 mb-4">
-              <h3 className="text-base font-bold text-slate-800 tracking-tight">Upcoming Revision</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Pending Sessions</p>
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-3.5 custom-scrollbar pr-1">
-              {filteredPlans.filter(p => p.status === 'pending').slice(0, 5).map(plan => (
-                <div key={plan.id}
-                  onClick={() => handleOpenEditModal(plan)}
-                  className="p-3.5 rounded-2xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 hover:bg-white hover:shadow-[0_8px_20px_rgba(0,0,0,0.012)] transition-all cursor-pointer group flex justify-between items-start"
-                >
-                  <div className="min-w-0 flex-1">
-                    <h4 className="font-bold text-xs text-slate-700 truncate pr-2 group-hover:text-indigo-600 transition-colors">{plan.title}</h4>
-                    <p className="text-[10px] text-slate-400 font-semibold mt-1">
-                      {new Date(plan.revision_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      {plan.start_time && ` • ${plan.start_time}`}
-                    </p>
-                    <span className="inline-block mt-2 text-[8px] font-extrabold uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200/20">
-                      {plan.subject}
-                    </span>
-                  </div>
-                  <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(plan); }}
-                    className="w-6 h-6 rounded-lg bg-slate-50 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 border border-slate-200/50 hover:border-emerald-100 flex items-center justify-center transition-colors shadow-sm"
-                  >
-                    <Check size={12} strokeWidth={3} />
-                  </button>
-                </div>
-              ))}
-              {filteredPlans.filter(p => p.status === 'pending').length === 0 && (
-                <div className="py-16 flex flex-col items-center justify-center text-center">
-                  <CheckCircle2 size={32} className="text-emerald-500 mb-2.5 animate-pulse" />
-                  <h4 className="text-xs font-bold text-slate-700">All Revisions Done</h4>
-                  <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase tracking-wider">Time for a break</p>
-                </div>
+                <p className="text-xs font-mono text-[#666666] text-center py-4">No exams scheduled.</p>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Revision Plan Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
-            ></motion.div>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ type: 'spring', duration: 0.5 }}
-              className="relative bg-white w-full max-w-lg rounded-[2.5rem] border border-slate-100 shadow-2xl p-7 z-10 overflow-hidden"
-            >
-              <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl">
-                <X size={16} />
-              </button>
-              <h3 className="text-lg font-bold text-slate-800 tracking-tight mb-6 flex items-center gap-2">
-                <CalendarIcon size={18} className="text-indigo-600" />
+      {/* Modal: Task Form */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
+          <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 max-w-md w-full space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-[#D7D3CF]">
+              <h3 className="text-sm font-bold text-[#111111] uppercase font-mono">
                 {modalMode === 'create' ? 'Schedule Revision' : 'Edit Revision'}
               </h3>
-              <form onSubmit={handleSavePlan} className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Revision Title</label>
-                  <input type="text" placeholder="e.g. Process Synchronization rules" value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all placeholder:text-slate-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Description (Optional)</label>
-                  <textarea placeholder="e.g. Study Semaphores and Peterson's Solution." value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows="2.5"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all placeholder:text-slate-400 resize-none"
-                  ></textarea>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Subject</label>
-                    <select value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all"
-                    >
-                      {subjects.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Priority</label>
-                    <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-1.5">
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Date</label>
-                    <input type="date" value={formData.revision_date}
-                      onChange={(e) => setFormData({ ...formData, revision_date: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-xs font-semibold transition-all cursor-pointer"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Start</label>
-                    <input type="time" value={formData.start_time}
-                      onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-xs font-semibold transition-all cursor-pointer"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">End</label>
-                    <input type="time" value={formData.end_time}
-                      onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-xs font-semibold transition-all cursor-pointer"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3.5 pt-4">
-                  {modalMode === 'edit' && (
-                    <button type="button" onClick={() => handleDeletePlan(activePlan.id)}
-                      className="flex-1 py-3 border border-rose-100 bg-rose-50/50 hover:bg-rose-50 text-rose-600 rounded-2xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                    >
-                      <Trash2 size={13} /> Delete
-                    </button>
-                  )}
-                  <button type="submit"
-                    className="flex-[2] py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black shadow-md shadow-indigo-500/10 transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <Check size={13} /> {modalMode === 'create' ? 'Schedule Session' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Exam Modal */}
-      <AnimatePresence>
-        {isExamModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsExamModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
-            ></motion.div>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 15 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ type: 'spring', duration: 0.5 }}
-              className="relative bg-white w-full max-w-md rounded-[2.5rem] border border-slate-100 shadow-2xl p-7 z-10 overflow-hidden"
-            >
-              <button onClick={() => setIsExamModalOpen(false)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl">
+              <button onClick={() => setIsModalOpen(false)} className="text-[#666666] hover:text-[#111111]">
                 <X size={16} />
               </button>
-              <h3 className="text-lg font-bold text-slate-800 tracking-tight mb-6 flex items-center gap-2">
-                <GraduationCap size={18} className="text-indigo-600" />
-                Add Exam to Calendar
-              </h3>
-              <form onSubmit={handleCreateExam} className="space-y-4">
+            </div>
+            <form onSubmit={handleSavePlan} className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Title</label>
+                <input type="text" required placeholder="e.g. Memory Management" value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Exam Title</label>
-                  <input type="text" placeholder="e.g. Midterm Exam" value={examForm.title}
-                    onChange={(e) => setExamForm({ ...examForm, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all placeholder:text-slate-400"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Exam Type</label>
-                    <select value={examForm.exam_type} onChange={(e) => setExamForm({ ...examForm, exam_type: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all"
-                    >
-                      {EXAM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Subject</label>
-                    <select value={examForm.subject} onChange={(e) => setExamForm({ ...examForm, subject: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all"
-                    >
-                      {subjects.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
+                  <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Subject</label>
+                  <select value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+                  >
+                    {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Date</label>
-                  <input type="date" value={examForm.exam_date}
-                    onChange={(e) => setExamForm({ ...examForm, exam_date: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-xs font-semibold transition-all cursor-pointer"
-                  />
+                  <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Priority</label>
+                  <select value={formData.priority} onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                    className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5">Notes (Optional)</label>
-                  <textarea placeholder="e.g. Chapters 1-5, focus on processes" value={examForm.description}
-                    onChange={(e) => setExamForm({ ...examForm, description: e.target.value })}
-                    rows="2"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-150 focus:border-indigo-500 focus:bg-white focus:outline-none rounded-xl text-sm font-semibold transition-all placeholder:text-slate-400 resize-none"
-                  ></textarea>
-                </div>
-                <button type="submit"
-                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black shadow-md shadow-indigo-500/10 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <GraduationCap size={14} /> Add Exam
-                </button>
-              </form>
-            </motion.div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Date</label>
+                <input type="date" value={formData.revision_date}
+                  onChange={(e) => setFormData({ ...formData, revision_date: e.target.value })}
+                  className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+                />
+              </div>
+              <button type="submit" className="w-full py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase">
+                {modalMode === 'create' ? 'SAVE SESSION' : 'UPDATE SESSION'}
+              </button>
+            </form>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
-      <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e2e8f0; border-radius: 20px; }
-        .custom-scrollbar:hover::-webkit-scrollbar-thumb { background-color: #cbd5e1; }
-      `}} />
+      {/* Modal: Exam Form */}
+      {isExamModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
+          <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 max-w-md w-full space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-[#D7D3CF]">
+              <h3 className="text-sm font-bold text-[#111111] uppercase font-mono">Add Exam</h3>
+              <button onClick={() => setIsExamModalOpen(false)} className="text-[#666666] hover:text-[#111111]">
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleCreateExam} className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Exam Title</label>
+                <input type="text" required placeholder="e.g. Midterm Exam" value={examForm.title}
+                  onChange={(e) => setExamForm({ ...examForm, title: e.target.value })}
+                  className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Type</label>
+                  <select value={examForm.exam_type} onChange={(e) => setExamForm({ ...examForm, exam_type: e.target.value })}
+                    className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+                  >
+                    {EXAM_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Subject</label>
+                  <select value={examForm.subject} onChange={(e) => setExamForm({ ...examForm, subject: e.target.value })}
+                    className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+                  >
+                    {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Date</label>
+                <input type="date" value={examForm.exam_date}
+                  onChange={(e) => setExamForm({ ...examForm, exam_date: e.target.value })}
+                  className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+                />
+              </div>
+              <button type="submit" className="w-full py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase">
+                ADD EXAM
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
