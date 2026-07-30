@@ -2,7 +2,15 @@ from flask import Blueprint, request, jsonify, send_file
 from config import db
 from models.content import Subject, StudentUpload
 from services.auth_service import login_required
-from services.rag_service import embed_document, delete_document_embeddings
+from services.document_parser import parse_uploaded_material_with_metadata, supported_material_message
+from services.progress_service import get_subject_mastery, seed_syllabus_topics
+from services.generation_service import generate_learning_path
+from services.rag_service import (
+    embed_document,
+    delete_document_embeddings,
+    get_syllabus_coverage,
+    is_document_embedded,
+)
 from werkzeug.utils import secure_filename
 import os
 import json
@@ -48,6 +56,12 @@ def _serialize_upload(upload, include_text=False):
         "is_active_syllabus": bool(upload.is_active_syllabus),
         "embedding_status": upload.embedding_status or 'pending',
         "embedding_error": upload.embedding_error,
+        "extraction_method": upload.extraction_method,
+        "extraction_quality": upload.extraction_quality,
+        "validation_status": upload.validation_status or 'pending',
+        "validation_error": upload.validation_error,
+        "syllabus_match_score": upload.syllabus_match_score,
+        "syllabus_match_coverage": upload.syllabus_match_coverage,
         "created_at": upload.created_at.isoformat() if upload.created_at else None,
     }
     if include_text:
@@ -58,22 +72,8 @@ def _serialize_upload(upload, include_text=False):
 
 
 def _parse_syllabus_file(file, filepath):
-    if file.filename.lower().endswith('.pdf'):
-        import fitz
-        file.save(filepath)
-        text = ""
-        doc = fitz.open(filepath)
-        for page in doc:
-            text += page.get_text()
-        doc.close()
-        return text
-
-    if file.filename.lower().endswith('.txt'):
-        file.save(filepath)
-        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-            return f.read()
-
-    raise ValueError("Only PDF and TXT files are supported")
+    text, _metadata = parse_uploaded_material_with_metadata(file, filepath)
+    return text
 
 
 def _start_embedding(upload_id, user_id, filename, text):
@@ -328,33 +328,18 @@ def upload_syllabus(user):
     if file.filename == '':
         return jsonify({"error": "No selected file"}), 400
 
-    if not file.filename.lower().endswith('.pdf'):
-        return jsonify({"error": "Invalid file type, only PDF allowed"}), 400
-
-    import fitz  # PyMuPDF
     filename = secure_filename(file.filename)
     filepath = os.path.join(UPLOAD_FOLDER, f"syllabus_{user.id}_{subject_id}_{filename}")
 
     try:
-        file.save(filepath)
+        text, extraction_meta = parse_uploaded_material_with_metadata(file, filepath)
         size_bytes = os.path.getsize(filepath)
     except Exception as e:
-        logger.error(f"Failed to save syllabus file: {e}")
-        return jsonify({"error": "Failed to save file locally"}), 500
-
-    # Parse PDF using PyMuPDF
-    text = ""
-    try:
-        doc = fitz.open(filepath)
-        for page in doc:
-            text += page.get_text()
-        doc.close()
-    except Exception as e:
-        logger.error(f"Failed to parse PDF: {e}")
+        logger.error(f"Failed to parse syllabus file: {e}")
         # cleanup file
         if os.path.exists(filepath):
             os.remove(filepath)
-        return jsonify({"error": f"Failed to parse PDF: {str(e)}"}), 500
+        return jsonify({"error": f"Failed to parse syllabus: {str(e)}"}), 500
 
     upload = StudentUpload(
         filename=filename,
@@ -364,7 +349,10 @@ def upload_syllabus(user):
         user_id=user.id,
         subject=subject.name,
         subject_id=subject_id,
-        doc_type='syllabus'
+        doc_type='syllabus',
+        extraction_method=extraction_meta.get('extraction_method'),
+        extraction_quality=extraction_meta.get('extraction_quality'),
+        validation_status='approved',
     )
 
     try:
@@ -422,6 +410,110 @@ def get_syllabus_meta(user, subject_id):
             "semester": subject.semester
         }
     }), 200
+
+
+@syllabus_bp.route('/<int:subject_id>/coverage', methods=['GET'])
+@login_required
+def get_syllabus_coverage_report(user, subject_id):
+    subject = Subject.query.filter_by(id=subject_id, user_id=user.id).first()
+    if not subject:
+        return jsonify({"error": "Subject not found or access denied"}), 404
+
+    syllabus_upload_id = request.args.get('syllabus_upload_id', type=int)
+    if syllabus_upload_id:
+        syllabus = StudentUpload.query.filter_by(
+            id=syllabus_upload_id,
+            subject_id=subject_id,
+            doc_type='syllabus',
+        ).first()
+    else:
+        syllabus = StudentUpload.query.filter_by(
+            subject_id=subject_id,
+            doc_type='syllabus',
+        ).order_by(StudentUpload.created_at.desc()).first()
+
+    if not syllabus:
+        return jsonify({"error": "No syllabus uploaded for this subject"}), 404
+    if syllabus.user_id != user.id and syllabus.syllabus_kind != 'official':
+        return jsonify({"error": "Unauthorized"}), 403
+    if not is_document_embedded(syllabus.id):
+        return jsonify({
+            "error": "Syllabus embeddings are not ready yet",
+            "embedding_status": syllabus.embedding_status or 'pending',
+        }), 409
+
+    top_k = request.args.get('top_k', default=5, type=int)
+    threshold = request.args.get('threshold', default=0.72, type=float)
+    same_subject_only = request.args.get('same_subject_only', default='true').lower() != 'false'
+    top_k = max(1, min(top_k, 20))
+    threshold = max(0.0, min(threshold, 1.0))
+
+    try:
+        report = get_syllabus_coverage(
+            syllabus_upload_id=syllabus.id,
+            user_id=user.id,
+            subject_id=subject_id,
+            top_k=top_k,
+            threshold=threshold,
+            same_subject_only=same_subject_only,
+        )
+        report["syllabus"] = _serialize_upload(syllabus)
+        report["subject"] = {
+            "id": subject.id,
+            "name": subject.name,
+            "semester": subject.semester,
+            "code": subject.code,
+        }
+        return jsonify(report), 200
+    except Exception as e:
+        logger.error(f"Failed to compute syllabus coverage: {e}")
+        return jsonify({"error": "Failed to compute syllabus coverage"}), 500
+
+
+@syllabus_bp.route('/<int:subject_id>/mastery', methods=['GET'])
+@login_required
+def get_subject_mastery_report(user, subject_id):
+    try:
+        report = get_subject_mastery(user.id, subject_id)
+        if not report:
+            return jsonify({"error": "Subject not found or access denied"}), 404
+        return jsonify(report), 200
+    except Exception as e:
+        logger.error(f"Failed to load subject mastery: {e}")
+        return jsonify({"error": "Failed to load subject mastery"}), 500
+
+
+@syllabus_bp.route('/<int:subject_id>/topics/seed', methods=['POST'])
+@login_required
+def seed_subject_topics(user, subject_id):
+    subject = Subject.query.filter_by(id=subject_id, user_id=user.id).first()
+    if not subject:
+        return jsonify({"error": "Subject not found or access denied"}), 404
+    try:
+        rows = seed_syllabus_topics(user.id, subject_id)
+        return jsonify({"message": "Topics synced", "count": len(rows)}), 200
+    except Exception as e:
+        logger.error(f"Failed to seed syllabus topics: {e}")
+        return jsonify({"error": "Failed to sync syllabus topics"}), 500
+
+
+@syllabus_bp.route('/<int:subject_id>/learning-path', methods=['POST'])
+@login_required
+def generate_subject_learning_path(user, subject_id):
+    report = get_subject_mastery(user.id, subject_id)
+    if not report:
+        return jsonify({"error": "Subject not found or access denied"}), 404
+
+    topics = [
+        topic for topic in report.get('topics', [])
+        if topic.get('weak') or not topic.get('covered')
+    ]
+    try:
+        path = generate_learning_path(report['subject']['name'], topics)
+        return jsonify(path), 200
+    except Exception as e:
+        logger.error(f"Failed to generate learning path: {e}")
+        return jsonify({"error": f"Failed to generate learning path: {str(e)}"}), 500
 
 
 @syllabus_bp.route('/workspace', methods=['GET'])
@@ -510,6 +602,10 @@ def upsert_personal_syllabus(user):
     filepath = os.path.join(scoped_dir, filename)
     parsed_text = text
     size_bytes = len(text.encode('utf-8'))
+    extraction_meta = {
+        'extraction_method': 'typed_text',
+        'extraction_quality': 'good' if len(parsed_text.strip()) >= 500 else 'partial' if len(parsed_text.strip()) >= 120 else 'low',
+    }
 
     try:
         if file:
@@ -522,7 +618,7 @@ def upsert_personal_syllabus(user):
             if not filename:
                 return jsonify({"error": "Uploaded file must have a filename"}), 400
             filepath = os.path.join(scoped_dir, filename)
-            parsed_text = _parse_syllabus_file(file, filepath)
+            parsed_text, extraction_meta = parse_uploaded_material_with_metadata(file, filepath)
             size_bytes = os.path.getsize(filepath)
         else:
             with open(filepath, 'w', encoding='utf-8') as f:
@@ -548,6 +644,10 @@ def upsert_personal_syllabus(user):
             existing.subject_id = subject.id if subject else subject_id
             existing.embedding_status = 'pending'
             existing.embedding_error = None
+            existing.extraction_method = extraction_meta.get('extraction_method')
+            existing.extraction_quality = extraction_meta.get('extraction_quality')
+            existing.validation_status = 'approved'
+            existing.validation_error = None
             upload = existing
         else:
             upload = StudentUpload(
@@ -560,6 +660,9 @@ def upsert_personal_syllabus(user):
                 subject_id=subject.id if subject else subject_id,
                 doc_type='syllabus',
                 syllabus_kind='personal',
+                extraction_method=extraction_meta.get('extraction_method'),
+                extraction_quality=extraction_meta.get('extraction_quality'),
+                validation_status='approved',
             )
             db.session.add(upload)
 

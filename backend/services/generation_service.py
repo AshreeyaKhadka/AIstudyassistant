@@ -443,3 +443,112 @@ def generate_rapid_revision(context: str, count: int = 15) -> list[dict]:
                 'definition': str(card['definition']).strip(),
             })
     return validated
+
+
+MOCK_TEST_PROMPT = """You are creating a university-style mock exam from the provided study material.
+
+STUDY MATERIAL CONTEXT:
+{context}
+
+Build a realistic exam paper for {subject}. Follow this marks distribution:
+- 5 one-mark definition/recall questions
+- 5 two-mark short-answer questions
+- 3 five-mark explanation/application questions
+- 2 ten-mark long-answer/problem-solving questions
+
+Requirements:
+- Questions must be answerable from the context.
+- Include expected answer points or marking guidance for each question.
+- Include a difficulty: easy, medium, or hard.
+- Include a question_style: definition, short_answer, explanation, numerical, long_answer, or problem_solving.
+- If numerical questions are not supported by the material, use conceptual problem-solving instead.
+
+OUTPUT FORMAT (strict JSON):
+{{
+  "title": "{subject} Mock Test",
+  "duration_minutes": 120,
+  "total_marks": 50,
+  "sections": [
+    {{
+      "name": "Section A",
+      "marks_each": 1,
+      "questions": [
+        {{
+          "question": "...",
+          "marks": 1,
+          "question_style": "definition",
+          "difficulty": "easy",
+          "answer_points": ["..."]
+        }}
+      ]
+    }}
+  ]
+}}
+
+Return ONLY valid JSON."""
+
+
+def generate_mock_test(context: str, subject: str = 'Subject') -> dict:
+    prompt = MOCK_TEST_PROMPT.format(context=context, subject=subject)
+    raw = _call_gemini(prompt, temperature=0.35)
+    parsed = _parse_json_response(raw)
+    sections = parsed.get('sections', [])
+    if not isinstance(sections, list) or not sections:
+        raise RuntimeError('Invalid mock test format')
+    return {
+        'title': parsed.get('title', f'{subject} Mock Test'),
+        'subject': subject,
+        'duration_minutes': int(parsed.get('duration_minutes', 120)),
+        'total_marks': int(parsed.get('total_marks', 50)),
+        'sections': sections,
+    }
+
+
+LEARNING_PATH_PROMPT = """Create a practical learning path for a student based on syllabus progress.
+
+SUBJECT: {subject}
+
+WEAK OR UNCOVERED TOPICS:
+{topics}
+
+Return a concise plan with prerequisites, ordered study steps, and daily tasks.
+
+OUTPUT FORMAT (strict JSON):
+{{
+  "subject": "{subject}",
+  "prerequisites": ["..."],
+  "steps": [
+    {{
+      "order": 1,
+      "topic": "...",
+      "why": "...",
+      "task": "...",
+      "practice": "..."
+    }}
+  ],
+  "daily_plan": [
+    {{
+      "day": 1,
+      "focus": "...",
+      "tasks": ["..."]
+    }}
+  ]
+}}
+
+Return ONLY valid JSON."""
+
+
+def generate_learning_path(subject: str, topics: list[dict]) -> dict:
+    topic_text = "\n".join(
+        f"- {item.get('topic_title')}: {'weak' if item.get('weak') else 'uncovered'}"
+        for item in topics[:12]
+    ) or "- No weak/uncovered topics yet; create a balanced revision path."
+    prompt = LEARNING_PATH_PROMPT.format(subject=subject, topics=topic_text)
+    raw = _call_gemini(prompt, temperature=0.35)
+    parsed = _parse_json_response(raw)
+    return {
+        'subject': parsed.get('subject', subject),
+        'prerequisites': parsed.get('prerequisites', []),
+        'steps': parsed.get('steps', []),
+        'daily_plan': parsed.get('daily_plan', []),
+    }

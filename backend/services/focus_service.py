@@ -4,8 +4,12 @@ from models.revision import RevisionPlan
 from models.exam import Exam
 from models.quiz import QuizSet
 from models.content import StudentUpload, Subject
-from config import db
+from config import Config, db
 from datetime import datetime, timedelta
+import logging
+import requests
+
+logger = logging.getLogger(__name__)
 
 def log_session(user_id, data):
     session = StudySession(
@@ -134,6 +138,109 @@ def get_recommendations(user_id):
         })
 
     return recommendations
+
+def _parse_ai_response(response):
+    try:
+        data = response.json()
+    except ValueError:
+        return ''
+
+    if not isinstance(data, dict):
+        return ''
+
+    candidates = data.get('candidates') or []
+    if not candidates:
+        return ''
+
+    content = (candidates[0] or {}).get('content') or {}
+    parts = content.get('parts') or []
+    return '\n'.join(
+        part.get('text', '')
+        for part in parts
+        if isinstance(part, dict) and part.get('text')
+    ).strip()
+
+def get_ai_coach_response(user_id, data):
+    if not Config.GEMINI_API_KEY:
+        raise RuntimeError('Gemini API key is not configured.')
+
+    prompt = data.get('prompt', '')
+    if not isinstance(prompt, str) or not prompt.strip():
+        raise ValueError('Prompt is required.')
+
+    subject = data.get('subject') or 'General'
+    topic = data.get('topic') or 'Review'
+    focus_minutes = data.get('focus_minutes')
+    break_minutes = data.get('break_minutes')
+
+    recent_sessions = (
+        StudySession.query.filter_by(user_id=user_id)
+        .order_by(StudySession.created_at.desc())
+        .limit(6)
+        .all()
+    )
+    session_context = '\n'.join(
+        f"- {session.subject} / {session.topic or 'Review'}: {session.duration_minutes} min, completed={session.completed}"
+        for session in recent_sessions
+    ) or 'No completed focus sessions yet.'
+
+    uploads = (
+        StudentUpload.query.filter_by(user_id=user_id)
+        .order_by(StudentUpload.created_at.desc())
+        .limit(3)
+        .all()
+    )
+    material_context = ', '.join(upload.filename for upload in uploads) or 'No uploaded materials yet.'
+
+    system_prompt = (
+        'You are AiStudy Focus Coach. Give concise, actionable study guidance for a timed focus session. '
+        'Prefer concrete steps, short checklists, and realistic scope. Do not invent facts from unavailable materials. '
+        'Keep the response under 180 words.'
+    )
+    user_prompt = (
+        f"{system_prompt}\n\n"
+        f"Current focus session:\n"
+        f"- Subject: {subject}\n"
+        f"- Topic: {topic}\n"
+        f"- Focus minutes: {focus_minutes or 'not specified'}\n"
+        f"- Break minutes: {break_minutes or 'not specified'}\n\n"
+        f"Recent focus history:\n{session_context}\n\n"
+        f"Available material filenames: {material_context}\n\n"
+        f"Student request: {prompt.strip()}"
+    )
+
+    payload = {
+        'contents': [{'role': 'user', 'parts': [{'text': user_prompt}]}],
+        'generationConfig': {
+            'temperature': 0.35,
+            'maxOutputTokens': 320,
+        },
+    }
+
+    try:
+        response = requests.post(
+            f"{Config.GEMINI_API_BASE_URL.rstrip('/')}/models/{Config.GEMINI_MODEL}:generateContent",
+            headers={'x-goog-api-key': Config.GEMINI_API_KEY},
+            json=payload,
+            timeout=45,
+        )
+    except requests.RequestException as exc:
+        logger.error(f'Focus coach Gemini request failed: {exc}')
+        raise RuntimeError('Unable to reach the AI service right now.') from exc
+
+    if response.status_code >= 400:
+        logger.error(f'Focus coach Gemini API error {response.status_code}: {response.text}')
+        raise RuntimeError('AI service returned an error.')
+
+    reply = _parse_ai_response(response)
+    if not reply:
+        raise RuntimeError('The AI service returned an empty response.')
+
+    return {
+        'reply': reply,
+        'subject': subject,
+        'topic': topic,
+    }
 
 def check_achievements(user_id):
     sessions = StudySession.query.filter_by(user_id=user_id, completed=True).all()

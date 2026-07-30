@@ -3,6 +3,7 @@ from services.auth_service import admin_required
 from config import db
 from models.user import User
 from models.content import StudentUpload
+from services.document_parser import parse_uploaded_material_with_metadata, supported_material_message
 from services.rag_service import embed_document, delete_document_embeddings
 from werkzeug.utils import secure_filename
 import logging
@@ -58,11 +59,15 @@ def upload_syllabus(admin_user):
     text = (request.form.get('text') or '').strip()
     file = request.files.get('file')
     if not text and not file:
-        return jsonify({"error": "Provide syllabus text or upload a PDF/TXT file"}), 400
+        return jsonify({"error": f"Provide syllabus text or upload a file. {supported_material_message()}"}), 400
 
     filename = 'official-syllabus.txt'
     filepath = os.path.join(UPLOAD_FOLDER, f"official_syllabus_{int(datetime.utcnow().timestamp())}.txt")
     parsed_text = text
+    extraction_meta = {
+        'extraction_method': 'typed_text',
+        'extraction_quality': 'good' if len(parsed_text.strip()) >= 500 else 'partial' if len(parsed_text.strip()) >= 120 else 'low',
+    }
 
     try:
         if file:
@@ -70,20 +75,7 @@ def upload_syllabus(admin_user):
             if not filename:
                 return jsonify({"error": "Uploaded file must have a filename"}), 400
             filepath = os.path.join(UPLOAD_FOLDER, f"official_syllabus_{int(datetime.utcnow().timestamp())}_{filename}")
-            if filename.lower().endswith('.pdf'):
-                import fitz
-                file.save(filepath)
-                parsed_text = ""
-                doc = fitz.open(filepath)
-                for page in doc:
-                    parsed_text += page.get_text()
-                doc.close()
-            elif filename.lower().endswith('.txt'):
-                file.save(filepath)
-                with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-                    parsed_text = f.read()
-            else:
-                return jsonify({"error": "Only PDF and TXT files are supported"}), 400
+            parsed_text, extraction_meta = parse_uploaded_material_with_metadata(file, filepath)
         else:
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(parsed_text)
@@ -109,6 +101,10 @@ def upload_syllabus(admin_user):
             upload.embedding_status = 'pending'
             upload.embedding_error = None
             upload.user_id = admin_user.id
+            upload.extraction_method = extraction_meta.get('extraction_method')
+            upload.extraction_quality = extraction_meta.get('extraction_quality')
+            upload.validation_status = 'approved'
+            upload.validation_error = None
         else:
             upload = StudentUpload(
                 filename=filename,
@@ -119,6 +115,9 @@ def upload_syllabus(admin_user):
                 subject='Official Syllabus',
                 doc_type='syllabus',
                 syllabus_kind='official',
+                extraction_method=extraction_meta.get('extraction_method'),
+                extraction_quality=extraction_meta.get('extraction_quality'),
+                validation_status='approved',
             )
             db.session.add(upload)
 

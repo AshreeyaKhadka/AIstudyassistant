@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from services.auth_service import login_required
 from services.exam_prep_service import get_exam_prep_overview, upsert_subject_exam_date
-from services.generation_service import generate_exam_questions, generate_blueprint_sheet, generate_rapid_revision
-from services.rag_service import get_full_context
+from services.generation_service import generate_exam_questions, generate_blueprint_sheet, generate_rapid_revision, generate_mock_test
+from services.rag_service import get_full_context, validate_upload_against_syllabus
 from models.content import Subject, StudentUpload
 import logging
 import traceback
@@ -14,18 +14,19 @@ logger = logging.getLogger(__name__)
 def _resolve_upload(user, subject_name, upload_id=None):
     if upload_id:
         upload = StudentUpload.query.filter_by(id=upload_id, user_id=user.id).first()
-        if upload:
+        if upload and _upload_allowed_for_generation(upload):
             return upload
 
     subject = Subject.query.filter_by(user_id=user.id, name=subject_name).first()
     if subject:
-        upload = (
+        uploads = (
             StudentUpload.query.filter_by(user_id=user.id, subject_id=subject.id, embedding_status='embedded')
             .order_by(StudentUpload.created_at.desc())
-            .first()
+            .all()
         )
-        if upload:
-            return upload
+        for upload in uploads:
+            if _upload_allowed_for_generation(upload):
+                return upload
 
     active_syllabus = (
         StudentUpload.query.filter_by(user_id=user.id, doc_type='syllabus', is_active_syllabus=True, embedding_status='embedded')
@@ -41,11 +42,26 @@ def _resolve_upload(user, subject_name, upload_id=None):
     if active_syllabus:
         return active_syllabus
 
-    return (
+    fallback = (
         StudentUpload.query.filter_by(user_id=user.id, subject=subject_name, embedding_status='embedded')
         .order_by(StudentUpload.created_at.desc())
         .first()
     )
+    if fallback and _upload_allowed_for_generation(fallback):
+        return fallback
+    return None
+
+
+def _upload_allowed_for_generation(upload):
+    if upload.doc_type == 'syllabus':
+        return True
+    if upload.validation_status == 'pending':
+        try:
+            validate_upload_against_syllabus(upload.id)
+        except Exception as exc:
+            logger.warning(f"Upload validation failed during exam prep resolve for {upload.id}: {exc}")
+            return False
+    return upload.validation_status == 'approved'
 
 
 @exam_prep_bp.route('/overview', methods=['GET'])
@@ -136,6 +152,33 @@ def blueprint_sheet(user):
         }), 200
     except Exception as e:
         logger.error(f"Blueprint generation failed: {e}\n{traceback.format_exc()}")
+        return jsonify({"error": f"Generation failed: {str(e)}"}), 500
+
+
+@exam_prep_bp.route('/mock-test', methods=['POST'])
+@login_required
+def mock_test(user):
+    data = request.get_json(silent=True) or {}
+    subject = (data.get('subject') or '').strip()
+    upload_id = data.get('upload_id')
+
+    upload = _resolve_upload(user, subject, upload_id)
+    if not upload:
+        return jsonify({"error": "No approved embedded study material found for this subject."}), 400
+
+    try:
+        context = get_full_context(upload.id, max_chunks=25)
+        if not context:
+            return jsonify({"error": "No content found for this document"}), 400
+        test = generate_mock_test(context, subject=subject or upload.subject)
+        return jsonify({
+            "subject": subject or upload.subject,
+            "upload_id": upload.id,
+            "source_doc": upload.filename,
+            "mock_test": test,
+        }), 200
+    except Exception as e:
+        logger.error(f"Mock test generation failed: {e}\n{traceback.format_exc()}")
         return jsonify({"error": f"Generation failed: {str(e)}"}), 500
 
 

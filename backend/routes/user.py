@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import User, StudentUpload, ChatSession, QuizSet, RevisionPlan, Subject, StudySession
+from models import User, StudentUpload, ChatSession, QuizSet, RevisionPlan, Subject, StudySession, TopicProgress
 from services.auth_service import login_required
 from config import db
 from datetime import datetime, timedelta
@@ -98,12 +98,21 @@ def get_dashboard_data(user):
     user_sem = user.semester if user.semester else 1
     sem_subjects = [s for s in user_subjects if s.semester == user_sem]
     if sem_subjects:
-        covered_count = 0
+        progress_values = []
+        fallback_covered_count = 0
         for sub in sem_subjects:
-            has_doc = StudentUpload.query.filter_by(subject_id=sub.id).first()
-            if has_doc:
-                covered_count += 1
-        academic_progress = round((covered_count / len(sem_subjects)) * 100)
+            rows = TopicProgress.query.filter_by(user_id=user_id, subject_id=sub.id).all()
+            if rows:
+                covered = sum(1 for row in rows if row.covered)
+                progress_values.append((covered / len(rows)) * 100)
+            else:
+                has_doc = StudentUpload.query.filter_by(subject_id=sub.id).first()
+                if has_doc:
+                    fallback_covered_count += 1
+        if progress_values:
+            academic_progress = round(sum(progress_values) / len(progress_values))
+        else:
+            academic_progress = round((fallback_covered_count / len(sem_subjects)) * 100)
     else:
         academic_progress = 0
 

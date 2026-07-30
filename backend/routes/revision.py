@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from services.auth_service import login_required
+from services.progress_service import create_revision_tasks_from_progress
 from config import db
 from models.revision import RevisionPlan
 import logging
@@ -7,6 +8,22 @@ from datetime import datetime
 
 revision_bp = Blueprint('revision', __name__)
 logger = logging.getLogger(__name__)
+
+
+@revision_bp.route('/auto/<int:subject_id>', methods=['POST'])
+@login_required
+def auto_revision_from_progress(user, subject_id):
+    data = request.json or {}
+    limit = min(max(int(data.get('limit', 5)), 1), 10)
+    try:
+        plans = create_revision_tasks_from_progress(user.id, subject_id, limit=limit)
+        if plans is None:
+            return jsonify({"error": "Subject not found"}), 404
+        return jsonify({"created": plans, "count": len(plans)}), 201
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to auto-create revision plans: {e}")
+        return jsonify({"error": "Failed to create revision plan from progress"}), 500
 
 # B. Get User Revision Plans
 # GET /revision-plans

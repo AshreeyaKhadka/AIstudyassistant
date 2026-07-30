@@ -9,6 +9,8 @@ import { useOutletContext, useNavigate, useLocation } from 'react-router-dom';
 import PDFViewerModal from '../components/PDFViewerModal';
 
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
+const SUPPORTED_UPLOAD_EXTENSIONS = ['.pdf', '.pptx', '.txt', '.png', '.jpg', '.jpeg', '.webp'];
+const SUPPORTED_UPLOAD_ACCEPT = SUPPORTED_UPLOAD_EXTENSIONS.join(',');
 
 const DEFAULT_SUBJECTS_BY_SEMESTER = {
   1: ['Calculus I', 'Digital Logic', 'Programming in C', 'Basic Electrical Engineering', 'Computer Workshop', 'Communication Technique', 'Electronics Devices & Circuits'],
@@ -33,6 +35,9 @@ const UploadedMaterials = () => {
   const [dbSubjects, setDbSubjects] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mastery, setMastery] = useState(null);
+  const [masteryLoading, setMasteryLoading] = useState(false);
+  const [autoPlanning, setAutoPlanning] = useState(false);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,7 +49,7 @@ const UploadedMaterials = () => {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  // PDF Viewer Modal State
+  // Document viewer modal state
   const [viewingFile, setViewingFile] = useState(null);
 
   // Status notification
@@ -52,6 +57,7 @@ const UploadedMaterials = () => {
 
   // Action Modals
   const [generating, setGenerating] = useState(null);
+  const [validatingUploadId, setValidatingUploadId] = useState(null);
   const [generatedContent, setGeneratedContent] = useState(null);
   const [confirmDeleteFile, setConfirmDeleteFile] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -62,6 +68,19 @@ const UploadedMaterials = () => {
     fetchMaterials();
     fetchDbSubjects();
   }, []);
+
+  useEffect(() => {
+    if (!currentSubject || !dbSubjects.length) {
+      setMastery(null);
+      return;
+    }
+    const matchedSub = dbSubjects.find(s => s.name.toLowerCase() === currentSubject.toLowerCase());
+    if (!matchedSub) {
+      setMastery(null);
+      return;
+    }
+    fetchSubjectMastery(matchedSub.id);
+  }, [currentSubject, dbSubjects.length]);
 
   // Handle location state redirection from Dashboard
   useEffect(() => {
@@ -109,6 +128,22 @@ const UploadedMaterials = () => {
     }
   };
 
+  const fetchSubjectMastery = async (subjectId) => {
+    try {
+      setMasteryLoading(true);
+      const res = await fetch(`/api/syllabus/${subjectId}/mastery`, { credentials: 'include' });
+      if (res.ok) {
+        setMastery(await res.json());
+      } else {
+        setMastery(null);
+      }
+    } catch (err) {
+      setMastery(null);
+    } finally {
+      setMasteryLoading(false);
+    }
+  };
+
   const getSubjectsForSemester = (sem) => {
     const fromDb = dbSubjects.filter(s => Number(s.semester) === Number(sem)).map(s => s.name);
     const defaults = DEFAULT_SUBJECTS_BY_SEMESTER[sem] || [];
@@ -138,12 +173,14 @@ const UploadedMaterials = () => {
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
     if (!uploadFile) {
-      setStatus({ type: 'error', message: 'Please select a PDF file.' });
+      setStatus({ type: 'error', message: 'Please select a study material file.' });
       return;
     }
 
-    if (!uploadFile.name.toLowerCase().endsWith('.pdf')) {
-      setStatus({ type: 'error', message: 'Only PDF documents are allowed.' });
+    const lowerName = uploadFile.name.toLowerCase();
+    const supported = SUPPORTED_UPLOAD_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
+    if (!supported) {
+      setStatus({ type: 'error', message: 'Upload PDF/PPTX slides, TXT notes, or PNG/JPG/WEBP handwritten-note images.' });
       return;
     }
 
@@ -152,17 +189,32 @@ const UploadedMaterials = () => {
       return;
     }
 
-    const matchedSub = dbSubjects.find(s => s.name.toLowerCase() === uploadSubject.trim().toLowerCase());
-    const formData = new FormData();
-    formData.append('file', uploadFile);
-    if (matchedSub) {
-      formData.append('subject_id', matchedSub.id);
-    }
-    formData.append('subject', uploadSubject.trim());
-
     try {
       setUploading(true);
       setStatus({ type: 'loading', message: 'Filing document into vault...' });
+
+      let matchedSub = dbSubjects.find(s => s.name.toLowerCase() === uploadSubject.trim().toLowerCase());
+      if (!matchedSub) {
+        const subjectRes = await fetch('/api/syllabus/subjects', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: uploadSubject.trim(),
+            semester: uploadSemester,
+            credits: 3,
+          }),
+        });
+        const subjectData = await subjectRes.json();
+        if (!subjectRes.ok) throw new Error(subjectData.error || 'Could not create the selected subject.');
+        matchedSub = subjectData;
+        setDbSubjects((current) => [...current, subjectData]);
+      }
+
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('subject_id', matchedSub.id);
+      formData.append('subject', matchedSub.name || uploadSubject.trim());
 
       const res = await fetch('/api/upload/', {
         method: 'POST',
@@ -173,19 +225,76 @@ const UploadedMaterials = () => {
       const data = await res.json();
 
       if (res.ok) {
-        setStatus({ type: 'success', message: `Filed "${uploadFile.name}" into ${uploadSubject}.` });
+        setStatus({ type: 'success', message: `Filed "${uploadFile.name}" into ${uploadSubject}. Validation will run after indexing.` });
         setShowUploadModal(false);
         fetchMaterials();
         setCurrentSemester(uploadSemester);
-        setCurrentSubject(uploadSubject.trim());
+        setCurrentSubject(matchedSub.name || uploadSubject.trim());
         setTimeout(() => setStatus({ type: '', message: '' }), 4000);
       } else {
         setStatus({ type: 'error', message: data.error || 'Failed to upload document.' });
       }
     } catch (err) {
-      setStatus({ type: 'error', message: 'Network error during upload.' });
+      setStatus({ type: 'error', message: err.message || 'Network error during upload.' });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleValidate = async (uploadId) => {
+    setValidatingUploadId(uploadId);
+    try {
+      const res = await fetch(`/api/upload/${uploadId}/validate`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const pct = Math.round((data.syllabus_match_coverage || 0) * 100);
+        setStatus({
+          type: data.validation_status === 'approved' ? 'success' : 'error',
+          message: data.validation_status === 'approved'
+            ? `Material approved against syllabus (${pct}% chunk match).`
+            : data.validation_error || 'Material did not match the selected syllabus.',
+        });
+        fetchMaterials();
+        if (currentSubject) {
+          const matchedSub = dbSubjects.find(s => s.name.toLowerCase() === currentSubject.toLowerCase());
+          if (matchedSub) fetchSubjectMastery(matchedSub.id);
+        }
+      } else {
+        setStatus({ type: 'error', message: data.error || 'Could not validate this material.' });
+      }
+    } catch (err) {
+      setStatus({ type: 'error', message: 'Network error during validation.' });
+    } finally {
+      setValidatingUploadId(null);
+      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+    }
+  };
+
+  const handleAutoPlan = async () => {
+    const matchedSub = dbSubjects.find(s => currentSubject && s.name.toLowerCase() === currentSubject.toLowerCase());
+    if (!matchedSub) return;
+    setAutoPlanning(true);
+    try {
+      const res = await fetch(`/api/revision-plans/auto/${matchedSub.id}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 5 }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatus({ type: 'success', message: `Created ${data.count} revision task${data.count === 1 ? '' : 's'} from mastery gaps.` });
+      } else {
+        setStatus({ type: 'error', message: data.error || 'Could not create revision tasks.' });
+      }
+    } catch (err) {
+      setStatus({ type: 'error', message: 'Network error during revision planning.' });
+    } finally {
+      setAutoPlanning(false);
+      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
     }
   };
 
@@ -216,7 +325,7 @@ const UploadedMaterials = () => {
         setGeneratedContent({
           type,
           data,
-          source: data.source_doc || 'Uploaded PDF',
+          source: data.source_doc || 'Uploaded material',
         });
       } else {
         setStatus({ type: 'error', message: data.error || 'Material generation failed.' });
@@ -295,7 +404,7 @@ const UploadedMaterials = () => {
           </div>
           <h1 className="text-2xl font-bold text-[#111111] tracking-tight">Study Vault</h1>
           <p className="text-xs text-[#666666] mt-0.5 max-w-xl">
-            Drop your course PDFs here. We'll turn dense textbooks into exam-ready flashcards, MCQs, and summaries so you don't lose sleep.
+            Drop PDFs, PPTX slide decks, typed notes, or handwritten-note images here. We'll validate them against the syllabus before using them for RAG.
           </p>
         </div>
 
@@ -304,7 +413,7 @@ const UploadedMaterials = () => {
           className="px-4 py-2.5 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] font-mono text-xs font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-2 shrink-0 shadow-xs"
         >
           <FileUp size={15} />
-          <span>UPLOAD PDF</span>
+          <span>UPLOAD MATERIAL</span>
         </button>
       </div>
 
@@ -312,7 +421,7 @@ const UploadedMaterials = () => {
       <div className="grid grid-cols-1 sm:grid-cols-3 border border-[#D7D3CF] bg-white rounded-[4px] divide-y sm:divide-y-0 sm:divide-x divide-[#D7D3CF] overflow-hidden">
         <div className="p-4 flex flex-col justify-between">
           <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">TOTAL MATERIALS</span>
-          <span className="text-xl font-bold font-mono text-[#111111] mt-1">{materials.length} PDFs</span>
+          <span className="text-xl font-bold font-mono text-[#111111] mt-1">{materials.length} Files</span>
         </div>
         <div className="p-4 flex flex-col justify-between">
           <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">STORAGE USED</span>
@@ -436,7 +545,9 @@ const UploadedMaterials = () => {
                   onView={() => setViewingFile(file)}
                   onDelete={() => setConfirmDeleteFile(file)}
                   onGenerate={handleGenerate}
+                  onValidate={handleValidate}
                   generating={generating}
+                  validating={validatingUploadId === file.id}
                 />
               ))}
             </div>
@@ -471,7 +582,7 @@ const UploadedMaterials = () => {
                       Semester {sem}
                     </h3>
                     <p className="text-[11px] font-mono text-[#666666] mt-1">
-                      {subjectCount} Subjects • {fileCount} PDFs
+                      {subjectCount} Subjects • {fileCount} Files
                     </p>
                   </div>
                 </button>
@@ -513,7 +624,7 @@ const UploadedMaterials = () => {
                         {subjName}
                       </h4>
                       <p className="text-[10px] font-mono text-[#666666] mt-0.5">
-                        {fileCount} {fileCount === 1 ? 'PDF' : 'PDFs'} uploaded
+                        {fileCount} {fileCount === 1 ? 'File' : 'Files'} uploaded
                       </p>
                     </div>
                   </div>
@@ -524,7 +635,7 @@ const UploadedMaterials = () => {
           </div>
         </div>
       ) : (
-        /* Inside Subject View: PDF Document List */
+        /* Inside Subject View: Material List */
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
@@ -539,19 +650,26 @@ const UploadedMaterials = () => {
             </button>
           </div>
 
+          <SubjectMasteryPanel
+            mastery={mastery}
+            loading={masteryLoading}
+            onAutoPlan={handleAutoPlan}
+            autoPlanning={autoPlanning}
+          />
+
           {currentFiles.length === 0 ? (
             <div className="bg-white border border-dashed border-[#D7D3CF] rounded-[4px] p-12 text-center space-y-3">
               <FileText size={36} className="text-[#666666] mx-auto" />
               <h3 className="text-sm font-bold text-[#111111]">This folder is empty</h3>
               <p className="text-xs font-mono text-[#666666] max-w-sm mx-auto">
-                No PDFs uploaded for {currentSubject} yet. Click below to add syllabus notes.
+                No materials uploaded for {currentSubject} yet. Click below to add syllabus-aligned notes or slides.
               </p>
               <button
                 onClick={handleOpenUpload}
                 className="px-4 py-2 bg-[#102326] text-white rounded-[4px] font-mono text-xs font-semibold uppercase inline-flex items-center gap-2"
               >
                 <FileUp size={14} />
-                <span>UPLOAD PDF TO {currentSubject.toUpperCase()}</span>
+                <span>UPLOAD TO {currentSubject.toUpperCase()}</span>
               </button>
             </div>
           ) : (
@@ -564,7 +682,9 @@ const UploadedMaterials = () => {
                   onView={() => setViewingFile(file)}
                   onDelete={() => setConfirmDeleteFile(file)}
                   onGenerate={handleGenerate}
+                  onValidate={handleValidate}
                   generating={generating}
+                  validating={validatingUploadId === file.id}
                 />
               ))}
             </div>
@@ -572,7 +692,7 @@ const UploadedMaterials = () => {
         </div>
       )}
 
-      {/* 5. PDF Document Viewer Popup Modal */}
+      {/* 5. Document Viewer Popup Modal */}
       {viewingFile && (
         <PDFViewerModal
           file={viewingFile}
@@ -580,7 +700,7 @@ const UploadedMaterials = () => {
         />
       )}
 
-      {/* 6. Upload PDF Modal */}
+      {/* 6. Upload Material Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
           <div className="bg-white border border-[#D7D3CF] rounded-[4px] max-w-md w-full p-6 space-y-4 shadow-xl">
@@ -589,7 +709,7 @@ const UploadedMaterials = () => {
                 <div className="w-7 h-7 bg-[#102326] text-white rounded-[4px] flex items-center justify-center">
                   <UploadCloud size={16} />
                 </div>
-                <h3 className="text-sm font-bold text-[#111111]">Upload PDF to Study Vault</h3>
+                <h3 className="text-sm font-bold text-[#111111]">Upload Material to Study Vault</h3>
               </div>
               <button onClick={() => setShowUploadModal(false)} className="text-[#666666] hover:text-[#111111]">
                 <X size={16} />
@@ -637,7 +757,7 @@ const UploadedMaterials = () => {
               {/* File Selector */}
               <div>
                 <label className="block text-[10px] font-mono uppercase font-semibold text-[#666666] mb-1">
-                  3. SELECT PDF DOCUMENT
+                  3. SELECT MATERIAL FILE
                 </label>
                 <div
                   onClick={() => fileInputRef.current?.click()}
@@ -651,14 +771,14 @@ const UploadedMaterials = () => {
                     </div>
                   ) : (
                     <div>
-                      <p className="text-xs font-semibold text-[#111111]">Click to choose PDF file</p>
-                      <p className="text-[10px] font-mono text-[#666666] mt-0.5">PDF documents up to 10MB</p>
+                      <p className="text-xs font-semibold text-[#111111]">Click to choose a file</p>
+                      <p className="text-[10px] font-mono text-[#666666] mt-0.5">PDF, PPTX, TXT, PNG, JPG, WEBP up to 10MB</p>
                     </div>
                   )}
                   <input
                     type="file"
                     ref={fileInputRef}
-                    accept=".pdf"
+                    accept={SUPPORTED_UPLOAD_ACCEPT}
                     className="hidden"
                     onChange={(e) => setUploadFile(e.target.files[0] || null)}
                   />
@@ -675,7 +795,7 @@ const UploadedMaterials = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={uploading || !uploadFile}
+                  disabled={uploading || !uploadFile || !uploadSubject.trim()}
                   className="px-4 py-2 bg-[#102326] hover:bg-[#0b191c] text-white rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
                   {uploading ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />}
@@ -696,7 +816,7 @@ const UploadedMaterials = () => {
               <h3 className="text-base font-bold text-[#111111]">Delete Document?</h3>
             </div>
             <p className="text-xs text-[#666666] leading-relaxed">
-              Are you sure you want to delete <span className="font-semibold text-[#111111]">"{confirmDeleteFile.filename}"</span>? This will remove the PDF file and purge its index.
+              Are you sure you want to delete <span className="font-semibold text-[#111111]">"{confirmDeleteFile.filename}"</span>? This will remove the source file and purge its index.
             </p>
             <div className="flex gap-2 justify-end pt-2 border-t border-[#D7D3CF]">
               <button
@@ -731,7 +851,139 @@ const UploadedMaterials = () => {
   );
 };
 
-const FileCard = ({ file, formatSize, onView, onDelete, onGenerate, generating }) => {
+const fileExtension = (filename = '') => {
+  const parts = filename.split('.');
+  return parts.length > 1 ? parts.pop().toUpperCase() : 'FILE';
+};
+
+const SubjectMasteryPanel = ({ mastery, loading, onAutoPlan, autoPlanning }) => {
+  if (loading) {
+    return (
+      <div className="mb-4 border border-[#D7D3CF] bg-white rounded-[4px] p-4 text-xs font-mono text-[#666666] flex items-center gap-2">
+        <Loader2 size={14} className="animate-spin text-[#102326]" />
+        <span>Loading subject mastery...</span>
+      </div>
+    );
+  }
+
+  if (!mastery) return null;
+
+  const summary = mastery.summary || {};
+  const weakTopics = (mastery.topics || []).filter(topic => topic.weak).slice(0, 3);
+  const uncoveredTopics = (mastery.topics || []).filter(topic => !topic.covered).slice(0, 3);
+  const resources = (mastery.recommended_resources || []).slice(0, 3);
+
+  return (
+    <div className="mb-4 border border-[#D7D3CF] bg-white rounded-[4px] p-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">Subject Mastery</p>
+          <h3 className="text-sm font-bold text-[#111111]">{mastery.subject?.name}</h3>
+        </div>
+        <button
+          onClick={onAutoPlan}
+          disabled={autoPlanning}
+          className="px-3 py-2 border border-[#102326] text-[#102326] hover:bg-[#102326] hover:text-white rounded-[4px] text-[10px] font-mono font-semibold uppercase inline-flex items-center gap-1.5 disabled:opacity-50"
+        >
+          {autoPlanning ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+          <span>Auto Plan Revision</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
+        <MasteryMetric label="Covered" value={`${summary.coverage_percent || 0}%`} />
+        <MasteryMetric label="Topics" value={summary.total_topics || 0} />
+        <MasteryMetric label="Weak" value={summary.weak_topics || 0} />
+        <MasteryMetric label="Approved" value={summary.approved_materials || 0} />
+        <MasteryMetric label="Rejected" value={summary.rejected_materials || 0} />
+      </div>
+
+      {(weakTopics.length > 0 || uncoveredTopics.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <TopicPreview title="Weak Topics" topics={weakTopics} empty="No weak topics detected yet." />
+          <TopicPreview title="Uncovered Topics" topics={uncoveredTopics} empty="All seeded topics have coverage." />
+        </div>
+      )}
+      {resources.length > 0 && (
+        <div className="mt-3 border border-[#D7D3CF] rounded-[4px] p-3 bg-white">
+          <p className="text-[10px] font-mono uppercase text-[#666666] font-semibold mb-2">Helpful Resources</p>
+          <div className="flex flex-wrap gap-2">
+            {resources.map(resource => (
+              <div key={resource.topic_id} className="flex items-center gap-1.5 text-[10px] font-mono">
+                <span className="text-[#666666] max-w-[180px] truncate">{resource.topic_title}</span>
+                {resource.links?.map(link => (
+                  <a
+                    key={`${resource.topic_id}-${link.label}`}
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-2 py-1 border border-[#D7D3CF] rounded-[4px] text-[#102326] hover:bg-[#102326] hover:text-white"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const MasteryMetric = ({ label, value }) => (
+  <div className="border border-[#D7D3CF] bg-[#F7F5F2] rounded-[4px] p-2">
+    <p className="text-[9px] font-mono uppercase text-[#666666]">{label}</p>
+    <p className="text-sm font-bold text-[#111111] mt-0.5">{value}</p>
+  </div>
+);
+
+const TopicPreview = ({ title, topics, empty }) => (
+  <div className="border border-[#D7D3CF] rounded-[4px] p-3 bg-[#FAF9F7]">
+    <p className="text-[10px] font-mono uppercase text-[#666666] font-semibold mb-2">{title}</p>
+    {topics.length === 0 ? (
+      <p className="text-[11px] text-[#666666]">{empty}</p>
+    ) : (
+      <div className="space-y-1.5">
+        {topics.map(topic => (
+          <div key={topic.topic_id} className="flex items-center justify-between gap-2">
+            <span className="truncate text-[#111111]">{topic.topic_title}</span>
+            <span className="font-mono text-[10px] text-[#666666] shrink-0">{Math.round(topic.mastery_score || topic.coverage_score || 0)}%</span>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
+
+const validationMeta = (file) => {
+  const status = file.validation_status || 'pending';
+  if (file.embedding_status !== 'embedded') {
+    return { label: 'INDEXING', className: 'bg-[#F7F5F2] text-[#666666] border-[#D7D3CF]', icon: Loader2, spinning: true };
+  }
+  if (status === 'approved') {
+    return { label: 'APPROVED', className: 'bg-white text-[#102326] border-[#102326]', icon: CheckCircle2 };
+  }
+  if (status === 'rejected') {
+    return { label: 'REJECTED', className: 'bg-[#FFFDFB] text-[#C96A32] border-[#C96A32]', icon: AlertCircle };
+  }
+  return { label: 'VALIDATE', className: 'bg-[#F7F5F2] text-[#666666] border-[#D7D3CF]', icon: AlertCircle };
+};
+
+const extractionLabel = (method) => ({
+  pdf_text: 'PDF Text',
+  pdf_text_ocr: 'PDF + OCR',
+  slide_text: 'Slides',
+  typed_text: 'Text',
+  ocr: 'OCR',
+}[method] || 'Extracted');
+
+const FileCard = ({ file, formatSize, onView, onDelete, onGenerate, onValidate, generating, validating }) => {
+  const meta = validationMeta(file);
+  const StatusIcon = meta.icon;
+  const approved = file.embedding_status === 'embedded' && file.validation_status === 'approved';
+  const validationPct = file.syllabus_match_coverage != null ? Math.round(file.syllabus_match_coverage * 100) : null;
+
   return (
     <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-5 flex flex-col justify-between hover:bg-[#FAF9F7] transition-colors shadow-2xs">
       <div>
@@ -743,7 +995,7 @@ const FileCard = ({ file, formatSize, onView, onDelete, onGenerate, generating }
             <button
               onClick={onView}
               className="p-1 text-[#666666] hover:text-[#102326] hover:bg-[#ECEAE7] rounded-[2px] transition-colors"
-              title="View PDF Document"
+              title="View document"
             >
               <Eye size={16} />
             </button>
@@ -772,19 +1024,51 @@ const FileCard = ({ file, formatSize, onView, onDelete, onGenerate, generating }
             {file.subject || 'GENERAL'}
           </span>
           <span className="bg-[#F7F5F2] text-[#102326] border border-[#D7D3CF] font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-[2px]">
-            PDF
+            {fileExtension(file.filename)}
+          </span>
+          <span className={`border font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-[2px] inline-flex items-center gap-1 ${meta.className}`}>
+            <StatusIcon size={10} className={meta.spinning ? 'animate-spin' : ''} />
+            {meta.label}
           </span>
         </div>
+        {validationPct !== null && (
+          <p className="mt-2 text-[10px] font-mono text-[#666666]">
+            Syllabus match: {validationPct}%
+          </p>
+        )}
+        {(file.extraction_method || file.extraction_quality) && (
+          <p className="mt-1 text-[10px] font-mono text-[#666666]">
+            Extraction: {extractionLabel(file.extraction_method)}{file.extraction_quality ? ` · ${file.extraction_quality.toUpperCase()}` : ''}
+          </p>
+        )}
+        {file.validation_status === 'rejected' && file.validation_error && (
+          <p className="mt-2 text-[10px] font-mono text-[#C96A32] line-clamp-2">
+            {file.validation_error}
+          </p>
+        )}
       </div>
 
       <div className="mt-5 pt-3 border-t border-[#D7D3CF]">
-        <p className="text-[9px] font-mono uppercase text-[#666666] font-semibold mb-2">GENERATE STUDY TOOL</p>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-[9px] font-mono uppercase text-[#666666] font-semibold">GENERATE STUDY TOOL</p>
+          {file.embedding_status === 'embedded' && file.validation_status !== 'approved' && (
+            <button
+              onClick={() => onValidate(file.id)}
+              disabled={validating}
+              className="px-2 py-1 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#102326] hover:text-white text-[9px] font-mono font-semibold uppercase inline-flex items-center gap-1 disabled:opacity-50"
+              title="Validate against syllabus"
+            >
+              {validating ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
+              <span>CHECK</span>
+            </button>
+          )}
+        </div>
         <div className="grid grid-cols-3 gap-1.5">
           <button
             onClick={() => onGenerate(file.id, 'flashcards')}
-            disabled={generating?.uploadId === file.id}
+            disabled={!approved || generating?.uploadId === file.id}
             className="p-1.5 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#102326] hover:text-white transition-colors font-mono text-[10px] font-semibold uppercase text-[#111111] flex flex-col items-center gap-1 disabled:opacity-50"
-            title="Generate Flashcards"
+            title={approved ? 'Generate Flashcards' : 'Material must be approved against the syllabus first'}
           >
             {generating?.uploadId === file.id && generating?.type === 'flashcards' ? (
               <Loader2 size={13} className="animate-spin text-[#102326]" />
@@ -796,9 +1080,9 @@ const FileCard = ({ file, formatSize, onView, onDelete, onGenerate, generating }
 
           <button
             onClick={() => onGenerate(file.id, 'mcqs')}
-            disabled={generating?.uploadId === file.id}
+            disabled={!approved || generating?.uploadId === file.id}
             className="p-1.5 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#102326] hover:text-white transition-colors font-mono text-[10px] font-semibold uppercase text-[#111111] flex flex-col items-center gap-1 disabled:opacity-50"
-            title="Generate MCQs"
+            title={approved ? 'Generate MCQs' : 'Material must be approved against the syllabus first'}
           >
             {generating?.uploadId === file.id && generating?.type === 'mcqs' ? (
               <Loader2 size={13} className="animate-spin text-[#102326]" />
@@ -810,9 +1094,9 @@ const FileCard = ({ file, formatSize, onView, onDelete, onGenerate, generating }
 
           <button
             onClick={() => onGenerate(file.id, 'exam-questions')}
-            disabled={generating?.uploadId === file.id}
+            disabled={!approved || generating?.uploadId === file.id}
             className="p-1.5 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#102326] hover:text-white transition-colors font-mono text-[10px] font-semibold uppercase text-[#111111] flex flex-col items-center gap-1 disabled:opacity-50"
-            title="Generate Exam Questions"
+            title={approved ? 'Generate Exam Questions' : 'Material must be approved against the syllabus first'}
           >
             {generating?.uploadId === file.id && generating?.type === 'exam-questions' ? (
               <Loader2 size={13} className="animate-spin text-[#102326]" />

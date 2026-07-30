@@ -112,21 +112,33 @@ const ExamPreparation = () => {
 
   const loadMockBattle = async (subject) => {
     if (!subject?.primary_upload_id) {
-      setToolError('No indexed material found. Upload a PDF in Study Vault first.');
+      setToolError('No approved indexed material found. Upload syllabus-aligned notes, slides, or PDFs in Study Vault first.');
       return;
     }
     setToolLoading(true);
     setToolError(null);
     try {
-      const res = await fetch(`/api/generate/saved-mcqs/${subject.primary_upload_id}`, { credentials: 'include' });
+      const res = await fetch('/api/exam-prep/mock-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          subject: subject.name,
+          upload_id: subject.primary_upload_id,
+        }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load mock exam');
-      const latestSet = data.saved_sets?.[0];
-      if (!latestSet?.questions?.length) {
-        setToolError('No MCQ sets found. Generate MCQs from Study Vault first.');
+      if (!data.mock_test?.sections?.length) {
+        setToolError('Mock test generation returned no exam sections.');
         return;
       }
-      setToolResult({ type: 'mock-battle', ...latestSet, subject: subject.name });
+      setToolResult({
+        type: 'mock-test',
+        ...data.mock_test,
+        source_doc: data.source_doc,
+        subject: data.subject || subject.name,
+      });
     } catch (err) {
       setToolError(err.message);
     } finally {
@@ -521,7 +533,11 @@ const ToolModal = ({ toolId, subject, loading, error, result, onClose, onDownloa
             <RapidRevisionView cards={result.cards} />
           )}
           {!loading && !error && result && toolId === 'mock-battle' && (
-            <MockBattleView quizSet={result} onClose={onClose} />
+            result.sections ? (
+              <MockTestView test={result} />
+            ) : (
+              <MockBattleView quizSet={result} onClose={onClose} />
+            )
           )}
         </div>
       </div>
@@ -595,6 +611,61 @@ const RapidRevisionView = ({ cards }) => {
         <button disabled={index === 0} onClick={() => { setIndex((i) => i - 1); setRevealed(false); }} className="flex-1 py-2 border border-[#D7D3CF] rounded-[4px] text-xs font-mono disabled:opacity-30">Prev</button>
         <button disabled={index >= cards.length - 1} onClick={() => { setIndex((i) => i + 1); setRevealed(false); }} className="flex-1 py-2 bg-[#102326] text-white rounded-[4px] text-xs font-mono disabled:opacity-30">Next</button>
       </div>
+    </div>
+  );
+};
+
+const MockTestView = ({ test }) => {
+  const sections = test.sections || [];
+  return (
+    <div className="space-y-4">
+      <div className="border border-[#D7D3CF] rounded-[4px] p-4 bg-[#FAF9F7]">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h4 className="text-sm font-bold text-[#111111]">{test.title || `${test.subject} Mock Test`}</h4>
+            <p className="text-[10px] font-mono text-[#666666] mt-0.5">Source: {test.source_doc || 'Approved study material'}</p>
+          </div>
+          <div className="flex gap-2 text-[10px] font-mono">
+            <span className="px-2 py-1 border border-[#D7D3CF] bg-white rounded-[2px]">{test.duration_minutes || 120} min</span>
+            <span className="px-2 py-1 border border-[#D7D3CF] bg-white rounded-[2px]">{test.total_marks || 50} marks</span>
+          </div>
+        </div>
+      </div>
+
+      {sections.map((section, sectionIndex) => (
+        <div key={`${section.name || 'section'}-${sectionIndex}`} className="border border-[#D7D3CF] rounded-[4px] overflow-hidden">
+          <div className="px-4 py-3 bg-[#102326] text-white flex items-center justify-between gap-2">
+            <h5 className="text-xs font-bold">{section.name || `Section ${sectionIndex + 1}`}</h5>
+            <span className="text-[10px] font-mono">{section.marks_each || '?'} mark each</span>
+          </div>
+          <div className="divide-y divide-[#D7D3CF]">
+            {(section.questions || []).map((q, qIndex) => (
+              <div key={qIndex} className="p-4 space-y-2">
+                <div className="flex flex-wrap gap-2 text-[10px] font-mono text-[#666666]">
+                  <span>Q{qIndex + 1}</span>
+                  <span>{q.marks || section.marks_each || '?'} marks</span>
+                  {q.question_style && <span>{String(q.question_style).replace('_', ' ')}</span>}
+                  {q.difficulty && <span>{q.difficulty}</span>}
+                </div>
+                <p className="text-sm font-medium text-[#111111]">{q.question}</p>
+                {q.answer_points?.length > 0 && (
+                  <div className="pt-2">
+                    <p className="text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Expected points</p>
+                    <ul className="space-y-1">
+                      {q.answer_points.map((point, pointIndex) => (
+                        <li key={pointIndex} className="text-xs text-[#666666] flex gap-1.5">
+                          <span className="text-[#C96A32]">•</span>
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
