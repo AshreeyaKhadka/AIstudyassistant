@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from services.auth_service import login_required
 from config import db
 from models.quiz import QuizSet
+from services.progress_service import record_quiz_result
 import json
 import logging
 
@@ -76,10 +77,10 @@ def submit_quiz_score(user):
         quiz_set.score = score
         from datetime import datetime
         quiz_set.completed_at = datetime.utcnow()
+        record_quiz_result(user.id, quiz_set, score)
         db.session.commit()
         return jsonify({"message": "Quiz score recorded successfully", "score": score}), 200
     except Exception as e:
         db.session.rollback()
         logger.error(f"Failed to submit quiz score: {e}")
         return jsonify({"error": "Failed to record score"}), 500
-

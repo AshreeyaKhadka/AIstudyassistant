@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Book } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Send, Sparkles, Target } from 'lucide-react';
 
 import PomodoroTimer from '../components/focus/PomodoroTimer';
 import StudyHistory from '../components/focus/StudyHistory';
@@ -14,6 +13,10 @@ const SmartFocusMode = () => {
   const [loading, setLoading] = useState(true);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [coachPrompt, setCoachPrompt] = useState('');
+  const [coachReply, setCoachReply] = useState('');
+  const [coachLoading, setCoachLoading] = useState(false);
+  const [coachError, setCoachError] = useState('');
   
   const [dbSubjects, setDbSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -83,6 +86,34 @@ const SmartFocusMode = () => {
     } catch (err) {
       console.error(err);
       setError(err.message || 'Failed to save focus session');
+    }
+  };
+
+  const askFocusCoach = async (event) => {
+    event.preventDefault();
+    if (!coachPrompt.trim() || coachLoading) return;
+
+    setCoachLoading(true);
+    setCoachError('');
+    try {
+      const res = await fetch('/api/focus/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: coachPrompt,
+          subject: selectedSubject || 'General',
+          topic: topic || 'Review',
+        }),
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'AI coach is unavailable.');
+      setCoachReply(data.reply || '');
+    } catch (err) {
+      console.error(err);
+      setCoachError(err.message || 'AI coach is unavailable.');
+    } finally {
+      setCoachLoading(false);
     }
   };
 
@@ -165,6 +196,47 @@ const SmartFocusMode = () => {
           </div>
 
           <StudyHistory sessions={sessions} loading={loading} />
+
+          <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-5">
+            <div className="flex items-center gap-2 border-b border-[#D7D3CF] pb-3">
+              <Sparkles size={16} className="text-[#C96A32]" />
+              <div>
+                <h3 className="text-base font-bold text-[#111111] tracking-tight">Ask AI Focus Coach</h3>
+                <p className="text-[10px] font-mono text-[#666666] uppercase tracking-wider">
+                  Uses your selected subject, topic, and recent focus history
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={askFocusCoach} className="mt-4 flex gap-2">
+              <input
+                value={coachPrompt}
+                onChange={(event) => setCoachPrompt(event.target.value)}
+                placeholder="e.g. Plan this session, quiz me after focus, or break this topic into steps"
+                className="min-w-0 flex-1 rounded-[4px] border border-[#D7D3CF] bg-white px-3 py-2 text-xs text-[#111111] outline-none focus:border-[#102326]"
+              />
+              <button
+                type="submit"
+                disabled={coachLoading || !coachPrompt.trim()}
+                className="inline-flex items-center gap-2 rounded-[4px] border border-[#102326] bg-[#102326] px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Send size={14} />
+                {coachLoading ? 'Asking' : 'Ask'}
+              </button>
+            </form>
+
+            {coachError && (
+              <div className="mt-3 rounded-[4px] border border-[#F2B8A0] bg-[#FFF7F2] p-3 text-xs font-mono text-[#A24D23]">
+                {coachError}
+              </div>
+            )}
+
+            {coachReply && (
+              <div className="mt-3 whitespace-pre-wrap rounded-[4px] border border-[#D7D3CF] bg-[#FAF9F7] p-4 text-sm leading-6 text-[#111111]">
+                {coachReply}
+              </div>
+            )}
+          </div>
           
         </div>
 

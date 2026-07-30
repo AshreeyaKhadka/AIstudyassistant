@@ -16,12 +16,14 @@ from services.rag_service import (
     get_full_context,
     is_document_embedded,
     get_embedding_stats,
+    validate_upload_against_syllabus,
 )
 from services.generation_service import (
     generate_flashcards,
     generate_mcqs,
     generate_exam_questions,
 )
+from services.progress_service import map_material_upload_to_topics, record_generation
 from models.content import StudentUpload
 from models.quiz import QuizSet
 from services.arcade_service import sync_questions_from_mcqs
@@ -59,9 +61,24 @@ def _ensure_embedded(upload):
             )
             if count == 0:
                 return False, "Document text could not be chunked (may be too short or empty)."
+            if upload.doc_type == 'material':
+                result = validate_upload_against_syllabus(upload.id)
+                if result.get('validation_status') == 'approved':
+                    map_material_upload_to_topics(upload.id)
         except Exception as e:
             logger.error(f"Embedding failed for upload {upload.id}: {e}")
             return False, f"Embedding failed: {str(e)}"
+
+    if upload.doc_type == 'material':
+        if upload.validation_status == 'pending':
+            try:
+                validate_upload_against_syllabus(upload.id)
+                db.session.refresh(upload)
+            except Exception as e:
+                logger.error(f"Validation failed for upload {upload.id}: {e}")
+                return False, f"Validation failed: {str(e)}"
+        if upload.validation_status != 'approved':
+            return False, upload.validation_error or "This document does not match the selected subject syllabus."
     return True, None
 
 
@@ -86,9 +103,15 @@ def trigger_embedding(user, upload_id):
             filename=upload.filename,
             parsed_text=upload.parsed_text,
         )
+        validation = None
+        if chunk_count and upload.doc_type == 'material':
+            validation = validate_upload_against_syllabus(upload.id)
+            if validation.get('validation_status') == 'approved':
+                validation['mapped_topics'] = map_material_upload_to_topics(upload.id)
         return jsonify({
             "message": "Document embedded successfully",
             "chunks": chunk_count,
+            "validation": validation,
         }), 200
     except Exception as e:
         logger.error(f"Embedding failed: {e}\n{traceback.format_exc()}")
@@ -110,6 +133,10 @@ def embedding_status(user, upload_id):
     return jsonify({
         "upload_id": upload.id,
         "filename": upload.filename,
+        "validation_status": upload.validation_status or 'pending',
+        "validation_error": upload.validation_error,
+        "syllabus_match_score": upload.syllabus_match_score,
+        "syllabus_match_coverage": upload.syllabus_match_coverage,
         **stats,
     }), 200
 
@@ -143,6 +170,7 @@ def gen_flashcards(user):
             return jsonify({"error": "No content found for this document"}), 400
 
         flashcards = generate_flashcards(context, count=count)
+        record_generation(user.id, upload, action='generated_flashcards')
 
         return jsonify({
             "flashcards": flashcards,
@@ -204,6 +232,7 @@ def gen_mcqs(user):
         )
         db.session.add(quiz_set)
         sync_questions_from_mcqs(user.id, upload, mcqs)
+        record_generation(user.id, upload, quiz_set=quiz_set, action='generated_mcq')
 
         # Increment generation count
         upload.mcq_generation_count = gen_count + 1
@@ -253,6 +282,7 @@ def gen_exam_questions(user):
             return jsonify({"error": "No content found for this document"}), 400
 
         questions = generate_exam_questions(context, count=count)
+        record_generation(user.id, upload, action='generated_exam_questions')
 
         return jsonify({
             "exam_questions": questions,

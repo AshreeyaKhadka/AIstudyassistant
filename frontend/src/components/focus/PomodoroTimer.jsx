@@ -1,18 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Play, Pause, RefreshCw, SkipForward, Maximize2 } from 'lucide-react';
 import FullscreenFocus from './FullscreenFocus';
 
-const PomodoroTimer = ({ onSessionComplete, selectedSubject, topic, recommendations }) => {
-  const modes = [
-    { label: '25/5', focus: 25, break: 5 },
-    { label: '50/10', focus: 50, break: 10 },
-    { label: '90/20', focus: 90, break: 20 },
-  ];
+const DEFAULT_MODES = [
+  { label: '25/5', focus: 25, break: 5 },
+  { label: '50/10', focus: 50, break: 10 },
+  { label: '90/20', focus: 90, break: 20 },
+];
 
-  const [currentMode, setCurrentMode] = useState(modes[0]);
-  const [timeLeft, setTimeLeft] = useState(modes[0].focus * 60);
+const PomodoroTimer = ({ onSessionComplete, selectedSubject, topic, recommendations }) => {
+  const [customFocus, setCustomFocus] = useState('30');
+  const [customBreak, setCustomBreak] = useState('5');
+  const [customMode, setCustomMode] = useState(null);
+  const modes = useMemo(() => customMode ? [...DEFAULT_MODES, customMode] : DEFAULT_MODES, [customMode]);
+  const [currentMode, setCurrentMode] = useState(DEFAULT_MODES[0]);
+  const [timeLeft, setTimeLeft] = useState(DEFAULT_MODES[0].focus * 60);
   const [isActive, setIsActive] = useState(false);
   const [isBreak, setIsBreak] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -63,6 +67,29 @@ const PomodoroTimer = ({ onSessionComplete, selectedSubject, topic, recommendati
 
   const toggleFullscreen = () => setIsFullscreen((value) => !value);
 
+  const clampMinutes = (value, min, max) => {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed)) return min;
+    return Math.min(max, Math.max(min, parsed));
+  };
+
+  const applyCustomMode = () => {
+    const nextMode = {
+      label: `${clampMinutes(customFocus, 1, 240)}/${clampMinutes(customBreak, 1, 120)}`,
+      focus: clampMinutes(customFocus, 1, 240),
+      break: clampMinutes(customBreak, 1, 120),
+      custom: true,
+    };
+    setCustomFocus(String(nextMode.focus));
+    setCustomBreak(String(nextMode.break));
+    setCustomMode(nextMode);
+    setCurrentMode(nextMode);
+    setIsActive(false);
+    setIsBreak(false);
+    setCompletion(false);
+    setTimeLeft(nextMode.focus * 60);
+  };
+
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -103,6 +130,38 @@ const PomodoroTimer = ({ onSessionComplete, selectedSubject, topic, recommendati
             {m.label}
           </button>
         ))}
+      </div>
+
+      <div className="mb-6 grid w-full max-w-sm grid-cols-[1fr_1fr_auto] gap-2">
+        <label className="block">
+          <span className="mb-1 block font-mono text-[9px] font-semibold uppercase tracking-wider text-[#666666]">Focus min</span>
+          <input
+            type="number"
+            min="1"
+            max="240"
+            value={customFocus}
+            onChange={(event) => setCustomFocus(event.target.value)}
+            className="w-full rounded-[4px] border border-[#D7D3CF] bg-white px-3 py-2 font-mono text-xs text-[#111111] outline-none focus:border-[#102326]"
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block font-mono text-[9px] font-semibold uppercase tracking-wider text-[#666666]">Break min</span>
+          <input
+            type="number"
+            min="1"
+            max="120"
+            value={customBreak}
+            onChange={(event) => setCustomBreak(event.target.value)}
+            className="w-full rounded-[4px] border border-[#D7D3CF] bg-white px-3 py-2 font-mono text-xs text-[#111111] outline-none focus:border-[#102326]"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={applyCustomMode}
+          className="self-end rounded-[4px] border border-[#102326] bg-[#102326] px-3 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-white hover:bg-[#0b191c]"
+        >
+          Set
+        </button>
       </div>
 
       {/* Circle Timer Dial */}

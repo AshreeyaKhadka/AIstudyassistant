@@ -64,6 +64,7 @@ const AIChat = () => {
     },
   ]);
   const [input, setInput] = useState('');
+  const [learningMode, setLearningMode] = useState('exam');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sessionId, setSessionId] = useState(null);
@@ -239,6 +240,7 @@ const AIChat = () => {
           subject_id: subject_id ? parseInt(subject_id) : undefined,
           doc_type: doc_type || undefined,
           syllabus_context: syllabusFocus?.contextText || undefined,
+          learning_mode: learningMode,
         }),
       });
 
@@ -443,6 +445,28 @@ const AIChat = () => {
 
       {/* Input Footer */}
       <div className="border-t border-[#D7D3CF] bg-white p-3 md:p-4 shrink-0">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-mono uppercase text-[#666666] font-semibold">Mode</span>
+          {[
+            { id: 'beginner', label: 'Beginner', title: 'Detailed simple explanation with prerequisites' },
+            { id: 'exam', label: 'Exam', title: 'Full exam-ready answer with marks guidance' },
+            { id: 'deep', label: 'Deep', title: 'Advanced technical explanation with details' },
+          ].map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => setLearningMode(mode.id)}
+              title={mode.title}
+              className={`px-2.5 py-1 rounded-[4px] border text-[10px] font-mono font-semibold uppercase ${
+                learningMode === mode.id
+                  ? 'bg-[#102326] text-white border-[#102326]'
+                  : 'bg-[#F7F5F2] text-[#111111] border-[#D7D3CF] hover:bg-[#ECEAE7]'
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
         <div className="flex flex-wrap gap-1.5 md:gap-2 mb-3 max-h-24 overflow-y-auto custom-scrollbar">
           {quickPrompts.map((prompt) => (
             <button

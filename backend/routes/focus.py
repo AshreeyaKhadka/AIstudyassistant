@@ -28,3 +28,15 @@ def get_analytics(user):
 def get_recommendations(user):
     recommendations = focus_service.get_recommendations(user.id)
     return jsonify(recommendations), 200
+
+@focus_bp.route('/coach', methods=['POST'])
+@login_required
+def get_ai_coach(user):
+    data = request.get_json(silent=True) or {}
+    try:
+        result = focus_service.get_ai_coach_response(user.id, data)
+        return jsonify(result), 200
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except RuntimeError as exc:
+        return jsonify({'error': str(exc)}), 502

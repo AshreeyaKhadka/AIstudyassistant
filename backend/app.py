@@ -24,6 +24,10 @@ def _ensure_student_upload_schema():
             connection.execute(text("ALTER TABLE student_uploads ADD COLUMN embedding_status VARCHAR(50) DEFAULT 'pending'"))
         if 'embedding_error' not in columns:
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN embedding_error TEXT'))
+        if 'extraction_method' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN extraction_method VARCHAR(50)'))
+        if 'extraction_quality' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN extraction_quality VARCHAR(50)'))
         if 'subject_id' not in columns:
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN subject_id INTEGER REFERENCES subjects(id)'))
         if 'doc_type' not in columns:
@@ -32,6 +36,14 @@ def _ensure_student_upload_schema():
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN syllabus_kind VARCHAR(20)'))
         if 'is_active_syllabus' not in columns:
             connection.execute(text("ALTER TABLE student_uploads ADD COLUMN is_active_syllabus BOOLEAN DEFAULT 0 NOT NULL"))
+        if 'validation_status' not in columns:
+            connection.execute(text("ALTER TABLE student_uploads ADD COLUMN validation_status VARCHAR(50) DEFAULT 'pending' NOT NULL"))
+        if 'validation_error' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN validation_error TEXT'))
+        if 'syllabus_match_score' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN syllabus_match_score FLOAT'))
+        if 'syllabus_match_coverage' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN syllabus_match_coverage FLOAT'))
         
         # Drop old NOT NULL constraint on storage_path if present
         if 'storage_path' in columns:
@@ -237,6 +249,7 @@ def create_app():
         from models.focus import StudySession, UserAchievement
         from models.career import CareerProfile
         from models.arcade import Question, GameRoom, GameRoomPlayer, GameRound, ScoreboardEntry, ArcadePointEvent, ArcadeTopicMastery
+        from models.progress import ActivityLog, TopicProgress
 
         
         # We will set up pgvector later during DB migrations, 

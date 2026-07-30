@@ -49,6 +49,12 @@ class StudentUpload(db.Model):
     is_active_syllabus = db.Column(db.Boolean, default=False, nullable=False)
     embedding_status = db.Column(db.String(50), default='pending')  # pending, indexing, embedded, failed
     embedding_error = db.Column(db.Text, nullable=True)
+    extraction_method = db.Column(db.String(50), nullable=True)  # pdf_text, pdf_text_ocr, slide_text, typed_text, ocr
+    extraction_quality = db.Column(db.String(50), nullable=True)  # good, partial, low
+    validation_status = db.Column(db.String(50), default='pending', nullable=False)  # pending, approved, rejected, skipped
+    validation_error = db.Column(db.Text, nullable=True)
+    syllabus_match_score = db.Column(db.Float, nullable=True)
+    syllabus_match_coverage = db.Column(db.Float, nullable=True)
     mcq_generation_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

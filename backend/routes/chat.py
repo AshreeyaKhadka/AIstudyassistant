@@ -3,7 +3,16 @@ from config import Config, db
 from models.content import StudentUpload
 from models.chat import ChatSession, ChatMessage
 from services.auth_service import login_required
+from services.rag_service import (
+    CHAT_MATERIAL_RELEVANCE_THRESHOLD,
+    CHAT_SYLLABUS_RELEVANCE_THRESHOLD,
+    get_subject_syllabus_upload,
+    retrieve_context,
+    validate_upload_against_syllabus,
+)
+from services.progress_service import record_chat_topics
 import logging
+import re
 import requests
 
 chat_bp = Blueprint('chat', __name__)
@@ -24,7 +33,7 @@ def _build_material_context(user):
                 .first()
             )
         uploads = (
-            StudentUpload.query.filter_by(user_id=user.id)
+            StudentUpload.query.filter_by(user_id=user.id, validation_status='approved')
             .order_by(StudentUpload.created_at.desc())
             .limit(3)
             .all()
@@ -50,6 +59,183 @@ def _build_material_context(user):
         return "No uploaded study materials are available yet."
 
     return "\n\n".join(sections)
+
+
+def _approved_material_upload_ids(user_id, subject_id):
+    uploads = (
+        StudentUpload.query.filter_by(
+            user_id=user_id,
+            subject_id=subject_id,
+            doc_type='material',
+            embedding_status='embedded',
+        )
+        .order_by(StudentUpload.created_at.desc())
+        .all()
+    )
+
+    approved_ids = []
+    for upload in uploads:
+        if upload.validation_status == 'pending':
+            try:
+                validate_upload_against_syllabus(upload.id)
+                db.session.refresh(upload)
+            except Exception as exc:
+                logger.warning(f'Unable to validate upload {upload.id} during chat: {exc}')
+        if upload.validation_status == 'approved':
+            approved_ids.append(upload.id)
+    return approved_ids
+
+
+def _format_chunks(chunks):
+    formatted_chunks = []
+    for index, chunk in enumerate(chunks, start=1):
+        metadata = chunk.get("metadata") or {}
+        filename = metadata.get("filename", "Unknown Document")
+        dtype = metadata.get("doc_type", "document")
+        chunk_index = metadata.get("chunk_index", "?")
+        try:
+            score = float(chunk.get("score", 0) or 0)
+        except (TypeError, ValueError):
+            score = 0.0
+        formatted_chunks.append(
+            f"[Source {index}: {dtype.upper()} File: {filename}, chunk={chunk_index}, score={score:.2f}]\n{chunk.get('text', '')}"
+        )
+    return "\n\n".join(formatted_chunks)
+
+
+def _build_citations(chunks):
+    citations = []
+    seen = set()
+    for index, chunk in enumerate(chunks, start=1):
+        metadata = chunk.get("metadata") or {}
+        filename = metadata.get("filename", "Unknown Document")
+        chunk_index = metadata.get("chunk_index", "?")
+        dtype = metadata.get("doc_type", "document")
+        key = (filename, chunk_index, dtype)
+        if key in seen:
+            continue
+        seen.add(key)
+        try:
+            score = float(chunk.get("score", 0) or 0)
+        except (TypeError, ValueError):
+            score = 0.0
+        citations.append({
+            "source": index,
+            "filename": filename,
+            "chunk_index": chunk_index,
+            "doc_type": dtype,
+            "score": round(score, 3),
+        })
+    return citations[:6]
+
+
+def _format_citation_block(citations):
+    if not citations:
+        return ""
+    lines = ["\n\n**Sources**"]
+    for item in citations:
+        lines.append(
+            f"- Source {item['source']}: {item['filename']} ({item['doc_type']}, chunk {item['chunk_index']}, score {item['score']})"
+        )
+    return "\n".join(lines)
+
+
+def _extract_retry_delay(error_body):
+    if not isinstance(error_body, dict):
+        return None
+    details = ((error_body.get('error') or {}).get('details') or [])
+    for item in details:
+        retry_delay = item.get('retryDelay') if isinstance(item, dict) else None
+        if retry_delay:
+            return retry_delay
+    message = (error_body.get('error') or {}).get('message') or ''
+    match = re.search(r'retry in ([0-9.]+s)', message, flags=re.IGNORECASE)
+    return match.group(1) if match else None
+
+
+def _split_context_points(text, limit=10):
+    cleaned = re.sub(r'\s+', ' ', (text or '').strip())
+    if not cleaned:
+        return []
+    parts = re.split(r'(?<=[.!?])\s+|(?:\s+-\s+)', cleaned)
+    points = []
+    seen = set()
+    for part in parts:
+        item = part.strip(' -:\t')
+        if len(item) < 45:
+            continue
+        key = item.lower()[:90]
+        if key in seen:
+            continue
+        seen.add(key)
+        points.append(item[:260])
+        if len(points) >= limit:
+            break
+    if not points and cleaned:
+        points.append(cleaned[:350])
+    return points
+
+
+def _build_retrieval_fallback(message, chunks, material_context, learning_mode='exam', retry_delay=None):
+    citations = _build_citations(chunks)
+    source_blocks = []
+    if chunks:
+        for index, chunk in enumerate(chunks[:8], start=1):
+            metadata = chunk.get('metadata') or {}
+            filename = metadata.get('filename', 'uploaded material')
+            points = _split_context_points(chunk.get('text', ''), limit=3)
+            if points:
+                source_blocks.append((index, filename, points))
+    else:
+        points = _split_context_points(material_context, limit=12)
+        if points:
+            source_blocks.append((1, 'retrieved study context', points))
+
+    if not source_blocks:
+        return None
+
+    total_points = []
+    for _source_index, _filename, points in source_blocks:
+        total_points.extend(points)
+    direct_points = total_points[:8 if learning_mode == 'beginner' else 12]
+
+    lines = [
+        '**Temporary AI Limit**',
+        'Gemini quota/rate limit was reached, so I am answering from the retrieved syllabus/material chunks instead of failing the chat.',
+    ]
+    if retry_delay:
+        lines.append(f'Retry the generative answer after about `{retry_delay}`.')
+
+    lines.extend([
+        '',
+        '**Short Direct Answer**',
+        f'The retrieved material most relevant to your question, "{message.strip()}", points to these exam-useful ideas:',
+    ])
+    for point in direct_points[:5]:
+        lines.append(f'- {point}')
+
+    lines.extend(['', '**Detailed Explanation From Your Notes**'])
+    for source_index, filename, points in source_blocks[:5]:
+        lines.append(f'- Source {source_index} ({filename}):')
+        for point in points[:3]:
+            lines.append(f'  - {point}')
+
+    lines.extend([
+        '',
+        '**Exam Answer Format**',
+        '- Start with a clear definition of the main term in the question.',
+        '- Explain the main idea in ordered points using the retrieved material above.',
+        '- Add one example, application, formula, or process step if your notes include it.',
+        '- End with the importance/result of the concept.',
+        '',
+        '**Marks Guidance**',
+        '- For 2 marks: write the definition plus two key points.',
+        '- For 5 marks: write definition, explanation, example/process, and importance.',
+        '- For 10 marks: add diagram/flow, detailed steps, comparison or limitations, and a short conclusion.',
+    ])
+    if citations:
+        lines.append(_format_citation_block(citations))
+    return '\n'.join(lines)
 
 
 def _normalize_history(history):
@@ -80,7 +266,7 @@ def _parse_response_body(response):
         return None
 
 
-def _build_gemini_contents(history, message, material_context, subject=None, unit=None, unit_label=None):
+def _build_gemini_contents(history, message, material_context, subject=None, unit=None, unit_label=None, learning_mode='exam'):
     topic_hint = ''
     if subject:
         topic_hint = f'The student is currently studying **{subject}**'
@@ -88,12 +274,36 @@ def _build_gemini_contents(history, message, material_context, subject=None, uni
             topic_hint += f', specifically the chapter/unit: **{unit_label + ": " if unit_label else ""}{unit}**'
         topic_hint += '. Focus your answers on this topic. '
 
+    mode_guidance = {
+        'beginner': (
+            'Teach from the ground up. Define every important term, explain prerequisites, '
+            'use simple analogies only when helpful, then build toward the exam answer.'
+        ),
+        'exam': (
+            'Write an exam-ready answer. Include the definition, core explanation, step-by-step points, '
+            'important formulas/processes, examples, and a final marks-oriented answer outline.'
+        ),
+        'deep': (
+            'Give a deeper technical explanation with assumptions, edge cases, formulas, derivations, '
+            'implementation-level detail where relevant, and exam implications.'
+        ),
+    }.get(learning_mode, 'Write an exam-ready answer with clear explanation and revision value.')
+
     prompt = (
         'You are AiStudy, a precise and supportive study assistant for engineering students. '
         + topic_hint +
-        'Use the provided uploaded study materials when they are relevant. '
+        f'Learning mode: {learning_mode}. {mode_guidance} '
+        'Use only the provided syllabus/material context when answering. '
         'If the uploaded material does not contain enough information, say so clearly instead of inventing details. '
-        'Keep answers concise, practical, and easy to revise. '
+        'When using evidence, refer to Source numbers from the context. '
+        'Do not give tiny chatbot answers. Students should be able to understand the concept and also write from the answer in an exam. '
+        'For conceptual questions, use this structure when possible: '
+        '1. Short direct answer, 2. Prerequisites or background, 3. Detailed explanation, '
+        '4. Example or application, 5. Exam answer format with marks guidance, 6. Common mistakes. '
+        'For definition questions, include a clean definition plus explanation and examples. '
+        'For process/architecture questions, describe the flow in ordered steps and mention what to draw in a diagram if useful. '
+        'For numerical/formula topics, show variables, formula meaning, and worked steps when context supports it. '
+        'Use clear headings and bullet points. Prefer complete but focused answers over short summaries. '
         'IMPORTANT: Format all mathematical expressions and formulas using LaTeX: wrap inline math in single dollar signs like $...$ (e.g. $x^2$), and standalone block/display equations in double dollar signs like $$...$$ (e.g. $$\\int x dx$$). Do not use \\( or \\[ delimiters.'
     )
 
@@ -144,18 +354,76 @@ def send_message(user):
     
     subject_id = data.get('subject_id')
     doc_type = data.get('doc_type') # 'syllabus' or 'material'
+    subject_id_int = None
+    retrieved_chunks_for_progress = []
+    if subject_id:
+        try:
+            subject_id_int = int(subject_id)
+        except (ValueError, TypeError):
+            subject_id_int = None
 
     # If subject_id or doc_type scope is set, retrieve from ChromaDB using filters
-    if subject_id or doc_type:
-        from services.rag_service import retrieve_context
+    if subject_id_int:
+        syllabus = get_subject_syllabus_upload(user.id, subject_id_int)
+        if not syllabus:
+            return jsonify({
+                'error': 'No embedded syllabus is available for this subject yet. Upload or select a syllabus before using subject-gated chat.'
+            }), 409
+
+        syllabus_chunks = retrieve_context(
+            query=message,
+            top_k=5,
+            filter_metadata={
+                "upload_id": syllabus.id,
+                "doc_type": "syllabus",
+                "subject_id": subject_id_int,
+            },
+        )
+        best_syllabus_score = float(syllabus_chunks[0].get("score", 0)) if syllabus_chunks else 0.0
+        if best_syllabus_score < CHAT_SYLLABUS_RELEVANCE_THRESHOLD:
+            return jsonify({
+                'error': 'This question does not appear to match the selected subject syllabus, so I will not answer from uploaded materials.',
+                'syllabus_match_score': best_syllabus_score,
+                'threshold': CHAT_SYLLABUS_RELEVANCE_THRESHOLD,
+            }), 422
+
+        if doc_type == 'syllabus':
+            chunks = syllabus_chunks
+        else:
+            approved_upload_ids = _approved_material_upload_ids(user.id, subject_id_int)
+            if not approved_upload_ids:
+                return jsonify({
+                    'error': 'No approved study material matches this subject syllabus yet. Upload source material that aligns with the syllabus before asking material-based questions.'
+                }), 409
+
+            chunks = retrieve_context(
+                query=message,
+                top_k=24,
+                filter_metadata={
+                    "user_id": user.id,
+                    "subject_id": subject_id_int,
+                    "doc_type": "material",
+                },
+            )
+            chunks = [
+                chunk for chunk in chunks
+                if chunk.get("metadata", {}).get("upload_id") in approved_upload_ids
+                and float(chunk.get("score", 0) or 0) >= CHAT_MATERIAL_RELEVANCE_THRESHOLD
+            ]
+            if not chunks:
+                return jsonify({
+                    'error': 'I could not find enough relevant approved material for this syllabus topic. The uploaded files may not cover this part of the syllabus.'
+                }), 404
+            chunks = syllabus_chunks[:2] + chunks
+
+        material_context = _format_chunks(chunks)
+        retrieved_chunks_for_progress = chunks
+    elif doc_type:
         filter_metadata = {"user_id": user.id}
-        if subject_id:
-            try:
-                filter_metadata["subject_id"] = int(subject_id)
-            except (ValueError, TypeError):
-                pass
         if doc_type and doc_type in ['syllabus', 'material']:
             filter_metadata["doc_type"] = doc_type
+        if doc_type == 'material':
+            filter_metadata["validation_status"] = "approved"
 
         if doc_type == 'syllabus' and not subject_id:
             active_syllabus = (
@@ -174,12 +442,8 @@ def send_message(user):
             
         chunks = retrieve_context(query=message, top_k=8, filter_metadata=filter_metadata)
         if chunks:
-            formatted_chunks = []
-            for c in chunks:
-                filename = c["metadata"].get("filename", "Unknown Document")
-                dtype = c["metadata"].get("doc_type", "document")
-                formatted_chunks.append(f"[{dtype.upper()} File: {filename}]\n{c['text']}")
-            material_context = "\n\n".join(formatted_chunks)
+            material_context = _format_chunks(chunks)
+            retrieved_chunks_for_progress = chunks
         else:
             material_context = "No relevant context found from the study documents."
     else:
@@ -192,15 +456,19 @@ def send_message(user):
     unit = data.get('unit') or None
     unit_label = data.get('unitLabel') or None
     session_id = data.get('session_id')
+    learning_mode = (data.get('learning_mode') or 'exam').strip()
+    if learning_mode not in {'beginner', 'exam', 'deep'}:
+        learning_mode = 'exam'
 
     payload = {
-        'contents': _build_gemini_contents(history, message, material_context, subject, unit, unit_label),
+        'contents': _build_gemini_contents(history, message, material_context, subject, unit, unit_label, learning_mode),
         'generationConfig': {
             'temperature': 0.3,
-            'maxOutputTokens': 900,
+            'maxOutputTokens': 2200,
         },
     }
 
+    assistant_message = ''
     try:
         response = requests.post(
             f"{Config.GEMINI_API_BASE_URL.rstrip('/')}/models/{Config.GEMINI_MODEL}:generateContent",
@@ -210,29 +478,78 @@ def send_message(user):
         )
     except requests.RequestException as exc:
         logger.error(f'Gemini request failed: {exc}')
-        return jsonify({'error': 'Unable to reach the AI service right now.'}), 502
+        fallback = _build_retrieval_fallback(
+            message,
+            retrieved_chunks_for_progress,
+            material_context,
+            learning_mode,
+        )
+        if fallback:
+            assistant_message = fallback
+        else:
+            return jsonify({'error': 'Unable to reach the AI service right now, and no retrieved study context was available for fallback.'}), 502
 
-    if response.status_code >= 400:
+    if not assistant_message and response.status_code >= 400:
+        error_body = _parse_response_body(response)
         logger.error(f'Gemini API error {response.status_code}: {response.text}')
-        return jsonify({
-            'error': 'AI service returned an error.',
-            'details': _parse_response_body(response) or response.text or response.reason,
-        }), 502
-
-    response_data = _parse_response_body(response)
-    if not isinstance(response_data, dict):
-        return jsonify({'error': 'The AI service returned an invalid response.'}), 502
-
-    candidates = response_data.get('candidates', [])
-    assistant_message = ''
-    if candidates:
-        content = candidates[0].get('content', {}) or {}
-        parts = content.get('parts', []) or []
-        text_parts = [part.get('text', '') for part in parts if isinstance(part, dict)]
-        assistant_message = '\n'.join(part for part in text_parts if part).strip()
+        if response.status_code in {429, 500, 502, 503, 504}:
+            fallback = _build_retrieval_fallback(
+                message,
+                retrieved_chunks_for_progress,
+                material_context,
+                learning_mode,
+                retry_delay=_extract_retry_delay(error_body),
+            )
+            if fallback:
+                assistant_message = fallback
+        if not assistant_message:
+            return jsonify({
+                'error': 'AI service returned an error.',
+                'details': error_body or response.text or response.reason,
+            }), 502
 
     if not assistant_message:
-        return jsonify({'error': 'The AI service returned an empty response.'}), 502
+        response_data = _parse_response_body(response)
+        if not isinstance(response_data, dict):
+            fallback = _build_retrieval_fallback(
+                message,
+                retrieved_chunks_for_progress,
+                material_context,
+                learning_mode,
+            )
+            if fallback:
+                assistant_message = fallback
+            else:
+                return jsonify({'error': 'The AI service returned an invalid response.'}), 502
+
+        candidates = response_data.get('candidates', [])
+        if candidates:
+            content = candidates[0].get('content', {}) or {}
+            parts = content.get('parts', []) or []
+            text_parts = [part.get('text', '') for part in parts if isinstance(part, dict)]
+            assistant_message = '\n'.join(part for part in text_parts if part).strip()
+
+    if not assistant_message:
+        fallback = _build_retrieval_fallback(
+            message,
+            retrieved_chunks_for_progress,
+            material_context,
+            learning_mode,
+        )
+        if fallback:
+            assistant_message = fallback
+        else:
+            return jsonify({'error': 'The AI service returned an empty response.'}), 502
+
+    citations = _build_citations(retrieved_chunks_for_progress)
+    if citations and '**Sources**' not in assistant_message:
+        assistant_message = f"{assistant_message.strip()}{_format_citation_block(citations)}"
+
+    if subject_id_int and retrieved_chunks_for_progress:
+        try:
+            record_chat_topics(user.id, subject_id_int, retrieved_chunks_for_progress)
+        except Exception as exc:
+            logger.warning(f'Failed to record chat topic progress: {exc}')
 
     # Persist chat to database
     try:

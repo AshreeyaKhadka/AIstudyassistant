@@ -14,7 +14,8 @@ execute_bp = Blueprint('execute', __name__)
 
 PISTON_URL = os.getenv('PISTON_URL', 'https://emkc.org/api/v2/piston/execute')
 PISTON_API_KEY = os.getenv('PISTON_API_KEY')
-LOCAL_CODE_EXECUTION_ENABLED = os.getenv('LOCAL_CODE_EXECUTION_ENABLED', '').strip().lower() in {'1', 'true', 'yes'}
+LOCAL_CODE_EXECUTION_SETTING = os.getenv('LOCAL_CODE_EXECUTION_ENABLED', 'true').strip().lower()
+LOCAL_CODE_EXECUTION_ENABLED = LOCAL_CODE_EXECUTION_SETTING in {'1', 'true', 'yes', 'on'}
 REQUEST_TIMEOUT_SECONDS = 15
 MAX_CODE_LENGTH = 100_000
 MAX_STDIN_LENGTH = 10_000
@@ -137,6 +138,17 @@ def execute_code(user):
     }
 
     started_at = perf_counter()
+    if language_id in {'python', 'c', 'cpp'}:
+        local_execution = _execute_locally(language_id, code, stdin)
+        if local_execution:
+            run_result = local_execution.get('run') or {}
+            return jsonify({
+                'compile': local_execution.get('compile') or {},
+                'run': run_result,
+                'durationMs': round((perf_counter() - started_at) * 1000),
+                'memory': run_result.get('memory'),
+            }), 200
+
     try:
         payload.update({'compile_timeout': 10000, 'run_timeout': 3000, 'compile_cpu_time': 10000, 'run_cpu_time': 3000, 'run_memory_limit': 268435456})
         headers = {'Authorization': PISTON_API_KEY} if PISTON_API_KEY else {}

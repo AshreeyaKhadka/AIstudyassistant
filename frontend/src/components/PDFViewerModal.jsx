@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Download, X, Loader2, AlertCircle } from 'lucide-react';
 
 const PDFViewerModal = ({ file, onClose }) => {
-  const [viewMode, setViewMode] = useState('pdf'); // 'pdf' | 'text'
+  const [viewMode, setViewMode] = useState('file'); // 'file' | 'text'
   const [fileDetails, setFileDetails] = useState(null);
   const [blobUrl, setBlobUrl] = useState(null);
-  const [pdfError, setPdfError] = useState(false);
+  const [filePreviewError, setFilePreviewError] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,19 +20,19 @@ const PDFViewerModal = ({ file, onClose }) => {
           setFileDetails(data);
         }
 
-        // 2. Fetch PDF file blob with credentials
+        // 2. Fetch source file blob with credentials
         const resPdf = await fetch(`/api/upload/${file.id}/file`, { credentials: 'include' });
         if (resPdf.ok) {
           const blob = await resPdf.blob();
           createdBlobUrl = URL.createObjectURL(blob);
           setBlobUrl(createdBlobUrl);
         } else {
-          setPdfError(true);
+          setFilePreviewError(true);
           setViewMode('text');
         }
       } catch (err) {
-        console.error("Failed to load PDF preview:", err);
-        setPdfError(true);
+        console.error("Failed to load file preview:", err);
+        setFilePreviewError(true);
         setViewMode('text');
       } finally {
         setLoading(false);
@@ -52,7 +52,7 @@ const PDFViewerModal = ({ file, onClose }) => {
     if (blobUrl) {
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = file.filename || 'document.pdf';
+      a.download = file.filename || 'document';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -80,13 +80,13 @@ const PDFViewerModal = ({ file, onClose }) => {
             {/* View Mode Toggle */}
             <div className="flex bg-[#0b191c] border border-white/20 rounded-[4px] p-0.5 text-[10px] font-mono font-semibold">
               <button
-                onClick={() => setViewMode('pdf')}
-                disabled={pdfError}
+                onClick={() => setViewMode('file')}
+                disabled={filePreviewError}
                 className={`px-2.5 py-1 rounded-[2px] transition-colors ${
-                  viewMode === 'pdf' ? 'bg-white text-[#102326]' : 'text-white/80 hover:text-white disabled:opacity-40'
+                  viewMode === 'file' ? 'bg-white text-[#102326]' : 'text-white/80 hover:text-white disabled:opacity-40'
                 }`}
               >
-                PDF VIEW
+                FILE VIEW
               </button>
               <button
                 onClick={() => setViewMode('text')}
@@ -101,7 +101,7 @@ const PDFViewerModal = ({ file, onClose }) => {
             <button
               onClick={handleDownload}
               className="p-1.5 bg-white/10 hover:bg-white/20 rounded-[4px] text-white transition-colors"
-              title="Download PDF"
+              title="Download source file"
             >
               <Download size={16} />
             </button>
@@ -119,7 +119,7 @@ const PDFViewerModal = ({ file, onClose }) => {
               <Loader2 className="animate-spin text-[#102326]" size={28} />
               <span>Loading document viewer...</span>
             </div>
-          ) : viewMode === 'pdf' && blobUrl ? (
+          ) : viewMode === 'file' && blobUrl ? (
             <iframe
               src={blobUrl}
               title={file.filename}
@@ -127,10 +127,10 @@ const PDFViewerModal = ({ file, onClose }) => {
             />
           ) : (
             <div className="h-full p-6 overflow-y-auto font-mono text-xs text-[#111111] leading-relaxed bg-white">
-              {pdfError && (
+              {filePreviewError && (
                 <div className="p-3 mb-4 bg-[#FFFDFB] border border-[#D7D3CF] text-[#C96A32] rounded-[4px] text-xs font-mono flex items-center gap-2">
                   <AlertCircle size={15} />
-                  <span>Direct PDF streaming unavailable. Displaying extracted text content below.</span>
+                  <span>Direct file preview unavailable. Displaying extracted text content below.</span>
                 </div>
               )}
               {fileDetails?.parsed_text ? (
