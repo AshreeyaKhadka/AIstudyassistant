@@ -45,6 +45,8 @@ class StudentUpload(db.Model):
     subject = db.Column(db.String(255), nullable=True)
     subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=True)
     doc_type = db.Column(db.String(50), default='material', nullable=False) # 'material' or 'syllabus'
+    syllabus_kind = db.Column(db.String(20), nullable=True)  # 'official' or 'personal'
+    is_active_syllabus = db.Column(db.Boolean, default=False, nullable=False)
     embedding_status = db.Column(db.String(50), default='pending')  # pending, indexing, embedded, failed
     embedding_error = db.Column(db.Text, nullable=True)
     mcq_generation_count = db.Column(db.Integer, default=0)
@@ -53,4 +55,3 @@ class StudentUpload(db.Model):
     __table_args__ = (
         Index('uq_subject_syllabus', 'subject_id', unique=True, sqlite_where=text("doc_type = 'syllabus'")),
     )
-

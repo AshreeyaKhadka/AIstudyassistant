@@ -27,6 +27,20 @@ def _resolve_upload(user, subject_name, upload_id=None):
         if upload:
             return upload
 
+    active_syllabus = (
+        StudentUpload.query.filter_by(user_id=user.id, doc_type='syllabus', is_active_syllabus=True, embedding_status='embedded')
+        .order_by(StudentUpload.created_at.desc())
+        .first()
+    )
+    if not active_syllabus:
+        active_syllabus = (
+            StudentUpload.query.filter_by(doc_type='syllabus', syllabus_kind='official', embedding_status='embedded')
+            .order_by(StudentUpload.created_at.desc())
+            .first()
+        )
+    if active_syllabus:
+        return active_syllabus
+
     return (
         StudentUpload.query.filter_by(user_id=user.id, subject=subject_name, embedding_status='embedded')
         .order_by(StudentUpload.created_at.desc())

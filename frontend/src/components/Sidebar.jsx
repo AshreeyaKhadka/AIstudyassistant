@@ -17,7 +17,8 @@ import {
   FileText,
   X,
   Compass,
-  Code2
+  Code2,
+  Gamepad2
 } from 'lucide-react';
 
 const Sidebar = ({ user, isOpen, onClose }) => {
@@ -115,6 +116,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
               <NavItem to="/dashboard/syllabus" icon={<Book size={16} />} label="Official Syllabus" onClick={handleNavClick} />
               <NavItem to="/dashboard/exam-prep" icon={<FileText size={16} />} label="Exam Preparation" onClick={handleNavClick} />
               <NavItem to="/dashboard/mcq" icon={<HelpCircle size={16} />} label="MCQ Practice" onClick={handleNavClick} />
+              <NavItem to="/dashboard/arcade" icon={<Gamepad2 size={16} />} label="Arcade" onClick={handleNavClick} />
               <NavItem to="/dashboard/coding-practice" icon={<Code2 size={16} />} label="AI Coding Practice" onClick={handleNavClick} />
               <NavItem to="/dashboard/chat" icon={<BookOpen size={16} />} label="AI Chat" onClick={handleNavClick} />
             </div>

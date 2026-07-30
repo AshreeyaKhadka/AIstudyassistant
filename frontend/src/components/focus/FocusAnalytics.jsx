@@ -1,7 +1,21 @@
 import React from 'react';
 
-const FocusAnalytics = ({ analytics }) => {
-  if (!analytics) return null;
+const FocusAnalytics = ({ analytics, loading = false }) => {
+  if (loading) {
+    return (
+      <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-5 h-full text-xs font-mono text-[#666666]">
+        Loading focus analytics...
+      </div>
+    );
+  }
+
+  if (!analytics) {
+    return (
+      <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-5 h-full text-xs font-mono text-[#666666]">
+        No focus analytics available yet.
+      </div>
+    );
+  }
 
   const items = [
     { label: 'TOTAL HOURS', value: analytics.total_hours },

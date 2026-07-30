@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
 
-const StudyHistory = ({ sessions = [] }) => {
+const StudyHistory = ({ sessions = [], loading = false }) => {
   return (
     <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-5">
       <div className="pb-3 border-b border-[#D7D3CF] mb-4">
@@ -9,7 +9,11 @@ const StudyHistory = ({ sessions = [] }) => {
         <p className="text-[10px] font-mono uppercase text-[#666666] tracking-wider mt-0.5">Recorded study logs</p>
       </div>
       
-      {sessions.length === 0 ? (
+      {loading ? (
+        <div className="border border-dashed border-[#D7D3CF] bg-[#FAF9F7] rounded-[4px] p-6 text-center text-xs font-mono text-[#666666]">
+          Loading study sessions...
+        </div>
+      ) : sessions.length === 0 ? (
         <div className="border border-dashed border-[#D7D3CF] bg-[#FAF9F7] rounded-[4px] p-6 text-center text-xs font-mono text-[#666666]">
           No study sessions recorded yet.
         </div>

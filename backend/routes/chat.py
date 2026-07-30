@@ -12,12 +12,25 @@ logger = logging.getLogger(__name__)
 
 def _build_material_context(user):
     try:
+        active_syllabus = (
+            StudentUpload.query.filter_by(user_id=user.id, doc_type='syllabus', is_active_syllabus=True)
+            .order_by(StudentUpload.created_at.desc())
+            .first()
+        )
+        if not active_syllabus:
+            active_syllabus = (
+                StudentUpload.query.filter_by(doc_type='syllabus', syllabus_kind='official')
+                .order_by(StudentUpload.created_at.desc())
+                .first()
+            )
         uploads = (
             StudentUpload.query.filter_by(user_id=user.id)
             .order_by(StudentUpload.created_at.desc())
             .limit(3)
             .all()
         )
+        if active_syllabus and active_syllabus.id not in {u.id for u in uploads}:
+            uploads = [active_syllabus] + uploads
     except Exception as exc:
         logger.warning(f'Unable to load uploaded materials for chat context: {exc}')
         return 'No uploaded study materials are available yet.'
@@ -142,6 +155,21 @@ def send_message(user):
                 pass
         if doc_type and doc_type in ['syllabus', 'material']:
             filter_metadata["doc_type"] = doc_type
+
+        if doc_type == 'syllabus' and not subject_id:
+            active_syllabus = (
+                StudentUpload.query.filter_by(user_id=user.id, doc_type='syllabus', is_active_syllabus=True)
+                .order_by(StudentUpload.created_at.desc())
+                .first()
+            )
+            if not active_syllabus:
+                active_syllabus = (
+                    StudentUpload.query.filter_by(doc_type='syllabus', syllabus_kind='official')
+                    .order_by(StudentUpload.created_at.desc())
+                    .first()
+                )
+            if active_syllabus:
+                filter_metadata = {"upload_id": active_syllabus.id}
             
         chunks = retrieve_context(query=message, top_k=8, filter_metadata=filter_metadata)
         if chunks:
@@ -375,5 +403,4 @@ def get_chat_suggestions(user):
     unique_suggestions = list(dict.fromkeys(suggestions))[:4]
 
     return jsonify(unique_suggestions), 200
-
 

@@ -1,682 +1,569 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Search, Book, ChevronRight, FileText, Layout,
-    MessageSquare, Plus, Trash2, Upload, AlertCircle, RefreshCw,
-    FolderOpen, Calendar, ShieldAlert
+  ArrowLeft,
+  CheckCircle2,
+  Download,
+  Edit3,
+  Eye,
+  FileText,
+  Loader2,
+  RefreshCw,
+  Save,
+  Trash2,
+  X
 } from 'lucide-react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+
+const inputClass = 'w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none';
+
+const parseResponse = async (response) => {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: 'Could not load this page. Please try again.' };
+  }
+};
 
 const SyllabusExplorer = () => {
-    const { user } = useOutletContext();
-    const navigate = useNavigate();
+  const fileRef = useRef(null);
+  const [screen, setScreen] = useState('home');
+  const [official, setOfficial] = useState(null);
+  const [personal, setPersonal] = useState(null);
+  const [activeUploadId, setActiveUploadId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [status, setStatus] = useState('');
+  const [editingPersonal, setEditingPersonal] = useState(false);
+  const [personalText, setPersonalText] = useState('');
+  const [personalFile, setPersonalFile] = useState(null);
+  const [viewing, setViewing] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSem, setSelectedSem] = useState(1);
+  const [selectedSubject, setSelectedSubject] = useState(null);
 
-    const userSemester = user?.semester ? parseInt(user.semester) : 1;
+  const activeKind = useMemo(() => {
+    if (activeUploadId && official?.id === activeUploadId) return 'official';
+    if (activeUploadId && personal?.id === activeUploadId) return 'personal';
+    return null;
+  }, [activeUploadId, official, personal]);
 
-    const [selectedSemester, setSelectedSemester] = useState(userSemester);
-    const [subjects, setSubjects] = useState([]);
-    const [selectedSubject, setSelectedSubject] = useState(null);
-    const [loadingSubjects, setLoadingSubjects] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+  const loadWorkspace = async () => {
+    setLoading(true);
+    try {
+      const [workspaceRes, subjectsRes] = await Promise.all([
+        fetch('/api/syllabus/workspace', { credentials: 'include' }),
+        fetch('/api/syllabus/subjects', { credentials: 'include' })
+      ]);
 
-    const [syllabusMeta, setSyllabusMeta] = useState(null);
-    const [loadingSyllabus, setLoadingSyllabus] = useState(false);
+      if (workspaceRes.ok) {
+        const data = await parseResponse(workspaceRes);
+        setOfficial(data.official || null);
+        setPersonal(data.personal || null);
+        setActiveUploadId(data.active_upload_id || data.official?.id || data.personal?.id || null);
+      }
 
-    const [materials, setMaterials] = useState([]);
-    const [loadingMaterials, setLoadingMaterials] = useState(false);
-
-    const [isAddOpen, setIsAddOpen] = useState(false);
-    const [subjectName, setSubjectName] = useState('');
-    const [subjectCode, setSubjectCode] = useState('');
-    const [subjectCredits, setSubjectCredits] = useState(3);
-    const [subjectSem, setSubjectSem] = useState(userSemester);
-    const [isSubmitLoading, setIsSubmitLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
-
-    const [uploadProgress, setUploadProgress] = useState(null);
-    const [replaceConfirm, setReplaceConfirm] = useState(false);
-    const [uploadError, setUploadError] = useState('');
-
-    const fetchSubjects = async () => {
-        setLoadingSubjects(true);
-        try {
-            const res = await fetch('/api/syllabus/subjects', { credentials: 'include' });
-            if (res.ok) {
-                const data = await res.json();
-                setSubjects(data);
-            }
-        } catch (err) {
-            console.error("Failed to fetch subjects:", err);
-        } finally {
-            setLoadingSubjects(false);
+      if (subjectsRes.ok) {
+        const data = await parseResponse(subjectsRes);
+        setSubjects(Array.isArray(data) ? data : []);
+        if (!selectedSubject && Array.isArray(data) && data.length > 0) {
+          const first = data.find((subject) => Number(subject.semester) === selectedSem) || data[0];
+          setSelectedSubject(first);
+          setSelectedSem(Number(first.semester) || 1);
         }
+      }
+    } catch (err) {
+      setOfficial(null);
+      setPersonal(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadWorkspace();
+  }, []);
+
+  useEffect(() => {
+    const handler = (event) => {
+      if (!dirty) return;
+      event.preventDefault();
+      event.returnValue = '';
     };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [dirty]);
 
-    useEffect(() => {
-        fetchSubjects();
-    }, []);
+  const setActive = async (upload) => {
+    setError('');
+    try {
+      const res = await fetch(`/api/syllabus/workspace/${upload.id}/active`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await parseResponse(res);
+      if (!res.ok) throw new Error(data.error || 'Could not choose this syllabus.');
+      setActiveUploadId(data.active_upload_id);
+      setStatus('This syllabus will be used for study help.');
+      await loadWorkspace();
+    } catch (err) {
+      setError(err.message || 'Could not choose this syllabus.');
+    }
+  };
 
-    const backlogCount = useMemo(() => {
-        return subjects.filter(s => s.is_backlog).length;
-    }, [subjects]);
+  const openView = async (upload) => {
+    setViewLoading(true);
+    setViewing({ ...upload, parsed_text: '' });
+    setError('');
+    try {
+      const res = await fetch(`/api/syllabus/workspace/${upload.id}`, { credentials: 'include' });
+      const data = await parseResponse(res);
+      if (!res.ok) throw new Error(data.error || 'Could not open syllabus.');
+      setViewing(data);
+    } catch (err) {
+      setError(err.message || 'Could not open syllabus.');
+    } finally {
+      setViewLoading(false);
+    }
+  };
 
-    const fetchSyllabusMeta = async (subjectId) => {
-        setLoadingSyllabus(true);
-        setSyllabusMeta(null);
-        setUploadError('');
-        setReplaceConfirm(false);
-        try {
-            const res = await fetch(`/api/syllabus/${subjectId}`, { credentials: 'include' });
-            if (res.ok) {
-                const data = await res.json();
-                setSyllabusMeta(data);
-            } else if (res.status === 404) {
-                setSyllabusMeta(null);
-            }
-        } catch (err) {
-            console.error("Failed to fetch syllabus meta:", err);
-        } finally {
-            setLoadingSyllabus(false);
-        }
-    };
+  const startEdit = async () => {
+    if (personal?.id) {
+      const res = await fetch(`/api/syllabus/workspace/${personal.id}`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await parseResponse(res);
+        setPersonalText(data.parsed_text || '');
+      }
+    }
+    setEditingPersonal(true);
+    setDirty(false);
+  };
 
-    const fetchMaterials = async (subjectId) => {
-        setLoadingMaterials(true);
-        try {
-            const res = await fetch('/api/upload/', { credentials: 'include' });
-            if (res.ok) {
-                const allFiles = await res.json();
-                setMaterials(allFiles.filter(item => item.subject_id === subjectId || item.subject === selectedSubject?.name));
-            }
-        } catch (err) {
-            console.error("Failed to fetch materials:", err);
-        } finally {
-            setLoadingMaterials(false);
-        }
-    };
+  const savePersonal = async (event) => {
+    event.preventDefault();
+    setError('');
+    setStatus('');
+    if (!personalText.trim() && !personalFile) {
+      setError('Paste syllabus text or choose a file first.');
+      return;
+    }
 
-    useEffect(() => {
-        if (selectedSubject) {
-            fetchSyllabusMeta(selectedSubject.id);
-            fetchMaterials(selectedSubject.id);
-        } else {
-            setSyllabusMeta(null);
-            setMaterials([]);
-        }
-    }, [selectedSubject]);
+    setSaving(true);
+    try {
+      const body = new FormData();
+      if (personalText.trim()) body.append('text', personalText.trim());
+      if (personalFile) body.append('file', personalFile);
+      if (personal?.id) body.append('replace_id', personal.id);
+      body.append('set_active', 'true');
 
-    const filteredSubjects = useMemo(() => {
-        return subjects.filter(sub => {
-            const matchesSearch = sub.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (sub.code && sub.code.toLowerCase().includes(searchTerm.toLowerCase()));
-            const matchesSemester = sub.semester === selectedSemester;
-            return matchesSearch && matchesSemester;
-        });
-    }, [subjects, selectedSemester, searchTerm]);
+      const res = await fetch('/api/syllabus/workspace/personal', {
+        method: 'POST',
+        credentials: 'include',
+        body
+      });
+      const data = await parseResponse(res);
+      if (!res.ok) throw new Error(data.error || 'Could not save syllabus.');
+      setPersonal(data);
+      setActiveUploadId(data.id);
+      setDirty(false);
+      setEditingPersonal(false);
+      setPersonalFile(null);
+      if (fileRef.current) fileRef.current.value = '';
+      setStatus('Your syllabus was saved.');
+      await loadWorkspace();
+    } catch (err) {
+      setError(err.message || 'Could not save syllabus.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-    const totalCredits = useMemo(() => {
-        return filteredSubjects.reduce((acc, curr) => acc + (parseInt(curr.credits) || 3), 0);
-    }, [filteredSubjects]);
+  const deletePersonal = async () => {
+    if (!personal) return;
+    if (!window.confirm(`Delete "${personal.filename}"?`)) return;
+    const previous = personal;
+    setPersonal(null);
+    setError('');
+    try {
+      const res = await fetch(`/api/syllabus/workspace/personal/${previous.id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await parseResponse(res);
+      if (!res.ok) throw new Error(data.error || 'Could not delete syllabus.');
+      setPersonalText('');
+      setDirty(false);
+      setStatus('Your syllabus was deleted.');
+      await loadWorkspace();
+    } catch (err) {
+      setPersonal(previous);
+      setError(err.message || 'Could not delete syllabus.');
+    }
+  };
 
-    const handleCreateSubject = async (e) => {
-        e.preventDefault();
-        setErrorMessage('');
-        setIsSubmitLoading(true);
+  const download = (upload) => {
+    window.open(`/api/syllabus/workspace/${upload.id}/file`, '_blank', 'noopener,noreferrer');
+  };
 
-        const isBacklog = subjectSem !== userSemester;
-        if (isBacklog && backlogCount >= 4) {
-            setErrorMessage("Backlog limit reached (4/4). Cannot add more backlog subjects.");
-            setIsSubmitLoading(false);
-            return;
-        }
+  const backHome = () => {
+    if (dirty && !window.confirm('You have unsaved changes. Leave this page?')) return;
+    setScreen('home');
+    setEditingPersonal(false);
+    setDirty(false);
+  };
 
-        try {
-            const res = await fetch('/api/syllabus/subjects', {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: subjectName,
-                    code: subjectCode,
-                    credits: subjectCredits,
-                    semester: subjectSem,
-                    is_backlog: isBacklog
-                })
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                setSubjects(prev => [data, ...prev]);
-                setSubjectName('');
-                setSubjectCode('');
-                setSubjectCredits(3);
-                setIsAddOpen(false);
-                setSelectedSemester(subjectSem);
-            } else {
-                setErrorMessage(data.error || "Failed to create subject");
-            }
-        } catch (err) {
-            setErrorMessage("Failed to submit request.");
-        } finally {
-            setIsSubmitLoading(false);
-        }
-    };
-
-    const handleDeleteSubject = async (subjectId, event) => {
-        event.stopPropagation();
-        if (!confirm("Are you sure you want to delete this subject?")) return;
-
-        try {
-            const res = await fetch(`/api/syllabus/subjects/${subjectId}`, {
-                method: 'DELETE',
-                credentials: 'include'
-            });
-            if (res.ok) {
-                setSubjects(prev => prev.filter(s => s.id !== subjectId));
-                if (selectedSubject && selectedSubject.id === subjectId) {
-                    setSelectedSubject(null);
-                }
-            }
-        } catch (err) {
-            console.error("Failed to delete subject:", err);
-        }
-    };
-
-    const handleUploadSyllabus = async (e, forceReplace = false) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-            setUploadError('Only PDF files are supported.');
-            return;
-        }
-
-        setUploadProgress('Uploading and parsing syllabus...');
-        setUploadError('');
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('subject_id', selectedSubject.id);
-        if (forceReplace) {
-            formData.append('replace', 'true');
-        }
-
-        try {
-            const res = await fetch('/api/syllabus/upload', {
-                method: 'POST',
-                credentials: 'include',
-                body: formData
-            });
-
-            const data = await res.json();
-            if (res.ok) {
-                setUploadProgress('Indexing syllabus contents...');
-                setTimeout(() => {
-                    fetchSyllabusMeta(selectedSubject.id);
-                    setUploadProgress(null);
-                }, 2000);
-            } else if (res.status === 409) {
-                setReplaceConfirm(true);
-                setUploadProgress(null);
-            } else {
-                setUploadError(data.error || 'Failed to upload syllabus.');
-                setUploadProgress(null);
-            }
-        } catch (err) {
-            setUploadError('Network error uploading file.');
-            setUploadProgress(null);
-        }
-    };
-
-    const handleUploadMaterial = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setUploadProgress('Uploading study material...');
-        setUploadError('');
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('subject_id', selectedSubject.id);
-        formData.append('subject', selectedSubject.name);
-
-        try {
-            const res = await fetch('/api/upload/', {
-                method: 'POST',
-                credentials: 'include',
-                body: formData
-            });
-
-            if (res.ok) {
-                setTimeout(() => {
-                    fetchMaterials(selectedSubject.id);
-                    setUploadProgress(null);
-                }, 2000);
-            } else {
-                const data = await res.json();
-                setUploadError(data.error || 'Failed to upload material.');
-                setUploadProgress(null);
-            }
-        } catch (err) {
-            setUploadError('Network error uploading file.');
-            setUploadProgress(null);
-        }
-    };
-
-    const handleDeleteMaterial = async (materialId) => {
-        if (!confirm("Delete this document?")) return;
-        try {
-            const res = await fetch(`/api/upload/files/${materialId}`, {
-                method: 'DELETE',
-                credentials: 'include'
-            });
-            if (res.ok) {
-                setMaterials(prev => prev.filter(m => m.id !== materialId));
-            }
-        } catch (err) {
-            console.error("Failed to delete document:", err);
-        }
-    };
-
-    return (
-        <div className="flex flex-col gap-6 pb-12">
-            {/* Curriculum Header */}
-            <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px] flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-                <div>
-                    <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-1">
-                        COURSE & SYLLABUS MANAGEMENT
-                    </div>
-                    <h1 className="text-2xl font-bold text-[#111111] tracking-tight">Syllabus Explorer</h1>
-                    <p className="text-xs text-[#666666] mt-0.5">Organize official syllabi and study materials by semester.</p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-                    <div className="relative flex-1 xl:w-64 xl:flex-none">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666]" size={14} />
-                        <input
-                            type="text"
-                            placeholder="Search subject..."
-                            className="w-full pl-9 pr-3 py-2 bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] text-xs font-mono text-[#111111] outline-none"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-
-                    <button
-                        onClick={() => setIsAddOpen(true)}
-                        className="px-4 py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] font-mono text-xs font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5"
-                    >
-                        <Plus size={14} />
-                        <span>ADD SUBJECT</span>
-                    </button>
-                </div>
-            </div>
-
-            {/* Main Content Split Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                
-                {/* Left Column: Term Architecture */}
-                <div className="lg:col-span-5 flex flex-col gap-6">
-                    <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-bold text-[#111111] tracking-tight">Term Architecture</h2>
-                            <div className="flex items-center gap-1.5 bg-[#F7F5F2] px-2 py-1 rounded-[2px] border border-[#D7D3CF]">
-                                <div className="w-1.5 h-1.5 rounded-full bg-[#102326]"></div>
-                                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-[#666666]">Live Sync</span>
-                            </div>
-                        </div>
-
-                        {/* Semester Selectors (Pills) */}
-                        <div className="flex flex-wrap gap-2 mb-6">
-                            {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                                <button
-                                    key={sem}
-                                    onClick={() => setSelectedSemester(sem)}
-                                    className={`px-4 py-1.5 text-xs font-mono font-semibold rounded-[4px] border transition-colors ${
-                                        selectedSemester === sem
-                                            ? 'bg-[#102326] text-white border-[#102326]'
-                                            : 'bg-white text-[#666666] border-[#D7D3CF] hover:bg-[#ECEAE7] hover:text-[#111111]'
-                                    }`}
-                                >
-                                    Sem {sem}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Subject List Cards */}
-                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                            {filteredSubjects.map((sub) => (
-                                <div
-                                    key={sub.id}
-                                    onClick={() => setSelectedSubject(sub)}
-                                    className={`relative p-5 rounded-[4px] border cursor-pointer transition-colors overflow-hidden ${
-                                        selectedSubject?.id === sub.id
-                                            ? 'bg-[#F7F5F2] border-[#102326]'
-                                            : 'bg-white border-[#D7D3CF] hover:border-[#102326]'
-                                    }`}
-                                >
-                                    {/* Background decorative text */}
-                                    <div className="absolute right-[-10%] top-1/2 -translate-y-1/2 text-7xl font-bold opacity-[0.03] pointer-events-none whitespace-nowrap">
-                                        {sub.code || sub.name.substring(0, 3).toUpperCase()}
-                                    </div>
-                                    
-                                    <div className="relative z-10 flex flex-col h-full justify-between">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-3">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="bg-[#102326] text-white px-2 py-0.5 rounded-[2px] text-[10px] font-mono font-bold uppercase">
-                                                        {sub.code || 'NO CODE'}
-                                                    </span>
-                                                    <span className="bg-[#ECEAE7] text-[#111111] px-2 py-0.5 rounded-[2px] text-[10px] font-mono font-bold uppercase">
-                                                        {sub.credits || 3} Credits
-                                                    </span>
-                                                    {sub.is_backlog && (
-                                                        <span className="bg-[#C96A32] text-white px-2 py-0.5 rounded-[2px] text-[10px] font-mono font-bold uppercase">
-                                                            BACKLOG
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <button
-                                                    onClick={(e) => handleDeleteSubject(sub.id, e)}
-                                                    className="text-[#D7D3CF] hover:text-[#C96A32] transition-colors"
-                                                    title="Delete Subject"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                            <h3 className="text-base font-bold text-[#111111] mb-6 tracking-tight pr-8">{sub.name}</h3>
-                                        </div>
-
-                                        <div className="flex items-center justify-between mt-auto">
-                                            <div className="flex items-center gap-3 flex-1 max-w-[60%]">
-                                                <div className="flex-1 h-1 bg-[#ECEAE7] rounded-full overflow-hidden">
-                                                    <div className="h-full bg-[#102326] rounded-full w-[0%]"></div>
-                                                </div>
-                                                <span className="text-[10px] font-mono text-[#666666] font-semibold whitespace-nowrap">0% Covered</span>
-                                            </div>
-                                            <div className="flex items-center -space-x-1">
-                                                <div className="w-5 h-5 rounded-full border border-[#D7D3CF] bg-white flex items-center justify-center text-[8px] font-mono font-bold text-[#666666] z-30">L</div>
-                                                <div className="w-5 h-5 rounded-full border border-[#D7D3CF] bg-white flex items-center justify-center text-[8px] font-mono font-bold text-[#666666] z-20">T</div>
-                                                <div className="w-5 h-5 rounded-full border border-[#D7D3CF] bg-[#102326] flex items-center justify-center text-[8px] font-mono font-bold text-white z-10">P</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-
-                            {filteredSubjects.length === 0 && (
-                                <div className="p-8 text-center bg-[#FAF9F7] border border-[#D7D3CF] border-dashed rounded-[4px]">
-                                    <h4 className="text-sm font-bold text-[#111111] mb-1">No Subjects</h4>
-                                    <p className="text-xs font-mono text-[#666666]">Click "Add Subject" to populate Semester {selectedSemester}.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Column: Detailed View or Empty State */}
-                <div className="lg:col-span-7">
-                    {selectedSubject ? (
-                        <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px] space-y-6">
-                            {/* Subject Header */}
-                            <div className="pb-4 border-b border-[#D7D3CF]">
-                                <div className="flex items-center gap-2 mb-1 text-[10px] font-mono uppercase font-semibold text-[#666666]">
-                                    <span className="bg-[#ECEAE7] text-[#111111] px-2 py-0.5 rounded-[2px]">
-                                        SEMESTER {selectedSubject.semester}
-                                    </span>
-                                    {selectedSubject.is_backlog && (
-                                        <span className="bg-[#C96A32] text-white px-2 py-0.5 rounded-[2px]">
-                                            BACKLOG
-                                        </span>
-                                    )}
-                                    {selectedSubject.code && (
-                                        <span>CODE: {selectedSubject.code}</span>
-                                    )}
-                                </div>
-                                <h2 className="text-xl font-bold text-[#111111] tracking-tight">{selectedSubject.name}</h2>
-                            </div>
-
-                            {/* Section 1: Syllabus Panel */}
-                            <div className="border border-[#D7D3CF] bg-[#FAF9F7] rounded-[4px] p-5 space-y-4">
-                                <div className="flex items-center justify-between pb-3 border-b border-[#D7D3CF]">
-                                    <h3 className="text-xs font-mono uppercase tracking-wider text-[#111111] font-semibold flex items-center gap-2">
-                                        <Layout size={14} className="text-[#102326]" />
-                                        Official Course Syllabus
-                                    </h3>
-                                    <span className="text-[10px] font-mono text-[#666666]">1 PDF per subject</span>
-                                </div>
-
-                                {loadingSyllabus ? (
-                                    <div className="py-4 text-center text-xs font-mono text-[#666666] flex items-center justify-center gap-2">
-                                        <RefreshCw size={14} className="animate-spin text-[#102326]" />
-                                        Loading syllabus metadata...
-                                    </div>
-                                ) : syllabusMeta ? (
-                                    <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <FileText size={20} className="text-[#102326] shrink-0" />
-                                            <div className="min-w-0">
-                                                <p className="text-xs font-bold text-[#111111] truncate">{syllabusMeta.filename}</p>
-                                                <p className="text-[10px] font-mono text-[#666666] mt-0.5">
-                                                    Uploaded {new Date(syllabusMeta.uploaded_at).toLocaleDateString()} • {(syllabusMeta.size_bytes / 1024).toFixed(0)} KB
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => navigate(`/dashboard/chat?subject=${encodeURIComponent(selectedSubject.name)}&subject_id=${selectedSubject.id}&doc_type=syllabus`)}
-                                                className="px-3 py-1.5 bg-[#102326] text-white rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5 hover:bg-[#0b191c] transition-colors"
-                                            >
-                                                <MessageSquare size={13} />
-                                                <span>CHAT</span>
-                                            </button>
-                                            <label className="px-3 py-1.5 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider cursor-pointer flex items-center gap-1.5 transition-colors">
-                                                <Upload size={13} />
-                                                <span>REPLACE</span>
-                                                <input
-                                                    type="file"
-                                                    accept=".pdf"
-                                                    className="hidden"
-                                                    onChange={(e) => handleUploadSyllabus(e, true)}
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="bg-white border border-dashed border-[#D7D3CF] rounded-[4px] p-6 text-center">
-                                        <Upload size={24} className="text-[#666666] mx-auto mb-2" />
-                                        <h4 className="text-xs font-bold text-[#111111]">No Syllabus Uploaded</h4>
-                                        <p className="text-xs font-mono text-[#666666] mt-1 max-w-sm mx-auto mb-3">
-                                            Upload the official curriculum PDF to enable chapter planning and scoped assistance.
-                                        </p>
-                                        <label className="px-4 py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider cursor-pointer inline-flex items-center gap-1.5 transition-colors">
-                                            <Upload size={14} />
-                                            <span>UPLOAD SYLLABUS</span>
-                                            <input
-                                                type="file"
-                                                accept=".pdf"
-                                                className="hidden"
-                                                onChange={(e) => handleUploadSyllabus(e, false)}
-                                            />
-                                        </label>
-                                    </div>
-                                )}
-
-                                {uploadProgress && (
-                                    <div className="p-3 bg-white border border-[#D7D3CF] rounded-[4px] text-xs font-mono text-[#102326] flex items-center gap-2">
-                                        <RefreshCw size={14} className="animate-spin" />
-                                        <span>{uploadProgress}</span>
-                                    </div>
-                                )}
-
-                                {uploadError && (
-                                    <div className="p-3 bg-[#FFFDFB] border border-[#D7D3CF] rounded-[4px] text-xs font-mono text-[#C96A32] flex items-center gap-2">
-                                        <AlertCircle size={14} />
-                                        <span>{uploadError}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Section 2: Reference Materials */}
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between pb-2 border-b border-[#D7D3CF]">
-                                    <h3 className="text-xs font-mono uppercase tracking-wider text-[#111111] font-semibold flex items-center gap-2">
-                                        <Book size={14} className="text-[#102326]" />
-                                        Reference Study Materials
-                                    </h3>
-                                    <label className="px-3 py-1.5 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider cursor-pointer flex items-center gap-1 transition-colors">
-                                        <Plus size={13} />
-                                        <span>ADD MATERIAL</span>
-                                        <input
-                                            type="file"
-                                            accept=".pdf"
-                                            className="hidden"
-                                            onChange={handleUploadMaterial}
-                                        />
-                                    </label>
-                                </div>
-
-                                {materials.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        {materials.map((file) => (
-                                            <div
-                                                key={file.id}
-                                                className="p-3.5 bg-white border border-[#D7D3CF] rounded-[4px] flex justify-between items-center"
-                                            >
-                                                <div className="min-w-0 pr-2">
-                                                    <p className="text-xs font-bold text-[#111111] truncate">{file.filename}</p>
-                                                    <p className="text-[10px] font-mono text-[#666666] mt-0.5">
-                                                        {new Date(file.created_at).toLocaleDateString()} • {(file.size_bytes / 1024).toFixed(0)} KB
-                                                    </p>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 shrink-0">
-                                                    <button
-                                                        onClick={() => navigate(`/dashboard/chat?subject=${encodeURIComponent(selectedSubject.name)}&subject_id=${selectedSubject.id}&doc_type=material`)}
-                                                        className="p-1.5 bg-[#F7F5F2] border border-[#D7D3CF] text-[#102326] rounded-[4px] hover:bg-[#102326] hover:text-white transition-colors"
-                                                        title="Chat Material"
-                                                    >
-                                                        <MessageSquare size={13} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteMaterial(file.id)}
-                                                        className="p-1.5 border border-[#D7D3CF] text-[#666666] hover:text-[#C96A32] rounded-[4px] transition-colors"
-                                                        title="Delete File"
-                                                    >
-                                                        <Trash2 size={13} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="p-6 text-center text-xs font-mono text-[#666666] border border-dashed border-[#D7D3CF] bg-[#FAF9F7] rounded-[4px]">
-                                        No reference materials uploaded yet.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="h-full hidden lg:flex">
-                            {/* Empty State replaced with stats overview based on Image 1 */}
-                            <div className="w-full flex items-end gap-6 h-full pb-8">
-                                <div className="bg-white p-5 border border-[#D7D3CF] rounded-[4px] flex-1">
-                                    <p className="text-[10px] font-mono uppercase text-[#666666] font-semibold mb-2">Total Credits</p>
-                                    <p className="text-3xl font-bold text-[#111111]">{totalCredits}</p>
-                                </div>
-                                <div className="bg-white p-5 border border-[#D7D3CF] rounded-[4px] flex-1">
-                                    <p className="text-[10px] font-mono uppercase text-[#666666] font-semibold mb-2">Subjects</p>
-                                    <p className="text-3xl font-bold text-[#111111]">{filteredSubjects.length}</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Modal: Add Subject */}
-            {isAddOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30">
-                    <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 max-w-md w-full space-y-4 shadow-xl">
-                        <div className="flex justify-between items-center pb-2 border-b border-[#D7D3CF]">
-                            <h3 className="text-sm font-bold text-[#111111] uppercase font-mono">Add New Subject</h3>
-                            <button
-                                onClick={() => { setIsAddOpen(false); setErrorMessage(''); }}
-                                className="text-[#666666] hover:text-[#111111]"
-                            >
-                                CANCEL
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleCreateSubject} className="space-y-4">
-                            <div>
-                                <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Subject Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    placeholder="e.g. Operating Systems"
-                                    className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs text-[#111111] outline-none transition-colors"
-                                    value={subjectName}
-                                    onChange={(e) => setSubjectName(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-3 gap-3">
-                                <div className="col-span-1">
-                                    <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Semester</label>
-                                    <select
-                                        className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs text-[#111111] outline-none transition-colors"
-                                        value={subjectSem}
-                                        onChange={(e) => setSubjectSem(parseInt(e.target.value))}
-                                    >
-                                        {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
-                                            <option key={s} value={s}>Sem {s}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="col-span-1">
-                                    <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Code</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. CMP321"
-                                        required
-                                        className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs text-[#111111] outline-none transition-colors uppercase"
-                                        value={subjectCode}
-                                        onChange={(e) => setSubjectCode(e.target.value.toUpperCase())}
-                                    />
-                                </div>
-                                <div className="col-span-1">
-                                    <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Credits</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max="6"
-                                        required
-                                        className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs text-[#111111] outline-none transition-colors"
-                                        value={subjectCredits}
-                                        onChange={(e) => setSubjectCredits(parseInt(e.target.value))}
-                                    />
-                                </div>
-                            </div>
-
-                            {errorMessage && (
-                                <div className="p-2.5 bg-[#FFFDFB] border border-[#D7D3CF] text-[#C96A32] text-xs font-mono rounded-[4px]">
-                                    {errorMessage}
-                                </div>
-                            )}
-
-                            <button
-                                type="submit"
-                                disabled={isSubmitLoading}
-                                className="w-full py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors disabled:opacity-50 mt-2"
-                            >
-                                {isSubmitLoading ? 'SAVING...' : 'SAVE SUBJECT'}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
+  return (
+    <div className="flex flex-col gap-6 pb-12">
+      <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-1">Syllabus</div>
+          <h1 className="text-2xl font-bold text-[#111111] tracking-tight">Official Syllabus</h1>
+          <p className="text-xs text-[#666666] mt-1">Choose the syllabus you want to study from.</p>
         </div>
-    );
+        <button onClick={loadWorkspace} className="px-3 py-2 border border-[#D7D3CF] rounded-[4px] text-xs font-mono uppercase inline-flex items-center gap-2">
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
+        </button>
+      </div>
+
+      {(error || status) && (
+        <div className={`border rounded-[4px] p-3 text-xs font-mono flex items-center justify-between gap-3 ${error ? 'bg-[#FFFDFB] border-[#D7D3CF] text-[#C96A32]' : 'bg-white border-[#102326] text-[#102326]'}`}>
+          <span>{error || status}</span>
+          <button onClick={() => { setError(''); setStatus(''); }} className="underline">Dismiss</button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-10 text-xs font-mono text-[#666666] flex items-center justify-center gap-2">
+          <Loader2 size={15} className="animate-spin" /> Loading syllabus...
+        </div>
+      ) : screen === 'home' ? (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 max-w-5xl mx-auto w-full">
+          <ChoiceCard
+            title="Official Syllabus"
+            description="Use the syllabus added by your college or admin."
+            active={activeKind === 'official'}
+            ready={Boolean(official)}
+            empty="No official syllabus has been added yet."
+            onGo={() => setScreen('official')}
+          />
+          <ChoiceCard
+            title="My Syllabus"
+            description="Add your own syllabus and study from it."
+            active={activeKind === 'personal'}
+            ready={Boolean(personal)}
+            empty="You have not added your syllabus yet."
+            onGo={() => {
+              setScreen('personal');
+              if (!personal) setEditingPersonal(true);
+            }}
+          />
+        </div>
+      ) : screen === 'official' ? (
+        <OfficialDetail
+          upload={official}
+          active={activeKind === 'official'}
+          subjects={subjects}
+          selectedSem={selectedSem}
+          setSelectedSem={setSelectedSem}
+          selectedSubject={selectedSubject}
+          setSelectedSubject={setSelectedSubject}
+          onBack={backHome}
+          onView={openView}
+          onDownload={download}
+          onSetActive={setActive}
+        />
+      ) : (
+        <PersonalDetail
+          personal={personal}
+          active={activeKind === 'personal'}
+          subjects={subjects}
+          selectedSem={selectedSem}
+          setSelectedSem={setSelectedSem}
+          selectedSubject={selectedSubject}
+          setSelectedSubject={setSelectedSubject}
+          editing={editingPersonal}
+          setEditing={setEditingPersonal}
+          text={personalText}
+          setText={(value) => { setPersonalText(value); setDirty(true); }}
+          fileRef={fileRef}
+          setFile={(file) => { setPersonalFile(file); setDirty(true); }}
+          selectedFile={personalFile}
+          saving={saving}
+          onBack={backHome}
+          onSave={savePersonal}
+          onView={openView}
+          onDownload={download}
+          onEdit={startEdit}
+          onDelete={deletePersonal}
+          onSetActive={setActive}
+        />
+      )}
+
+      {viewing && (
+        <div className="fixed inset-0 z-50 bg-black/30 p-4 flex items-center justify-center">
+          <div className="bg-white border border-[#D7D3CF] rounded-[4px] w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-[#D7D3CF] p-4">
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-[#111111] truncate">{viewing.filename}</h3>
+                <p className="text-[10px] font-mono text-[#666666]">Syllabus text</p>
+              </div>
+              <button onClick={() => setViewing(null)}><X size={16} /></button>
+            </div>
+            <div className="p-4 overflow-y-auto">
+              {viewLoading ? (
+                <div className="text-xs font-mono text-[#666666] flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Opening...</div>
+              ) : (
+                <pre className="whitespace-pre-wrap text-xs leading-relaxed text-[#111111] font-mono">{viewing.parsed_text || 'No text is available.'}</pre>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
+
+const ChoiceCard = ({ title, description, active, ready, empty, onGo }) => (
+  <section className="bg-white border border-[#D7D3CF] rounded-[8px] p-7 min-h-[460px] flex flex-col shadow-sm">
+    <div className="text-center pt-4">
+      <div className="flex items-center justify-center gap-2">
+        <h2 className="text-xl font-bold text-[#111111]">{title}</h2>
+        {active && <span className="text-[10px] font-mono uppercase text-[#185C28] bg-[#DDEFE2] border border-[#3E8B4E] px-2 py-1 rounded-[3px]">Selected</span>}
+      </div>
+      <p className="text-sm text-[#444444] mt-2 max-w-xs mx-auto">{description}</p>
+    </div>
+    <div className="flex-1 flex items-center justify-center">
+      {ready ? (
+        <div className="text-center">
+          <FileText size={28} className="mx-auto text-[#102326] mb-3" />
+          <p className="text-sm font-bold text-[#111111]">Ready to open</p>
+        </div>
+      ) : (
+        <div className="text-center border border-dashed border-[#D7D3CF] rounded-[4px] p-8 w-full bg-[#FAF9F7]">
+          <FileText size={26} className="mx-auto text-[#666666] mb-2" />
+          <p className="text-sm font-bold text-[#111111]">{empty}</p>
+        </div>
+      )}
+    </div>
+    <button onClick={onGo} className="mx-auto mb-5 w-36 bg-[#102326] text-white rounded-[4px] px-4 py-2 text-xs font-mono font-semibold uppercase">
+      Go
+    </button>
+  </section>
+);
+
+const OfficialDetail = ({ upload, active, subjects, selectedSem, setSelectedSem, selectedSubject, setSelectedSubject, onBack, onView, onDownload, onSetActive }) => (
+  <SyllabusStudyShell
+    title="Official Syllabus"
+    subtitle="Choose a semester and open the syllabus for that subject."
+    subjects={subjects}
+    selectedSem={selectedSem}
+    setSelectedSem={setSelectedSem}
+    selectedSubject={selectedSubject}
+    setSelectedSubject={setSelectedSubject}
+    onBack={onBack}
+  >
+    {upload ? (
+      <>
+        <div className="mb-4">
+          <p className="text-xs font-mono uppercase text-[#666666]">Selected subject</p>
+          <h3 className="text-lg font-bold text-[#111111] mt-1">{selectedSubject?.name || 'Choose a subject'}</h3>
+        </div>
+        <DocumentSummary upload={upload} />
+        <div className="flex flex-wrap gap-2 mt-4">
+          <ActionButton onClick={() => onView(upload)} icon={Eye} label="View" />
+          <ActionButton onClick={() => onDownload(upload)} icon={Download} label="Download" />
+          <ActionButton onClick={() => onSetActive(upload)} icon={CheckCircle2} label="Use This" disabled={active} primary />
+        </div>
+      </>
+    ) : (
+      <EmptyPanel text="No official syllabus has been added yet." />
+    )}
+  </SyllabusStudyShell>
+);
+
+const PersonalDetail = ({
+  personal,
+  active,
+  subjects,
+  selectedSem,
+  setSelectedSem,
+  selectedSubject,
+  setSelectedSubject,
+  editing,
+  setEditing,
+  text,
+  setText,
+  fileRef,
+  setFile,
+  selectedFile,
+  saving,
+  onBack,
+  onSave,
+  onView,
+  onDownload,
+  onEdit,
+  onDelete,
+  onSetActive
+}) => (
+  <SyllabusStudyShell
+    title="My Syllabus"
+    subtitle="Choose a semester, then add or open your syllabus."
+    subjects={subjects}
+    selectedSem={selectedSem}
+    setSelectedSem={setSelectedSem}
+    selectedSubject={selectedSubject}
+    setSelectedSubject={setSelectedSubject}
+    onBack={onBack}
+  >
+    {personal && !editing ? (
+      <>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-mono uppercase text-[#666666]">Selected subject</p>
+            <h3 className="text-lg font-bold text-[#111111] mt-1">{selectedSubject?.name || 'Choose a subject'}</h3>
+          </div>
+          {active && <span className="text-[10px] font-mono uppercase text-[#185C28] bg-[#DDEFE2] border border-[#3E8B4E] px-2 py-1 rounded-[3px]">Selected</span>}
+        </div>
+        <DocumentSummary upload={personal} />
+        <div className="flex flex-wrap gap-2">
+          <ActionButton onClick={() => onView(personal)} icon={Eye} label="View" />
+          <ActionButton onClick={() => onDownload(personal)} icon={Download} label="Download" />
+          <ActionButton onClick={onEdit} icon={Edit3} label="Edit" />
+          <ActionButton onClick={onDelete} icon={Trash2} label="Delete" danger />
+          <ActionButton onClick={() => onSetActive(personal)} icon={CheckCircle2} label="Use This" disabled={active} primary />
+        </div>
+      </>
+    ) : (
+      <form onSubmit={onSave} className="space-y-4">
+        <div>
+          <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Paste syllabus text</label>
+          <textarea
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            rows={12}
+            className={`${inputClass} resize-y`}
+            placeholder="Paste your syllabus here..."
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Or choose a file</label>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.txt"
+            onChange={(event) => setFile(event.target.files?.[0] || null)}
+            className={inputClass}
+          />
+          {selectedFile && <p className="text-[10px] font-mono text-[#666666] mt-1">{selectedFile.name}</p>}
+        </div>
+        <div className="flex justify-end gap-2 border-t border-[#D7D3CF] pt-4">
+          {personal && (
+            <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 border border-[#D7D3CF] rounded-[4px] text-xs font-mono uppercase">Cancel</button>
+          )}
+          <button type="submit" disabled={saving || (!text.trim() && !selectedFile)} className="px-4 py-2 bg-[#102326] text-white rounded-[4px] text-xs font-mono uppercase inline-flex items-center gap-2 disabled:opacity-50">
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save
+          </button>
+        </div>
+      </form>
+    )}
+  </SyllabusStudyShell>
+);
+
+const SyllabusStudyShell = ({ title, subtitle, subjects, selectedSem, setSelectedSem, selectedSubject, setSelectedSubject, onBack, children }) => {
+  const semesterSubjects = subjects.filter((subject) => Number(subject.semester) === Number(selectedSem));
+
+  const chooseSemester = (sem) => {
+    setSelectedSem(sem);
+    const nextSubject = subjects.find((subject) => Number(subject.semester) === Number(sem));
+    setSelectedSubject(nextSubject || null);
+  };
+
+  return (
+    <section className="bg-white border border-[#D7D3CF] rounded-[8px] p-6 space-y-6 min-h-[520px]">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-[#D7D3CF] pb-4">
+        <div>
+          <button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-xs font-mono text-[#666666] hover:text-[#111111]">
+            <ArrowLeft size={13} /> Back
+          </button>
+          <h2 className="text-xl font-bold text-[#111111]">{title}</h2>
+          <p className="text-xs text-[#666666] mt-1">{subtitle}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+          <button
+            key={sem}
+            onClick={() => chooseSemester(sem)}
+            className={`px-5 py-2 rounded-[6px] border text-xs font-mono font-semibold ${Number(selectedSem) === sem ? 'bg-[#102326] text-white border-[#102326]' : 'bg-white border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7]'}`}
+          >
+            Sem {sem}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 items-start">
+        <div className="space-y-3">
+          {semesterSubjects.length > 0 ? semesterSubjects.map((subject) => (
+            <button
+              key={subject.id}
+              onClick={() => setSelectedSubject(subject)}
+              className={`w-full text-left border rounded-[6px] px-4 py-3 text-sm font-semibold ${selectedSubject?.id === subject.id ? 'border-[#102326] bg-[#F7F5F2] text-[#111111]' : 'border-[#D7D3CF] bg-white text-[#444444] hover:bg-[#FAF9F7]'}`}
+            >
+              {subject.name}
+            </button>
+          )) : (
+            <EmptyPanel text={`No subjects found for Semester ${selectedSem}.`} compact />
+          )}
+        </div>
+
+        <div className="border border-[#D7D3CF] rounded-[6px] p-5 bg-[#FAF9F7] min-h-[300px]">
+          {children}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const EmptyPanel = ({ text, compact = false }) => (
+  <div className={`border border-dashed border-[#D7D3CF] bg-white rounded-[4px] text-center ${compact ? 'p-5' : 'p-10'}`}>
+    <FileText size={compact ? 20 : 28} className="mx-auto text-[#666666] mb-2" />
+    <p className="text-sm font-bold text-[#111111]">{text}</p>
+  </div>
+);
+
+const DocumentSummary = ({ upload }) => (
+  <div className="border border-[#D7D3CF] rounded-[4px] p-4 flex items-start gap-3">
+    <FileText size={20} className="text-[#102326] shrink-0" />
+    <div className="min-w-0 flex-1">
+      <p className="text-sm font-bold text-[#111111] truncate">{upload.filename}</p>
+      <p className="text-[10px] font-mono text-[#666666] mt-1">
+        {(upload.size_bytes / 1024).toFixed(0)} KB
+        {upload.created_at ? ` - ${new Date(upload.created_at).toLocaleDateString()}` : ''}
+      </p>
+    </div>
+  </div>
+);
+
+const ActionButton = ({ icon: Icon, label, onClick, disabled = false, primary = false, danger = false }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className={`px-3 py-2 rounded-[4px] border text-xs font-mono uppercase inline-flex items-center gap-2 disabled:opacity-50 ${
+      primary
+        ? 'bg-[#102326] border-[#102326] text-white'
+        : danger
+          ? 'bg-white border-[#D7D3CF] text-[#C96A32]'
+          : 'bg-white border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7]'
+    }`}
+  >
+    <Icon size={13} />
+    {label}
+  </button>
+);
 
 export default SyllabusExplorer;
