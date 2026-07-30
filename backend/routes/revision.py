@@ -37,8 +37,10 @@ def create_revision_plan(user):
     end_time = data.get('end_time')
     description = data.get('description', '')
     subject = data.get('subject', 'General')
+    event_type = data.get('event_type', 'Study Session')
     priority = data.get('priority', 'medium')
     status = data.get('status', 'pending')
+    reminder = bool(data.get('reminder', False))
     
     # Priority & Status limits
     if priority not in ['low', 'medium', 'high']:
@@ -51,9 +53,11 @@ def create_revision_plan(user):
         title=title,
         description=description,
         subject=subject,
+        event_type=event_type,
         revision_date=revision_date,
         start_time=start_time,
         end_time=end_time,
+        reminder=reminder,
         priority=priority,
         status=status
     )
@@ -99,10 +103,14 @@ def update_revision_plan(user, id):
         plan.description = data['description']
     if 'subject' in data:
         plan.subject = data['subject']
+    if 'event_type' in data:
+        plan.event_type = data['event_type'] or 'Study Session'
     if 'start_time' in data:
         plan.start_time = data['start_time']
     if 'end_time' in data:
         plan.end_time = data['end_time']
+    if 'reminder' in data:
+        plan.reminder = bool(data['reminder'])
     if 'priority' in data:
         priority = data['priority']
         if priority in ['low', 'medium', 'high']:

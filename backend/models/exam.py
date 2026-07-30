@@ -10,6 +10,9 @@ class Exam(db.Model):
     exam_type = db.Column(db.String(50), nullable=False)  # 'ut', 'assessment', 'final'
     subject = db.Column(db.String(255), nullable=False)
     exam_date = db.Column(db.String(10), nullable=False)  # 'YYYY-MM-DD'
+    start_time = db.Column(db.String(5), nullable=True)
+    end_time = db.Column(db.String(5), nullable=True)
+    reminder = db.Column(db.Boolean, default=False, nullable=False)
     description = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -21,6 +24,9 @@ class Exam(db.Model):
             'exam_type': self.exam_type,
             'subject': self.subject,
             'exam_date': self.exam_date,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'reminder': self.reminder,
             'description': self.description,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }

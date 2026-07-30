@@ -24,6 +24,7 @@ from services.generation_service import (
 )
 from models.content import StudentUpload
 from models.quiz import QuizSet
+from services.arcade_service import sync_questions_from_mcqs
 from config import db
 import logging
 import traceback
@@ -202,6 +203,7 @@ def gen_mcqs(user):
             questions_json=mcqs,
         )
         db.session.add(quiz_set)
+        sync_questions_from_mcqs(user.id, upload, mcqs)
 
         # Increment generation count
         upload.mcq_generation_count = gen_count + 1

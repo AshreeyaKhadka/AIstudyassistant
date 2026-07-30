@@ -3,9 +3,9 @@ from models.user import User
 from models.revision import RevisionPlan
 from models.exam import Exam
 from models.quiz import QuizSet
+from models.content import StudentUpload, Subject
 from config import db
 from datetime import datetime, timedelta
-import random
 
 def log_session(user_id, data):
     session = StudySession(
@@ -66,17 +66,21 @@ def get_analytics(user_id):
     }
 
 def get_recommendations(user_id):
-    # This is a deterministic recommendation engine bridging multiple modules
+    # Deterministic recommendation engine bridging real user activity across modules.
     recommendations = []
+    today = datetime.utcnow().date()
     
     # 1. Check upcoming exams
-    upcoming_exams = Exam.query.filter(
-        Exam.user_id == user_id, 
-        Exam.exam_date >= datetime.utcnow().date()
-    ).order_by(Exam.exam_date.asc()).limit(3).all()
+    upcoming_exams = Exam.query.filter_by(user_id=user_id).order_by(Exam.exam_date.asc()).all()
     
     for exam in upcoming_exams:
-        days_away = (datetime.strptime(exam.exam_date, '%Y-%m-%d').date() - datetime.utcnow().date()).days
+        try:
+            exam_date = datetime.strptime(exam.exam_date, '%Y-%m-%d').date()
+        except (TypeError, ValueError):
+            continue
+        days_away = (exam_date - today).days
+        if days_away < 0:
+            continue
         if days_away <= 7:
             recommendations.append({
                 "type": "exam",
@@ -85,10 +89,9 @@ def get_recommendations(user_id):
                 "priority": "high"
             })
             
-    # 2. Check quiz scores (if average score is low, recommend it)
+    # 2. Check quiz history and recommend recent weak context.
     quizzes = QuizSet.query.filter_by(user_id=user_id).all()
     if quizzes:
-        # Just an example logic: pick a random recent quiz topic
         recent_quiz = quizzes[-1]
         recommendations.append({
             "type": "quiz_review",
@@ -98,7 +101,7 @@ def get_recommendations(user_id):
         })
         
     # 3. Check pending revision plans
-    pending_revisions = RevisionPlan.query.filter_by(user_id=user_id, status='pending').all()
+    pending_revisions = RevisionPlan.query.filter_by(user_id=user_id, status='pending').order_by(RevisionPlan.revision_date.asc()).all()
     if pending_revisions:
         rev = pending_revisions[0]
         recommendations.append({
@@ -107,6 +110,19 @@ def get_recommendations(user_id):
             "subject": rev.subject,
             "priority": "medium"
         })
+
+    # 4. Check syllabus/RAG readiness from actual uploads.
+    subjects = Subject.query.filter_by(user_id=user_id).all()
+    for subject in subjects[:8]:
+        has_syllabus = StudentUpload.query.filter_by(user_id=user_id, subject_id=subject.id, doc_type='syllabus').first()
+        if not has_syllabus:
+            recommendations.append({
+                "type": "syllabus_gap",
+                "message": f"Add or activate syllabus context for {subject.name} before AI-heavy practice.",
+                "subject": subject.name,
+                "priority": "low"
+            })
+            break
 
     # Fallback recommendation
     if not recommendations:

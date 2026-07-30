@@ -44,6 +44,9 @@ def create_exam(user):
         exam_type=exam_type,
         subject=subject,
         exam_date=exam_date,
+        start_time=data.get('start_time'),
+        end_time=data.get('end_time'),
+        reminder=bool(data.get('reminder', False)),
         description=data.get('description', ''),
     )
 
@@ -55,6 +58,44 @@ def create_exam(user):
         db.session.rollback()
         logger.error(f"Failed to create exam: {e}")
         return jsonify({"error": "Failed to create exam"}), 500
+
+
+@exam_bp.route('/<int:exam_id>', methods=['PUT'])
+@login_required
+def update_exam(user, exam_id):
+    exam = Exam.query.get(exam_id)
+    if not exam:
+        return jsonify({"error": "Exam not found"}), 404
+    if exam.user_id != user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.json or {}
+    title = data.get('title', '').strip()
+    exam_type = data.get('exam_type', '').strip()
+    subject = data.get('subject', '').strip()
+    exam_date = data.get('exam_date', '').strip()
+
+    if not title or not exam_type or not subject or not exam_date:
+        return jsonify({"error": "Title, type, subject, and date are required"}), 400
+    if exam_type not in EXAM_TYPES:
+        return jsonify({"error": f"Invalid exam type. Must be one of: {', '.join(EXAM_TYPES)}"}), 400
+
+    exam.title = title
+    exam.exam_type = exam_type
+    exam.subject = subject
+    exam.exam_date = exam_date
+    exam.start_time = data.get('start_time')
+    exam.end_time = data.get('end_time')
+    exam.reminder = bool(data.get('reminder', False))
+    exam.description = data.get('description', '')
+
+    try:
+        db.session.commit()
+        return jsonify(exam.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to update exam {exam_id}: {e}")
+        return jsonify({"error": "Failed to update exam"}), 500
 
 
 # DELETE /exams/<id>

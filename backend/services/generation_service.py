@@ -230,6 +230,7 @@ REQUIREMENTS:
 - Each question must have exactly 4 options labeled A, B, C, D.
 - Exactly one option must be correct.
 - Include a brief explanation (1-2 sentences) of why the correct answer is right, citing the relevant concept from the text.
+- Include a difficulty rating of "easy", "medium", or "hard" based on how much inference vs. direct recall the question requires.
 - Questions should test conceptual understanding, application, and analysis—not just recall.
 - Distractors (wrong answers) should be plausible but clearly incorrect based on the material.
 - Do NOT include information not present in the provided context.
@@ -241,6 +242,7 @@ OUTPUT FORMAT (strict JSON):
       "question": "Which of the following...",
       "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}},
       "correct": "B",
+      "difficulty": "medium",
       "explanation": "B is correct because..."
     }},
     ...
@@ -253,8 +255,19 @@ Generate exactly {count} MCQs. Return ONLY valid JSON."""
 def generate_mcqs(context: str, count: int = 10) -> list[dict]:
     """Generate MCQs from retrieved context."""
     prompt = MCQ_PROMPT.format(context=context, count=count)
-    raw = _call_gemini(prompt, temperature=0.4)
-    parsed = _parse_json_response(raw)
+    last_error = None
+    parsed = None
+    for _ in range(2):
+        try:
+            raw = _call_gemini(prompt, temperature=0.4)
+            parsed = _parse_json_response(raw)
+            break
+        except Exception as exc:
+            last_error = exc
+            logger.warning(f"MCQ generation parse attempt failed: {exc}")
+
+    if parsed is None:
+        raise RuntimeError(f"AI returned malformed MCQ JSON: {last_error}")
 
     mcqs = parsed.get("mcqs", [])
     if not isinstance(mcqs, list):
@@ -276,6 +289,9 @@ def generate_mcqs(context: str, count: int = 10) -> list[dict]:
             "question": str(mcq["question"]).strip(),
             "options": {k: str(v).strip() for k, v in options.items()},
             "correct": str(mcq["correct"]).strip().upper(),
+            "difficulty": str(mcq.get("difficulty", "medium")).strip().lower()
+            if str(mcq.get("difficulty", "medium")).strip().lower() in {"easy", "medium", "hard"}
+            else "medium",
             "explanation": str(mcq.get("explanation", "")).strip(),
         })
 

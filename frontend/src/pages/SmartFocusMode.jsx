@@ -11,6 +11,9 @@ const SmartFocusMode = () => {
   const [sessions, setSessions] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [recommendations, setRecommendations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+  const [error, setError] = useState('');
   
   const [dbSubjects, setDbSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -34,18 +37,29 @@ const SmartFocusMode = () => {
   };
 
   const fetchFocusData = async () => {
+    setLoading(true);
+    setRecommendationsLoading(true);
+    setError('');
     try {
       const [histRes, statRes, recRes] = await Promise.all([
         fetch('/api/focus/sessions', { credentials: 'include' }),
         fetch('/api/focus/analytics', { credentials: 'include' }),
         fetch('/api/focus/recommendations', { credentials: 'include' })
       ]);
+
+      if (!histRes.ok || !statRes.ok || !recRes.ok) {
+        throw new Error('Failed to load focus data');
+      }
       
       if (histRes.ok) setSessions(await histRes.json());
       if (statRes.ok) setAnalytics(await statRes.json());
       if (recRes.ok) setRecommendations(await recRes.json());
     } catch (err) {
       console.error(err);
+      setError(err.message || 'Failed to load focus mode');
+    } finally {
+      setLoading(false);
+      setRecommendationsLoading(false);
     }
   };
 
@@ -57,16 +71,18 @@ const SmartFocusMode = () => {
         topic: topic || 'Review'
       };
       
-      await fetch('/api/focus/sessions', {
+      const res = await fetch('/api/focus/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
         credentials: 'include'
       });
+      if (!res.ok) throw new Error('Failed to save focus session');
       
       fetchFocusData();
     } catch (err) {
       console.error(err);
+      setError(err.message || 'Failed to save focus session');
     }
   };
 
@@ -85,6 +101,13 @@ const SmartFocusMode = () => {
           <p className="text-xs text-[#666666] mt-0.5">Focus, track, and adapt your study sessions.</p>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-[#FFFDFB] border border-[#D7D3CF] text-[#C96A32] rounded-[4px] p-3 text-xs font-mono flex items-center justify-between gap-3">
+          <span>{error}</span>
+          <button onClick={fetchFocusData} className="underline">Retry</button>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -137,11 +160,11 @@ const SmartFocusMode = () => {
         <div className="lg:col-span-7 flex flex-col gap-6">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FocusAnalytics analytics={analytics} />
-            <StudyRecommendations recommendations={recommendations} />
+            <FocusAnalytics analytics={analytics} loading={loading} />
+            <StudyRecommendations recommendations={recommendations} loading={recommendationsLoading} error={error} />
           </div>
 
-          <StudyHistory sessions={sessions} />
+          <StudyHistory sessions={sessions} loading={loading} />
           
         </div>
 

@@ -9,9 +9,11 @@ class RevisionPlan(db.Model):
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     subject = db.Column(db.String(100), nullable=True)
+    event_type = db.Column(db.String(30), default='Study Session')
     revision_date = db.Column(db.String(10), nullable=False) # e.g., 'YYYY-MM-DD'
     start_time = db.Column(db.String(5), nullable=True)     # e.g., 'HH:MM'
     end_time = db.Column(db.String(5), nullable=True)       # e.g., 'HH:MM'
+    reminder = db.Column(db.Boolean, default=False, nullable=False)
     priority = db.Column(db.String(20), default='medium')   # 'low', 'medium', 'high'
     status = db.Column(db.String(20), default='pending')    # 'pending', 'completed'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -24,9 +26,11 @@ class RevisionPlan(db.Model):
             'title': self.title,
             'description': self.description,
             'subject': self.subject,
+            'event_type': self.event_type,
             'revision_date': self.revision_date,
             'start_time': self.start_time,
             'end_time': self.end_time,
+            'reminder': self.reminder,
             'priority': self.priority,
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,

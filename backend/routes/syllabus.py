@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from config import db
 from models.content import Subject, StudentUpload
 from services.auth_service import login_required
@@ -9,12 +9,115 @@ import json
 import re
 import logging
 import threading
+from datetime import datetime
 
 syllabus_bp = Blueprint('syllabus', __name__)
 logger = logging.getLogger(__name__)
 
 UPLOAD_FOLDER = 'uploads'
+OFFICIAL_PDF_FOLDER = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'pdf')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+def _slugify(value):
+    value = (value or '').strip().lower()
+    value = re.sub(r'[^a-z0-9]+', '-', value)
+    return value.strip('-') or 'general'
+
+
+@syllabus_bp.route('/pdf/<path:filename>', methods=['GET'])
+def view_official_pdf(filename):
+    safe_name = os.path.basename(filename)
+    filepath = os.path.join(OFFICIAL_PDF_FOLDER, safe_name)
+    if not os.path.exists(filepath) or not safe_name.lower().endswith('.pdf'):
+        return jsonify({"error": "PDF not found"}), 404
+    return send_file(filepath, mimetype='application/pdf', as_attachment=False, download_name=safe_name)
+
+
+def _serialize_upload(upload, include_text=False):
+    if not upload:
+        return None
+    data = {
+        "id": upload.id,
+        "filename": upload.filename,
+        "size_bytes": upload.size_bytes,
+        "subject": upload.subject,
+        "subject_id": upload.subject_id,
+        "doc_type": upload.doc_type,
+        "syllabus_kind": upload.syllabus_kind,
+        "is_active_syllabus": bool(upload.is_active_syllabus),
+        "embedding_status": upload.embedding_status or 'pending',
+        "embedding_error": upload.embedding_error,
+        "created_at": upload.created_at.isoformat() if upload.created_at else None,
+    }
+    if include_text:
+        data["parsed_text"] = upload.parsed_text or ""
+    else:
+        data["parsed_preview"] = (upload.parsed_text or "")[:600]
+    return data
+
+
+def _parse_syllabus_file(file, filepath):
+    if file.filename.lower().endswith('.pdf'):
+        import fitz
+        file.save(filepath)
+        text = ""
+        doc = fitz.open(filepath)
+        for page in doc:
+            text += page.get_text()
+        doc.close()
+        return text
+
+    if file.filename.lower().endswith('.txt'):
+        file.save(filepath)
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            return f.read()
+
+    raise ValueError("Only PDF and TXT files are supported")
+
+
+def _start_embedding(upload_id, user_id, filename, text):
+    def _bg_embed(app, uid, u_id, fname, ptext):
+        with app.app_context():
+            try:
+                embed_document(uid, u_id, fname, ptext)
+            except Exception as e:
+                logger.error(f"Background embedding failed for upload {uid}: {e}")
+
+    from flask import current_app
+    app = current_app._get_current_object()
+    t = threading.Thread(
+        target=_bg_embed,
+        args=(app, upload_id, user_id, filename, text),
+        daemon=True,
+    )
+    t.start()
+
+
+def _set_active_syllabus(user_id, upload):
+    StudentUpload.query.filter_by(user_id=user_id, doc_type='syllabus').update({"is_active_syllabus": False})
+    upload.is_active_syllabus = True
+
+
+def _semester_from_path(path):
+    match = re.search(r'(?:^|[/\\])sem-(\d+)(?:[/\\]|$)', path or '')
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def _serialize_personal_upload(upload, include_text=False):
+    item = _serialize_upload(upload, include_text=include_text)
+    subject = None
+    if upload and upload.subject_id:
+        subject = Subject.query.filter_by(id=upload.subject_id, user_id=upload.user_id).first()
+    item["semester"] = subject.semester if subject else _semester_from_path(upload.file_url)
+    item["credits"] = subject.credits if subject else None
+    item["code"] = subject.code if subject else None
+    return item
 
 
 def _seed_default_subjects_if_empty(user):
@@ -319,3 +422,254 @@ def get_syllabus_meta(user, subject_id):
             "semester": subject.semester
         }
     }), 200
+
+
+@syllabus_bp.route('/workspace', methods=['GET'])
+@login_required
+def get_syllabus_workspace(user):
+    subject_id = request.args.get('subject_id', type=int)
+    semester = request.args.get('semester', type=int)
+    subject_name = (request.args.get('subject') or '').strip()
+    if not subject_id and semester and subject_name:
+        subject = Subject.query.filter_by(user_id=user.id, semester=semester, name=subject_name).first()
+        if subject:
+            subject_id = subject.id
+
+    official = (
+        StudentUpload.query.filter_by(doc_type='syllabus', syllabus_kind='official')
+        .order_by(StudentUpload.created_at.desc())
+        .first()
+    )
+    personal_query = StudentUpload.query.filter_by(user_id=user.id, doc_type='syllabus', syllabus_kind='personal')
+    if subject_id:
+        personal_query = personal_query.filter_by(subject_id=subject_id)
+    elif subject_name:
+        personal_query = personal_query.filter_by(subject=subject_name)
+    personal = personal_query.order_by(StudentUpload.created_at.desc()).first()
+
+    active = (
+        StudentUpload.query.filter_by(user_id=user.id, doc_type='syllabus', is_active_syllabus=True)
+        .order_by(StudentUpload.created_at.desc())
+        .first()
+    )
+    if not active:
+        active = official or personal
+        if active and active.user_id == user.id:
+            _set_active_syllabus(user.id, active)
+            db.session.commit()
+
+    return jsonify({
+        "official": _serialize_upload(official),
+        "personal": _serialize_upload(personal),
+        "active_upload_id": active.id if active else None,
+        "active_kind": active.syllabus_kind if active else None,
+        "note": None if official else "No official syllabus uploaded yet by admin",
+    }), 200
+
+
+@syllabus_bp.route('/workspace/personal', methods=['POST'])
+@login_required
+def upsert_personal_syllabus(user):
+    text = (request.form.get('text') or '').strip()
+    file = request.files.get('file')
+    replace_id = request.form.get('replace_id')
+    semester = request.form.get('semester', type=int)
+    subject_id = request.form.get('subject_id', type=int)
+    subject_name = (request.form.get('subject') or '').strip()
+    syllabus_name = (request.form.get('syllabus_name') or '').strip()
+
+    if not text and not file:
+        return jsonify({"error": "Paste syllabus text or upload a PDF/TXT file"}), 400
+    if not semester or not subject_name:
+        return jsonify({"error": "Choose a semester and subject first"}), 400
+
+    subject = None
+    if subject_id:
+        subject = Subject.query.filter_by(id=subject_id, user_id=user.id).first()
+        if subject:
+            subject_name = subject.name
+            semester = subject.semester
+    if not subject:
+        subject = Subject.query.filter_by(user_id=user.id, semester=semester, name=subject_name).first()
+
+    existing_query = StudentUpload.query.filter_by(user_id=user.id, doc_type='syllabus', syllabus_kind='personal')
+    if subject:
+        existing_query = existing_query.filter_by(subject_id=subject.id)
+    elif subject_id:
+        existing_query = existing_query.filter_by(subject_id=subject_id)
+    else:
+        existing_query = existing_query.filter_by(subject=subject_name)
+    existing = existing_query.first()
+    if existing and not replace_id:
+        return jsonify({"error": "Personal syllabus already exists. Edit or delete it first."}), 409
+
+    filename = f"{_slugify(syllabus_name or subject_name)}.txt"
+    subject_slug = _slugify(subject_name)
+    scoped_dir = os.path.join(UPLOAD_FOLDER, 'syllabus', str(user.id), f"sem-{semester}", subject_slug)
+    os.makedirs(scoped_dir, exist_ok=True)
+    filepath = os.path.join(scoped_dir, filename)
+    parsed_text = text
+    size_bytes = len(text.encode('utf-8'))
+
+    try:
+        if file:
+            original_name = secure_filename(file.filename)
+            if syllabus_name:
+                _, ext = os.path.splitext(original_name)
+                filename = secure_filename(f"{syllabus_name}{ext or '.pdf'}")
+            else:
+                filename = original_name
+            if not filename:
+                return jsonify({"error": "Uploaded file must have a filename"}), 400
+            filepath = os.path.join(scoped_dir, filename)
+            parsed_text = _parse_syllabus_file(file, filepath)
+            size_bytes = os.path.getsize(filepath)
+        else:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(parsed_text)
+
+        if not parsed_text.strip():
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            return jsonify({"error": "Syllabus content is empty after parsing"}), 400
+
+        if existing:
+            delete_document_embeddings(existing.id)
+            if existing.file_url and os.path.exists(existing.file_url):
+                try:
+                    os.remove(existing.file_url)
+                except Exception:
+                    pass
+            existing.filename = filename
+            existing.file_url = filepath
+            existing.parsed_text = parsed_text
+            existing.size_bytes = size_bytes
+            existing.subject = subject_name
+            existing.subject_id = subject.id if subject else subject_id
+            existing.embedding_status = 'pending'
+            existing.embedding_error = None
+            upload = existing
+        else:
+            upload = StudentUpload(
+                filename=filename,
+                file_url=filepath,
+                parsed_text=parsed_text,
+                size_bytes=size_bytes,
+                user_id=user.id,
+                subject=subject_name,
+                subject_id=subject.id if subject else subject_id,
+                doc_type='syllabus',
+                syllabus_kind='personal',
+            )
+            db.session.add(upload)
+
+        if request.form.get('set_active', 'true').lower() == 'true':
+            _set_active_syllabus(user.id, upload)
+
+        db.session.commit()
+        _start_embedding(upload.id, user.id, upload.filename, parsed_text)
+        return jsonify(_serialize_personal_upload(upload, include_text=True)), 200 if existing else 201
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to save personal syllabus: {e}")
+        return jsonify({"error": "Failed to save personal syllabus"}), 500
+
+
+@syllabus_bp.route('/workspace/personal', methods=['GET'])
+@login_required
+def list_personal_syllabi(user):
+    uploads = (
+        StudentUpload.query.filter_by(user_id=user.id, doc_type='syllabus', syllabus_kind='personal')
+        .order_by(StudentUpload.created_at.desc())
+        .all()
+    )
+    subject_ids = [upload.subject_id for upload in uploads if upload.subject_id]
+    subjects = {}
+    if subject_ids:
+        subjects = {
+            subject.id: subject
+            for subject in Subject.query.filter(Subject.user_id == user.id, Subject.id.in_(subject_ids)).all()
+        }
+
+    items = []
+    for upload in uploads:
+        item = _serialize_upload(upload)
+        subject = subjects.get(upload.subject_id)
+        item["semester"] = subject.semester if subject else _semester_from_path(upload.file_url)
+        item["credits"] = subject.credits if subject else None
+        item["code"] = subject.code if subject else None
+        items.append(item)
+
+    return jsonify(items), 200
+
+
+@syllabus_bp.route('/workspace/<int:upload_id>/active', methods=['POST'])
+@login_required
+def set_active_workspace_syllabus(user, upload_id):
+    upload = StudentUpload.query.get(upload_id)
+    if not upload or upload.doc_type != 'syllabus':
+        return jsonify({"error": "Syllabus not found"}), 404
+    if upload.syllabus_kind != 'official' and upload.user_id != user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    try:
+        _set_active_syllabus(user.id, upload)
+        db.session.commit()
+        return jsonify({"active_upload_id": upload.id, "active_kind": upload.syllabus_kind}), 200
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to set active syllabus: {e}")
+        return jsonify({"error": "Failed to set active syllabus"}), 500
+
+
+@syllabus_bp.route('/workspace/<int:upload_id>', methods=['GET'])
+@login_required
+def get_workspace_syllabus_detail(user, upload_id):
+    upload = StudentUpload.query.get(upload_id)
+    if not upload or upload.doc_type != 'syllabus':
+        return jsonify({"error": "Syllabus not found"}), 404
+    if upload.syllabus_kind != 'official' and upload.user_id != user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+    return jsonify(_serialize_upload(upload, include_text=True)), 200
+
+
+@syllabus_bp.route('/workspace/<int:upload_id>/file', methods=['GET'])
+@login_required
+def get_workspace_syllabus_file(user, upload_id):
+    upload = StudentUpload.query.get(upload_id)
+    if not upload or upload.doc_type != 'syllabus':
+        return jsonify({"error": "Syllabus not found"}), 404
+    if upload.syllabus_kind != 'official' and upload.user_id != user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+    if upload.file_url and os.path.exists(upload.file_url):
+        mimetype = 'application/pdf' if upload.filename.lower().endswith('.pdf') else 'text/plain'
+        return send_file(upload.file_url, mimetype=mimetype, as_attachment=False, download_name=upload.filename)
+    return jsonify({"error": "File not found"}), 404
+
+
+@syllabus_bp.route('/workspace/personal/<int:upload_id>', methods=['DELETE'])
+@login_required
+def delete_personal_syllabus(user, upload_id):
+    upload = StudentUpload.query.filter_by(id=upload_id, user_id=user.id, doc_type='syllabus', syllabus_kind='personal').first()
+    if not upload:
+        return jsonify({"error": "Personal syllabus not found"}), 404
+
+    try:
+        was_active = upload.is_active_syllabus
+        delete_document_embeddings(upload.id)
+        if upload.file_url and os.path.exists(upload.file_url):
+            os.remove(upload.file_url)
+        db.session.delete(upload)
+        if was_active:
+            official = StudentUpload.query.filter_by(doc_type='syllabus', syllabus_kind='official').order_by(StudentUpload.created_at.desc()).first()
+            if official and official.user_id == user.id:
+                _set_active_syllabus(user.id, official)
+        db.session.commit()
+        return jsonify({"message": "Personal syllabus deleted"}), 200
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Failed to delete personal syllabus: {e}")
+        return jsonify({"error": "Failed to delete personal syllabus"}), 500

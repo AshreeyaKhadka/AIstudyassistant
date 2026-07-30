@@ -1,7 +1,10 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+from flask_socketio import SocketIO
 from config import Config, db
 from sqlalchemy import inspect, text
+
+socketio = SocketIO(cors_allowed_origins=["http://localhost:5173", "http://localhost:5174"], async_mode='threading')
 
 
 def _ensure_student_upload_schema():
@@ -25,6 +28,10 @@ def _ensure_student_upload_schema():
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN subject_id INTEGER REFERENCES subjects(id)'))
         if 'doc_type' not in columns:
             connection.execute(text("ALTER TABLE student_uploads ADD COLUMN doc_type VARCHAR(50) DEFAULT 'material'"))
+        if 'syllabus_kind' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN syllabus_kind VARCHAR(20)'))
+        if 'is_active_syllabus' not in columns:
+            connection.execute(text("ALTER TABLE student_uploads ADD COLUMN is_active_syllabus BOOLEAN DEFAULT 0 NOT NULL"))
         
         # Drop old NOT NULL constraint on storage_path if present
         if 'storage_path' in columns:
@@ -112,7 +119,37 @@ def _ensure_subject_schema():
         if 'description' not in columns:
             connection.execute(text('ALTER TABLE subjects ADD COLUMN description TEXT'))
         if 'created_at' not in columns:
-            connection.execute(text('ALTER TABLE subjects ADD COLUMN created_at DATETIME'))
+                connection.execute(text('ALTER TABLE subjects ADD COLUMN created_at DATETIME'))
+
+
+def _ensure_arcade_schema():
+    inspector = inspect(db.engine)
+    if 'game_rooms' not in inspector.get_table_names():
+        return
+
+    columns = {column['name'] for column in inspector.get_columns('game_rooms')}
+    with db.engine.begin() as connection:
+        if 'created_by_id' not in columns:
+            connection.execute(text('ALTER TABLE game_rooms ADD COLUMN created_by_id INTEGER REFERENCES users(id) DEFAULT 1 NOT NULL'))
+
+
+def _ensure_calendar_schema():
+    inspector = inspect(db.engine)
+    with db.engine.begin() as connection:
+        if 'revision_plans' in inspector.get_table_names():
+            columns = {column['name'] for column in inspector.get_columns('revision_plans')}
+            if 'event_type' not in columns:
+                connection.execute(text("ALTER TABLE revision_plans ADD COLUMN event_type VARCHAR(30) DEFAULT 'Study Session'"))
+            if 'reminder' not in columns:
+                connection.execute(text("ALTER TABLE revision_plans ADD COLUMN reminder BOOLEAN DEFAULT 0 NOT NULL"))
+        if 'exams' in inspector.get_table_names():
+            columns = {column['name'] for column in inspector.get_columns('exams')}
+            if 'start_time' not in columns:
+                connection.execute(text('ALTER TABLE exams ADD COLUMN start_time VARCHAR(5)'))
+            if 'end_time' not in columns:
+                connection.execute(text('ALTER TABLE exams ADD COLUMN end_time VARCHAR(5)'))
+            if 'reminder' not in columns:
+                connection.execute(text("ALTER TABLE exams ADD COLUMN reminder BOOLEAN DEFAULT 0 NOT NULL"))
 
 
 def create_app():
@@ -127,6 +164,7 @@ def create_app():
     )
 
     db.init_app(app)
+    socketio.init_app(app)
 
     @app.route('/health', methods=['GET'])
     def health_check():
@@ -147,6 +185,7 @@ def create_app():
     from routes.focus import focus_bp
     from routes.career import career_bp
     from routes.execute import execute_bp
+    from routes.arcade import arcade_bp, register_arcade_socketio
     
     oauth.init_app(app)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -163,6 +202,8 @@ def create_app():
     app.register_blueprint(focus_bp, url_prefix='/focus')
     app.register_blueprint(career_bp, url_prefix='/career')
     app.register_blueprint(execute_bp)
+    app.register_blueprint(arcade_bp, url_prefix='/arcade')
+    register_arcade_socketio(socketio)
 
 
     # Ensure DB tables are created (useful for dev)
@@ -177,6 +218,7 @@ def create_app():
         from models.exam import Exam
         from models.focus import StudySession, UserAchievement
         from models.career import CareerProfile
+        from models.arcade import Question, GameRoom, GameRoomPlayer, GameRound, ScoreboardEntry, ArcadePointEvent
 
         
         # We will set up pgvector later during DB migrations, 
@@ -188,9 +230,11 @@ def create_app():
         _ensure_mcq_count_schema()
         _ensure_quiz_set_upload_schema()
         _ensure_chat_session_schema()
+        _ensure_arcade_schema()
+        _ensure_calendar_schema()
 
     return app
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
