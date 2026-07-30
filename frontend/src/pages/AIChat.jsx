@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import syllabusData from '../data/syllabus.json';
 
 const AIChat = () => {
   const [searchParams] = useSearchParams();
@@ -14,13 +15,51 @@ const AIChat = () => {
   const unitLabel = searchParams.get('unitLabel') || '';
   const subject_id = searchParams.get('subject_id') || '';
   const doc_type = searchParams.get('doc_type') || '';
+  const syllabusContextId = searchParams.get('syllabusContext') || '';
+
+  const syllabusFocus = useMemo(() => {
+    const chapterText = (chapter) => {
+      const topics = Array.isArray(chapter.topics) && chapter.topics.length
+        ? `\nTopics:\n${chapter.topics.map((topic) => `- ${topic}`).join('\n')}`
+        : '';
+      return `${chapter.unit ? `${chapter.unit}: ` : ''}${chapter.title}\n${chapter.summary || ''}${topics}`;
+    };
+
+    if (!syllabusContextId) return null;
+    for (const semester of syllabusData.semesters || []) {
+      for (const item of semester.subjects || []) {
+        if (item.id === syllabusContextId) {
+          const hasDetails = Array.isArray(item.chapters) && item.chapters.length > 0;
+          return {
+            subject: item.name,
+            label: item.name,
+            contextText: hasDetails
+              ? `${item.name}\n${item.chapters.map(chapterText).join('\n\n')}`
+              : `${item.name}\nDetailed syllabus content is not available yet.`,
+            note: hasDetails ? '' : 'Detailed syllabus content is not available yet.'
+          };
+        }
+        const chapter = (item.chapters || []).find((entry) => entry.id === syllabusContextId);
+        if (chapter) {
+          return {
+            subject: item.name,
+            chapter: chapter.title,
+            label: `${item.name} - ${chapter.title}`,
+            contextText: `${item.name}\n${chapterText(chapter)}`,
+            note: ''
+          };
+        }
+      }
+    }
+    return subject ? { subject, label: subject, contextText: subject, note: 'Detailed syllabus content is not available yet.' } : null;
+  }, [syllabusContextId, subject]);
 
   const [messages, setMessages] = useState([
     {
       id: 1,
       role: 'assistant',
       content: subject
-        ? `Hi! I am ready to help you study **${unit || subject}**. Ask me to explain concepts, quiz you, or generate revision notes.`
+        ? `Hi! I am ready to help you study **${unit || syllabusFocus?.label || subject}**.${syllabusFocus?.note ? ` ${syllabusFocus.note}` : ''} Ask me to explain concepts, quiz you, or generate revision notes.`
         : 'Hi, I am ready to help with concepts, revision, and questions from your uploaded materials.',
     },
   ]);
@@ -156,7 +195,7 @@ const AIChat = () => {
         id: 1,
         role: 'assistant',
         content: subject
-          ? `Hi! I am ready to help you study **${unit || subject}**. Ask me to explain concepts, quiz you, or create notes.`
+          ? `Hi! I am ready to help you study **${unit || syllabusFocus?.label || subject}**.${syllabusFocus?.note ? ` ${syllabusFocus.note}` : ''} Ask me to explain concepts, quiz you, or create notes.`
           : 'Hi, I am ready to help with concepts, revision, and questions from your uploaded materials.',
       },
     ]);
@@ -193,12 +232,13 @@ const AIChat = () => {
         body: JSON.stringify({
           message: text,
           history: history,
-          subject: subject || undefined,
+          subject: syllabusFocus?.subject || subject || undefined,
           unit: unit || undefined,
           unitLabel: unitLabel || undefined,
           session_id: sessionId || undefined,
           subject_id: subject_id ? parseInt(subject_id) : undefined,
           doc_type: doc_type || undefined,
+          syllabus_context: syllabusFocus?.contextText || undefined,
         }),
       });
 
@@ -235,11 +275,11 @@ const AIChat = () => {
     }
   };
 
-  const quickPrompts = subject
+  const quickPrompts = subject || syllabusFocus
     ? [
-        `Explain key concepts of ${unit || subject}`,
-        `5 revision bullet points for ${unit || subject}`,
-        `Quiz me on important concepts from ${unit || subject}`,
+        `Explain key concepts of ${unit || syllabusFocus?.label || subject}`,
+        `5 revision bullet points for ${unit || syllabusFocus?.label || subject}`,
+        `Quiz me on important concepts from ${unit || syllabusFocus?.label || subject}`,
       ]
     : dynamicSuggestions.length > 0
     ? dynamicSuggestions
@@ -286,7 +326,7 @@ const AIChat = () => {
       {/* Header */}
       <div className="px-4 md:px-6 py-3.5 border-b border-[#D7D3CF] bg-[#F7F5F2] flex items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          {subject && (
+          {(subject || syllabusFocus) && (
             <button
               onClick={() => navigate('/dashboard/syllabus')}
               className="p-1.5 rounded-[4px] bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] transition-colors shrink-0"
@@ -299,10 +339,10 @@ const AIChat = () => {
           </div>
           <div className="min-w-0">
             <h3 className="text-sm md:text-base font-bold text-[#111111] tracking-tight truncate">
-              {subject ? `Study: ${unit || subject}` : 'Chat Assistant'}
+              {subject || syllabusFocus ? `Study: ${unit || syllabusFocus?.label || subject}` : 'Chat Assistant'}
             </h3>
             <p className="text-[10px] text-[#666666] font-mono truncate">
-              {subject ? `FOCUSED ON ${subject.toUpperCase()}` : 'RAG ACADEMIC ENGINE'}
+              {subject || syllabusFocus ? `FOCUSED ON ${(syllabusFocus?.subject || subject).toUpperCase()}` : 'Study help'}
             </p>
           </div>
         </div>
@@ -378,6 +418,13 @@ const AIChat = () => {
 
       {/* Messages Scroll Area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-[#F7F5F2]">
+        {syllabusFocus && (
+          <div className="inline-flex max-w-full items-center gap-2 rounded-[4px] border border-[#D7D3CF] bg-white px-3 py-2 text-xs font-mono text-[#111111]">
+            <span className="font-semibold">Studying:</span>
+            <span className="truncate">{syllabusFocus.label}</span>
+            {syllabusFocus.note && <span className="text-[#666666]">- {syllabusFocus.note}</span>}
+          </div>
+        )}
         {messages.map((message) => (
           <ChatBubble key={message.id} role={message.role} content={message.content} />
         ))}

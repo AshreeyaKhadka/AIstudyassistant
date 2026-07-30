@@ -140,6 +140,7 @@ def send_message(user):
         return jsonify({'error': 'Message is required.'}), 400
 
     history = _normalize_history(data.get('history', []))
+    syllabus_context = data.get('syllabus_context')
     
     subject_id = data.get('subject_id')
     doc_type = data.get('doc_type') # 'syllabus' or 'material'
@@ -183,6 +184,9 @@ def send_message(user):
             material_context = "No relevant context found from the study documents."
     else:
         material_context = _build_material_context(user)
+
+    if isinstance(syllabus_context, str) and syllabus_context.strip():
+        material_context = f"{material_context}\n\nSyllabus focus:\n{syllabus_context.strip()}"
 
     subject = data.get('subject') or None
     unit = data.get('unit') or None
@@ -403,4 +407,3 @@ def get_chat_suggestions(user):
     unique_suggestions = list(dict.fromkeys(suggestions))[:4]
 
     return jsonify(unique_suggestions), 200
-

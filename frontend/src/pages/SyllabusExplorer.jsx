@@ -1,17 +1,24 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
+  BookOpen,
+  ChevronRight,
   CheckCircle2,
   Download,
   Edit3,
   Eye,
   FileText,
+  GraduationCap,
   Loader2,
+  NotebookPen,
+  Plus,
   RefreshCw,
   Save,
   Trash2,
   X
 } from 'lucide-react';
+import syllabusData from '../data/syllabus.json';
 
 const inputClass = 'w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none';
 
@@ -25,7 +32,20 @@ const parseResponse = async (response) => {
   }
 };
 
+const semesterFromUploadPath = (path) => {
+  const match = String(path || '').match(/(?:^|[/\\])sem-(\d+)(?:[/\\]|$)/);
+  return match ? Number(match[1]) : null;
+};
+
+const normalizePersonalUpload = (upload, fallbackSemester = null) => ({
+  ...upload,
+  semester: upload.semester || semesterFromUploadPath(upload.file_url) || fallbackSemester,
+  credits: upload.credits || 3,
+  code: upload.code || null
+});
+
 const SyllabusExplorer = () => {
+  const navigate = useNavigate();
   const fileRef = useRef(null);
   const [screen, setScreen] = useState('home');
   const [official, setOfficial] = useState(null);
@@ -38,12 +58,32 @@ const SyllabusExplorer = () => {
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [personalText, setPersonalText] = useState('');
   const [personalFile, setPersonalFile] = useState(null);
+  const [personalUploads, setPersonalUploads] = useState([]);
+  const [personalForm, setPersonalForm] = useState({
+    semester: 1,
+    subject: '',
+    code: '',
+    credits: 3
+  });
   const [viewing, setViewing] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [pdfToView, setPdfToView] = useState(null);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState('');
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState('');
   const [dirty, setDirty] = useState(false);
-  const [subjects, setSubjects] = useState([]);
-  const [selectedSem, setSelectedSem] = useState(1);
-  const [selectedSubject, setSelectedSubject] = useState(null);
+  const semesters = syllabusData.semesters || [];
+  const [selectedSem, setSelectedSem] = useState(semesters[0]?.semester || 1);
+  const [selectedSubject, setSelectedSubject] = useState(semesters[0]?.subjects?.[0] || null);
+  const syllabusStats = useMemo(() => {
+    const subjects = semesters.flatMap((semester) => semester.subjects || []);
+    return {
+      semesters: semesters.length,
+      subjects: subjects.length,
+      units: subjects.reduce((total, subject) => total + (subject.chapters?.length || 0), 0),
+      pdfs: subjects.filter((subject) => subject.sourcePdf).length
+    };
+  }, [semesters]);
 
   const activeKind = useMemo(() => {
     if (activeUploadId && official?.id === activeUploadId) return 'official';
@@ -51,29 +91,26 @@ const SyllabusExplorer = () => {
     return null;
   }, [activeUploadId, official, personal]);
 
-  const loadWorkspace = async () => {
+  const loadWorkspace = async (subject = selectedSubject, sem = selectedSem) => {
     setLoading(true);
     try {
-      const [workspaceRes, subjectsRes] = await Promise.all([
-        fetch('/api/syllabus/workspace', { credentials: 'include' }),
-        fetch('/api/syllabus/subjects', { credentials: 'include' })
-      ]);
+      const params = new URLSearchParams();
+      if (subject?.name) params.set('subject', subject.name);
+      if (sem) params.set('semester', String(sem));
+      const workspaceRes = await fetch(`/api/syllabus/workspace?${params.toString()}`, { credentials: 'include' });
 
       if (workspaceRes.ok) {
         const data = await parseResponse(workspaceRes);
         setOfficial(data.official || null);
-        setPersonal(data.personal || null);
+        if (screen !== 'personal') {
+          setPersonal(data.personal ? normalizePersonalUpload(data.personal, sem) : null);
+        }
         setActiveUploadId(data.active_upload_id || data.official?.id || data.personal?.id || null);
       }
-
-      if (subjectsRes.ok) {
-        const data = await parseResponse(subjectsRes);
-        setSubjects(Array.isArray(data) ? data : []);
-        if (!selectedSubject && Array.isArray(data) && data.length > 0) {
-          const first = data.find((subject) => Number(subject.semester) === selectedSem) || data[0];
-          setSelectedSubject(first);
-          setSelectedSem(Number(first.semester) || 1);
-        }
+      const personalRes = await fetch('/api/syllabus/workspace/personal', { credentials: 'include' });
+      if (personalRes.ok) {
+        const personalData = await parseResponse(personalRes);
+        setPersonalUploads(Array.isArray(personalData) ? personalData.map((item) => normalizePersonalUpload(item)) : []);
       }
     } catch (err) {
       setOfficial(null);
@@ -88,6 +125,12 @@ const SyllabusExplorer = () => {
   }, []);
 
   useEffect(() => {
+    if (screen === 'personal') {
+      loadWorkspace(selectedSubject, selectedSem);
+    }
+  }, [selectedSubject?.id, selectedSem, screen]);
+
+  useEffect(() => {
     const handler = (event) => {
       if (!dirty) return;
       event.preventDefault();
@@ -96,6 +139,10 @@ const SyllabusExplorer = () => {
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [dirty]);
+
+  useEffect(() => () => {
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+  }, [pdfBlobUrl]);
 
   const setActive = async (upload) => {
     setError('');
@@ -136,6 +183,13 @@ const SyllabusExplorer = () => {
       if (res.ok) {
         const data = await parseResponse(res);
         setPersonalText(data.parsed_text || '');
+        setPersonalForm((current) => ({
+          ...current,
+          semester: personal.semester || selectedSem,
+          subject: personal.subject || selectedSubject?.name || '',
+          code: personal.code || '',
+          credits: personal.credits || 3
+        }));
       }
     }
     setEditingPersonal(true);
@@ -150,14 +204,42 @@ const SyllabusExplorer = () => {
       setError('Paste syllabus text or choose a file first.');
       return;
     }
+    const subjectName = personalForm.subject.trim();
+    if (!subjectName) {
+      setError('Write the subject name first.');
+      return;
+    }
 
     setSaving(true);
     try {
+      let subjectId = personal?.subject_id || null;
+      let sem = Number(personalForm.semester || selectedSem || 1);
+      if (!subjectId) {
+        const subjectRes = await fetch('/api/syllabus/subjects', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: subjectName,
+            semester: sem,
+            code: personalForm.code.trim() || undefined,
+            credits: Number(personalForm.credits || 3)
+          })
+        });
+        const subjectData = await parseResponse(subjectRes);
+        if (!subjectRes.ok) throw new Error(subjectData.error || 'Could not add subject.');
+        subjectId = subjectData.id;
+        sem = subjectData.semester;
+      }
+
       const body = new FormData();
       if (personalText.trim()) body.append('text', personalText.trim());
       if (personalFile) body.append('file', personalFile);
       if (personal?.id) body.append('replace_id', personal.id);
       body.append('set_active', 'true');
+      body.append('semester', String(sem));
+      body.append('subject', subjectName);
+      body.append('subject_id', String(subjectId));
 
       const res = await fetch('/api/syllabus/workspace/personal', {
         method: 'POST',
@@ -166,14 +248,37 @@ const SyllabusExplorer = () => {
       });
       const data = await parseResponse(res);
       if (!res.ok) throw new Error(data.error || 'Could not save syllabus.');
-      setPersonal(data);
-      setActiveUploadId(data.id);
+      const savedUpload = {
+        ...normalizePersonalUpload(data, sem),
+        semester: data.semester || sem,
+        subject: data.subject || subjectName,
+        code: data.code || personalForm.code.trim() || null,
+        credits: data.credits || Number(personalForm.credits || 3)
+      };
+      setPersonal(savedUpload);
+      setActiveUploadId(savedUpload.id);
+      setPersonalUploads((current) => {
+        const withoutSaved = current.filter((item) => Number(item.id) !== Number(savedUpload.id));
+        return [savedUpload, ...withoutSaved];
+      });
       setDirty(false);
       setEditingPersonal(false);
       setPersonalFile(null);
+      setSelectedSem(sem);
+      setSelectedSubject({
+        id: `personal-${savedUpload.id}`,
+        uploadId: savedUpload.id,
+        name: subjectName,
+        code: savedUpload.code || 'Course',
+        credit: savedUpload.credits || 3,
+        credits: savedUpload.credits || 3,
+        chapters: [],
+        sourcePdf: savedUpload.filename?.toLowerCase().endsWith('.pdf') ? `/api/syllabus/workspace/${savedUpload.id}/file` : null,
+        upload: savedUpload
+      });
       if (fileRef.current) fileRef.current.value = '';
       setStatus('Your syllabus was saved.');
-      await loadWorkspace();
+      await loadWorkspace({ name: subjectName }, sem);
     } catch (err) {
       setError(err.message || 'Could not save syllabus.');
     } finally {
@@ -208,11 +313,82 @@ const SyllabusExplorer = () => {
     window.open(`/api/syllabus/workspace/${upload.id}/file`, '_blank', 'noopener,noreferrer');
   };
 
+  const openPdf = async (subject) => {
+    if (!subject?.sourcePdf) return;
+    setPdfToView(subject);
+    setPdfLoading(true);
+    setPdfError('');
+    if (pdfBlobUrl) {
+      URL.revokeObjectURL(pdfBlobUrl);
+      setPdfBlobUrl('');
+    }
+
+    try {
+      const response = await fetch(subject.sourcePdf, { credentials: 'include' });
+      if (!response.ok) throw new Error('Could not open this PDF.');
+      const blob = await response.blob();
+      if (!blob.type.includes('pdf')) throw new Error('This file is not available as a PDF.');
+      setPdfBlobUrl(URL.createObjectURL(blob));
+    } catch (err) {
+      setPdfError(err.message || 'Could not open this PDF.');
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+  const closePdf = () => {
+    setPdfToView(null);
+    setPdfError('');
+    setPdfLoading(false);
+    if (pdfBlobUrl) {
+      URL.revokeObjectURL(pdfBlobUrl);
+      setPdfBlobUrl('');
+    }
+  };
+
   const backHome = () => {
     if (dirty && !window.confirm('You have unsaved changes. Leave this page?')) return;
     setScreen('home');
     setEditingPersonal(false);
     setDirty(false);
+  };
+
+  const goAiMode = (subject, chapter = null) => {
+    const params = new URLSearchParams({
+      subject: subject.name,
+      syllabusContext: chapter?.id || subject.id,
+      contextType: chapter ? 'chapter' : 'subject'
+    });
+    if (chapter?.title) params.set('unit', chapter.title);
+    navigate(`/dashboard/chat?${params.toString()}`);
+  };
+
+  const startAddPersonal = (sem = selectedSem) => {
+    setPersonal(null);
+    setPersonalText('');
+    setPersonalFile(null);
+    setPersonalForm({ semester: Number(sem || 1), subject: '', code: '', credits: 3 });
+    setEditingPersonal(true);
+    setDirty(false);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const openPersonalUpload = (upload) => {
+    const normalized = normalizePersonalUpload(upload, selectedSem);
+    setPersonal(normalized);
+    setEditingPersonal(false);
+    setSelectedSem(normalized.semester || selectedSem);
+    setSelectedSubject({
+      id: `personal-${normalized.id}`,
+      uploadId: normalized.id,
+      name: normalized.subject || normalized.filename,
+      code: normalized.code || 'Course',
+      credit: normalized.credits || 3,
+      credits: normalized.credits || 3,
+      chapters: [],
+      sourcePdf: normalized.filename?.toLowerCase().endsWith('.pdf') ? `/api/syllabus/workspace/${normalized.id}/file` : null,
+      upload: normalized
+    });
   };
 
   return (
@@ -240,32 +416,27 @@ const SyllabusExplorer = () => {
           <Loader2 size={15} className="animate-spin" /> Loading syllabus...
         </div>
       ) : screen === 'home' ? (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 max-w-5xl mx-auto w-full">
-          <ChoiceCard
-            title="Official Syllabus"
-            description="Use the syllabus added by your college or admin."
-            active={activeKind === 'official'}
-            ready={Boolean(official)}
-            empty="No official syllabus has been added yet."
-            onGo={() => setScreen('official')}
-          />
-          <ChoiceCard
-            title="My Syllabus"
-            description="Add your own syllabus and study from it."
-            active={activeKind === 'personal'}
-            ready={Boolean(personal)}
-            empty="You have not added your syllabus yet."
-            onGo={() => {
-              setScreen('personal');
-              if (!personal) setEditingPersonal(true);
-            }}
-          />
-        </div>
+        <SyllabusHome
+          stats={syllabusStats}
+          officialActive={activeKind === 'official'}
+          personalActive={activeKind === 'personal'}
+          hasOfficial={semesters.some((semester) => semester.subjects?.length)}
+          hasPersonal={personalUploads.length > 0}
+          onOfficial={() => setScreen('official')}
+          onPersonal={() => {
+            setScreen('personal');
+            if (personalUploads.length) {
+              openPersonalUpload(personalUploads[0]);
+            } else {
+              startAddPersonal(selectedSem);
+            }
+          }}
+        />
       ) : screen === 'official' ? (
         <OfficialDetail
           upload={official}
           active={activeKind === 'official'}
-          subjects={subjects}
+          semesters={semesters}
           selectedSem={selectedSem}
           setSelectedSem={setSelectedSem}
           selectedSubject={selectedSubject}
@@ -274,12 +445,14 @@ const SyllabusExplorer = () => {
           onView={openView}
           onDownload={download}
           onSetActive={setActive}
+          onAiMode={goAiMode}
+          onOpenPdf={openPdf}
         />
       ) : (
         <PersonalDetail
           personal={personal}
+          uploads={personalUploads}
           active={activeKind === 'personal'}
-          subjects={subjects}
           selectedSem={selectedSem}
           setSelectedSem={setSelectedSem}
           selectedSubject={selectedSubject}
@@ -288,6 +461,11 @@ const SyllabusExplorer = () => {
           setEditing={setEditingPersonal}
           text={personalText}
           setText={(value) => { setPersonalText(value); setDirty(true); }}
+          form={personalForm}
+          setForm={(updater) => {
+            setPersonalForm((current) => typeof updater === 'function' ? updater(current) : updater);
+            setDirty(true);
+          }}
           fileRef={fileRef}
           setFile={(file) => { setPersonalFile(file); setDirty(true); }}
           selectedFile={personalFile}
@@ -299,6 +477,10 @@ const SyllabusExplorer = () => {
           onEdit={startEdit}
           onDelete={deletePersonal}
           onSetActive={setActive}
+          onAiMode={goAiMode}
+          onOpenPdf={openPdf}
+          onAdd={startAddPersonal}
+          onOpenUpload={openPersonalUpload}
         />
       )}
 
@@ -322,72 +504,155 @@ const SyllabusExplorer = () => {
           </div>
         </div>
       )}
+
+      {pdfToView?.sourcePdf && (
+        <OfficialPdfModal
+          subject={pdfToView}
+          blobUrl={pdfBlobUrl}
+          loading={pdfLoading}
+          error={pdfError}
+          onClose={closePdf}
+        />
+      )}
     </div>
   );
 };
 
-const ChoiceCard = ({ title, description, active, ready, empty, onGo }) => (
-  <section className="bg-white border border-[#D7D3CF] rounded-[8px] p-7 min-h-[460px] flex flex-col shadow-sm">
-    <div className="text-center pt-4">
-      <div className="flex items-center justify-center gap-2">
-        <h2 className="text-xl font-bold text-[#111111]">{title}</h2>
-        {active && <span className="text-[10px] font-mono uppercase text-[#185C28] bg-[#DDEFE2] border border-[#3E8B4E] px-2 py-1 rounded-[3px]">Selected</span>}
+const SyllabusHome = ({ stats, officialActive, personalActive, hasOfficial, hasPersonal, onOfficial, onPersonal }) => (
+  <div className="max-w-6xl mx-auto w-full space-y-6">
+    <section className="overflow-hidden rounded-[12px] border border-[#D7D3CF] bg-white shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="p-7 md:p-9">
+          <h2 className="max-w-2xl text-3xl md:text-4xl font-bold tracking-tight text-[#111111]">
+            Keep one clear syllabus beside you, especially on the hard days.
+          </h2>
+          <p className="mt-4 max-w-2xl text-sm md:text-base leading-relaxed text-[#555555]">
+            Use the college syllabus for a steady path, or add your own if your teacher follows a different plan. AiStudy will use the one you choose when helping you revise.
+          </p>
+        </div>
+        <div className="border-t lg:border-t-0 lg:border-l border-[#D7D3CF] bg-[#FAF9F7] p-6 md:p-8 flex items-center">
+          <div className="grid grid-cols-2 gap-3 w-full">
+            <HomeStat label="Semesters" value={stats.semesters} />
+            <HomeStat label="Subjects" value={stats.subjects} />
+            <HomeStat label="Units" value={stats.units} />
+            <HomeStat label="PDFs" value={stats.pdfs} />
+          </div>
+        </div>
       </div>
-      <p className="text-sm text-[#444444] mt-2 max-w-xs mx-auto">{description}</p>
+    </section>
+
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <ChoiceCard
+        icon={GraduationCap}
+        title="Official Syllabus"
+        description="Follow the syllabus added by your college or admin."
+        note="Best when you want the safe, standard path for exams and revision."
+        active={officialActive}
+        ready={hasOfficial}
+        empty="No official syllabus has been added yet."
+        stats={`${stats.subjects} subjects - ${stats.units} units`}
+        buttonLabel="Open Official Syllabus"
+        onGo={onOfficial}
+      />
+      <ChoiceCard
+        icon={NotebookPen}
+        title="My Syllabus"
+        description="Add your own syllabus and study from it."
+        note={hasPersonal ? 'Your own syllabus is ready whenever you want a personal study plan.' : 'No one should feel lost before exams. Add your syllabus once, and keep your study path in one place.'}
+        active={personalActive}
+        ready={hasPersonal}
+        empty="You have not added your syllabus yet."
+        stats={hasPersonal ? 'Saved and ready' : 'Paste text or upload a PDF'}
+        buttonLabel={hasPersonal ? 'Open My Syllabus' : 'Add My Syllabus'}
+        onGo={onPersonal}
+      />
     </div>
-    <div className="flex-1 flex items-center justify-center">
+  </div>
+);
+
+const HomeStat = ({ label, value }) => (
+  <div className="rounded-[8px] border border-[#D7D3CF] bg-white p-4">
+    <p className="text-2xl font-bold text-[#111111]">{value}</p>
+    <p className="mt-1 text-xs text-[#666666]">{label}</p>
+  </div>
+);
+
+const ChoiceCard = ({ icon: Icon, title, description, note, active, ready, empty, stats, buttonLabel, onGo }) => (
+  <section className="group bg-white border border-[#D7D3CF] rounded-[12px] p-6 md:p-7 min-h-[360px] flex flex-col shadow-sm transition-colors hover:border-[#102326]">
+    <div className="flex items-start justify-between gap-4">
+      <div className="w-12 h-12 rounded-[10px] bg-[#102326] text-white flex items-center justify-center shrink-0">
+        <Icon size={23} />
+      </div>
+      {active && <span className="text-[10px] uppercase text-[#185C28] bg-[#DDEFE2] border border-[#3E8B4E] px-2 py-1 rounded-full">Selected</span>}
+    </div>
+
+    <div className="mt-6">
+      <h2 className="text-2xl font-bold text-[#111111] tracking-tight">{title}</h2>
+      <p className="text-sm text-[#444444] mt-2 leading-relaxed">{description}</p>
+      <p className="text-sm text-[#666666] mt-4 leading-relaxed">{note}</p>
+    </div>
+
+    <div className="mt-6 rounded-[8px] border border-[#D7D3CF] bg-[#FAF9F7] p-4">
       {ready ? (
-        <div className="text-center">
-          <FileText size={28} className="mx-auto text-[#102326] mb-3" />
-          <p className="text-sm font-bold text-[#111111]">Ready to open</p>
+        <div className="flex items-center gap-3">
+          <CheckCircle2 size={20} className="text-[#2F7D42] shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-[#111111]">Ready to study</p>
+            <p className="text-xs text-[#666666] mt-0.5">{stats}</p>
+          </div>
         </div>
       ) : (
-        <div className="text-center border border-dashed border-[#D7D3CF] rounded-[4px] p-8 w-full bg-[#FAF9F7]">
-          <FileText size={26} className="mx-auto text-[#666666] mb-2" />
-          <p className="text-sm font-bold text-[#111111]">{empty}</p>
+        <div className="flex items-center gap-3">
+          <FileText size={20} className="text-[#666666] shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-[#111111]">{empty}</p>
+            <p className="text-xs text-[#666666] mt-0.5">{stats}</p>
+          </div>
         </div>
       )}
     </div>
-    <button onClick={onGo} className="mx-auto mb-5 w-36 bg-[#102326] text-white rounded-[4px] px-4 py-2 text-xs font-mono font-semibold uppercase">
-      Go
+
+    <button onClick={onGo} className="mt-auto w-full bg-[#102326] text-white rounded-[6px] px-4 py-3 text-xs font-semibold uppercase tracking-wide inline-flex items-center justify-center gap-2 hover:bg-[#0b191c]">
+      {buttonLabel}
+      <ChevronRight size={15} />
     </button>
   </section>
 );
 
-const OfficialDetail = ({ upload, active, subjects, selectedSem, setSelectedSem, selectedSubject, setSelectedSubject, onBack, onView, onDownload, onSetActive }) => (
+const OfficialDetail = ({ upload, active, semesters, selectedSem, setSelectedSem, selectedSubject, setSelectedSubject, onBack, onView, onDownload, onSetActive, onAiMode, onOpenPdf }) => (
   <SyllabusStudyShell
     title="Official Syllabus"
     subtitle="Choose a semester and open the syllabus for that subject."
-    subjects={subjects}
+    semesters={semesters}
     selectedSem={selectedSem}
     setSelectedSem={setSelectedSem}
     selectedSubject={selectedSubject}
     setSelectedSubject={setSelectedSubject}
     onBack={onBack}
+    onAiMode={onAiMode}
   >
-    {upload ? (
-      <>
-        <div className="mb-4">
-          <p className="text-xs font-mono uppercase text-[#666666]">Selected subject</p>
-          <h3 className="text-lg font-bold text-[#111111] mt-1">{selectedSubject?.name || 'Choose a subject'}</h3>
-        </div>
+    <>
+      <SubjectContent subject={selectedSubject} onAiMode={onAiMode} onOpenPdf={onOpenPdf} />
+      {upload ? (
+        <>
         <DocumentSummary upload={upload} />
         <div className="flex flex-wrap gap-2 mt-4">
           <ActionButton onClick={() => onView(upload)} icon={Eye} label="View" />
           <ActionButton onClick={() => onDownload(upload)} icon={Download} label="Download" />
           <ActionButton onClick={() => onSetActive(upload)} icon={CheckCircle2} label="Use This" disabled={active} primary />
         </div>
-      </>
-    ) : (
-      <EmptyPanel text="No official syllabus has been added yet." />
-    )}
+        </>
+      ) : (
+        <p className="mt-4 text-xs text-[#666666]">College file is not added yet. You can still study from the subject list and units shown here.</p>
+      )}
+    </>
   </SyllabusStudyShell>
 );
 
 const PersonalDetail = ({
   personal,
+  uploads,
   active,
-  subjects,
   selectedSem,
   setSelectedSem,
   selectedSubject,
@@ -396,6 +661,8 @@ const PersonalDetail = ({
   setEditing,
   text,
   setText,
+  form,
+  setForm,
   fileRef,
   setFile,
   selectedFile,
@@ -406,125 +673,381 @@ const PersonalDetail = ({
   onDownload,
   onEdit,
   onDelete,
-  onSetActive
-}) => (
-  <SyllabusStudyShell
-    title="My Syllabus"
-    subtitle="Choose a semester, then add or open your syllabus."
-    subjects={subjects}
-    selectedSem={selectedSem}
-    setSelectedSem={setSelectedSem}
-    selectedSubject={selectedSubject}
-    setSelectedSubject={setSelectedSubject}
-    onBack={onBack}
-  >
-    {personal && !editing ? (
-      <>
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-mono uppercase text-[#666666]">Selected subject</p>
-            <h3 className="text-lg font-bold text-[#111111] mt-1">{selectedSubject?.name || 'Choose a subject'}</h3>
-          </div>
-          {active && <span className="text-[10px] font-mono uppercase text-[#185C28] bg-[#DDEFE2] border border-[#3E8B4E] px-2 py-1 rounded-[3px]">Selected</span>}
-        </div>
-        <DocumentSummary upload={personal} />
-        <div className="flex flex-wrap gap-2">
-          <ActionButton onClick={() => onView(personal)} icon={Eye} label="View" />
-          <ActionButton onClick={() => onDownload(personal)} icon={Download} label="Download" />
-          <ActionButton onClick={onEdit} icon={Edit3} label="Edit" />
-          <ActionButton onClick={onDelete} icon={Trash2} label="Delete" danger />
-          <ActionButton onClick={() => onSetActive(personal)} icon={CheckCircle2} label="Use This" disabled={active} primary />
-        </div>
-      </>
-    ) : (
-      <form onSubmit={onSave} className="space-y-4">
-        <div>
-          <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Paste syllabus text</label>
-          <textarea
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            rows={12}
-            className={`${inputClass} resize-y`}
-            placeholder="Paste your syllabus here..."
-          />
-        </div>
-        <div>
-          <label className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Or choose a file</label>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf,.txt"
-            onChange={(event) => setFile(event.target.files?.[0] || null)}
-            className={inputClass}
-          />
-          {selectedFile && <p className="text-[10px] font-mono text-[#666666] mt-1">{selectedFile.name}</p>}
-        </div>
-        <div className="flex justify-end gap-2 border-t border-[#D7D3CF] pt-4">
-          {personal && (
-            <button type="button" onClick={() => setEditing(false)} className="px-4 py-2 border border-[#D7D3CF] rounded-[4px] text-xs font-mono uppercase">Cancel</button>
-          )}
-          <button type="submit" disabled={saving || (!text.trim() && !selectedFile)} className="px-4 py-2 bg-[#102326] text-white rounded-[4px] text-xs font-mono uppercase inline-flex items-center gap-2 disabled:opacity-50">
-            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save
-          </button>
-        </div>
-      </form>
-    )}
-  </SyllabusStudyShell>
-);
-
-const SyllabusStudyShell = ({ title, subtitle, subjects, selectedSem, setSelectedSem, selectedSubject, setSelectedSubject, onBack, children }) => {
-  const semesterSubjects = subjects.filter((subject) => Number(subject.semester) === Number(selectedSem));
-
-  const chooseSemester = (sem) => {
-    setSelectedSem(sem);
-    const nextSubject = subjects.find((subject) => Number(subject.semester) === Number(sem));
-    setSelectedSubject(nextSubject || null);
+  onSetActive,
+  onAiMode,
+  onOpenPdf,
+  onAdd,
+  onOpenUpload
+}) => {
+  const semesterNumbers = Array.from({ length: 8 }, (_, index) => index + 1);
+  const personalSemesters = semesterNumbers.map((semester) => {
+    const subjects = uploads
+      .filter((upload) => Number(upload.semester) === semester)
+      .map((upload) => ({
+        id: `personal-${upload.id}`,
+        uploadId: upload.id,
+        name: upload.subject || upload.filename || 'Untitled subject',
+        code: upload.code || 'Course',
+        credit: upload.credits || 3,
+        credits: upload.credits || 3,
+        chapters: [],
+        sourcePdf: upload.filename?.toLowerCase().endsWith('.pdf') ? `/api/syllabus/workspace/${upload.id}/file` : null,
+        upload
+      }));
+    return { semester, subjects };
+  });
+  const updateForm = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const selectedUpload = selectedSubject?.upload || null;
+  const visiblePersonal = personal && selectedUpload && Number(selectedUpload.id) === Number(personal.id) && Number(selectedUpload.semester) === Number(selectedSem);
+  const personalSubject = visiblePersonal ? {
+    ...selectedSubject,
+    sourcePdf: personal?.filename?.toLowerCase().endsWith('.pdf') ? `/api/syllabus/workspace/${personal.id}/file` : selectedSubject.sourcePdf
+  } : null;
+  const openSubject = (subject) => {
+    if (subject?.upload) onOpenUpload(subject.upload);
   };
 
   return (
-    <section className="bg-white border border-[#D7D3CF] rounded-[8px] p-6 space-y-6 min-h-[520px]">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-[#D7D3CF] pb-4">
+    <SyllabusStudyShell
+      title="My Syllabus"
+      subtitle="Choose a semester and open your own syllabus."
+      semesters={personalSemesters}
+      selectedSem={selectedSem}
+      setSelectedSem={setSelectedSem}
+      selectedSubject={selectedSubject}
+      setSelectedSubject={setSelectedSubject}
+      onBack={onBack}
+      onSubjectSelect={openSubject}
+      emptySubjectText={`No syllabus in Semester ${selectedSem} yet.`}
+      headerAction={(
+        <button onClick={() => onAdd(selectedSem)} className="px-4 py-2 bg-[#102326] text-white rounded-[6px] text-xs font-semibold inline-flex items-center gap-2 w-fit">
+          <Plus size={14} /> Add Subject & Syllabus
+        </button>
+      )}
+    >
+
+      {visiblePersonal ? (
+        <>
+          <SubjectContent subject={personalSubject} onAiMode={onAiMode} onOpenPdf={onOpenPdf} />
+          {active && <span className="mb-3 inline-flex text-[10px] uppercase text-[#185C28] bg-[#DDEFE2] border border-[#3E8B4E] px-2 py-1 rounded-[3px]">Selected for study help</span>}
+          <DocumentSummary upload={personal} />
+          <div className="flex flex-wrap gap-2">
+            <ActionButton onClick={() => personal.filename?.toLowerCase().endsWith('.pdf') ? onOpenPdf(personalSubject) : onView(personal)} icon={Eye} label="View" />
+            <ActionButton onClick={() => onDownload(personal)} icon={Download} label="Download" />
+            <ActionButton onClick={onEdit} icon={Edit3} label="Edit" />
+            <ActionButton onClick={onDelete} icon={Trash2} label="Delete" danger />
+            <ActionButton onClick={() => onSetActive(personal)} icon={CheckCircle2} label="Use This" disabled={active} primary />
+          </div>
+        </>
+      ) : (
+        <div className="rounded-[10px] border border-dashed border-[#D7D3CF] bg-[#FAF9F7] p-8 text-center">
+          <NotebookPen size={30} className="mx-auto text-[#102326] mb-3" />
+          <h3 className="text-lg font-bold text-[#111111]">No syllabus in Sem {selectedSem} yet</h3>
+          <p className="text-sm text-[#666666] mt-2">Add a subject and upload the syllabus you actually follow.</p>
+          <button onClick={() => onAdd(selectedSem)} className="mt-5 px-4 py-2 bg-[#102326] text-white rounded-[6px] text-xs font-semibold inline-flex items-center gap-2">
+            <Plus size={14} /> Add Subject & Syllabus
+          </button>
+        </div>
+      )}
+
+      {editing && (
+        <PersonalSyllabusModal
+          form={form}
+          updateForm={updateForm}
+          text={text}
+          setText={setText}
+          fileRef={fileRef}
+          setFile={setFile}
+          selectedFile={selectedFile}
+          saving={saving}
+          onSave={onSave}
+          onClose={() => setEditing(false)}
+          semesterNumbers={semesterNumbers}
+        />
+      )}
+    </SyllabusStudyShell>
+  );
+};
+
+const PersonalSyllabusModal = ({
+  form,
+  updateForm,
+  text,
+  setText,
+  fileRef,
+  setFile,
+  selectedFile,
+  saving,
+  onSave,
+  onClose,
+  semesterNumbers
+}) => (
+  <div className="fixed inset-0 z-50 bg-black/40 p-4 flex items-center justify-center">
+    <form onSubmit={onSave} className="bg-white border border-[#D7D3CF] rounded-[10px] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+      <div className="p-5 border-b border-[#D7D3CF] flex items-start justify-between gap-4">
         <div>
-          <button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-xs font-mono text-[#666666] hover:text-[#111111]">
+          <p className="text-[10px] uppercase tracking-wider text-[#666666] font-semibold">My syllabus</p>
+          <h3 className="text-xl font-bold text-[#111111] mt-1">Add subject</h3>
+          <p className="text-sm text-[#666666] mt-1">Choose the semester, write the subject, then add the syllabus file or text.</p>
+        </div>
+        <button type="button" onClick={onClose} className="p-2 border border-[#D7D3CF] rounded-[4px] hover:bg-[#ECEAE7]" aria-label="Close add syllabus">
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="p-5 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-[140px_1fr_120px] gap-3">
+          <div>
+            <label className="block text-[10px] uppercase text-[#666666] font-semibold mb-1">Semester</label>
+            <select value={form.semester} onChange={(event) => updateForm('semester', Number(event.target.value))} className={inputClass}>
+              {semesterNumbers.map((sem) => <option key={sem} value={sem}>Sem {sem}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase text-[#666666] font-semibold mb-1">Subject name</label>
+            <input value={form.subject} onChange={(event) => updateForm('subject', event.target.value)} className={inputClass} placeholder="Digital Logic" required />
+          </div>
+          <div>
+            <label className="block text-[10px] uppercase text-[#666666] font-semibold mb-1">Credits</label>
+            <input type="number" min="1" max="6" value={form.credits} onChange={(event) => updateForm('credits', event.target.value)} className={inputClass} required />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[10px] uppercase text-[#666666] font-semibold mb-1">Code</label>
+          <input value={form.code} onChange={(event) => updateForm('code', event.target.value)} className={inputClass} placeholder="Optional" />
+        </div>
+
+        <div>
+          <label className="block text-[10px] uppercase text-[#666666] font-semibold mb-1">Paste syllabus text</label>
+          <textarea value={text} onChange={(event) => setText(event.target.value)} rows={7} className={`${inputClass} resize-y`} placeholder="Paste your syllabus here..." />
+        </div>
+
+        <div>
+          <label className="block text-[10px] uppercase text-[#666666] font-semibold mb-1">Or choose a file</label>
+          <input ref={fileRef} type="file" accept=".pdf,.txt" onChange={(event) => setFile(event.target.files?.[0] || null)} className={inputClass} />
+          {selectedFile && <p className="text-xs text-[#666666] mt-1">{selectedFile.name}</p>}
+        </div>
+      </div>
+
+      <div className="p-5 border-t border-[#D7D3CF] flex justify-end gap-2">
+        <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 border border-[#D7D3CF] rounded-[4px] text-xs font-semibold">Cancel</button>
+        <button type="submit" disabled={saving || !form.subject.trim() || (!text.trim() && !selectedFile)} className="px-4 py-2 bg-[#102326] text-white rounded-[4px] text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50">
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save
+        </button>
+      </div>
+    </form>
+  </div>
+);
+
+const SyllabusStudyShell = ({
+  title,
+  subtitle,
+  semesters,
+  selectedSem,
+  setSelectedSem,
+  selectedSubject,
+  setSelectedSubject,
+  onBack,
+  children,
+  headerAction = null,
+  onSubjectSelect = null,
+  emptySubjectText = null
+}) => {
+  const currentSemester = semesters.find((semester) => Number(semester.semester) === Number(selectedSem));
+  const semesterSubjects = currentSemester?.subjects || [];
+
+  const chooseSemester = (sem) => {
+    setSelectedSem(sem);
+    const nextSubject = semesters.find((semester) => Number(semester.semester) === Number(sem))?.subjects?.[0];
+    setSelectedSubject(nextSubject || null);
+    if (onSubjectSelect) onSubjectSelect(nextSubject || null);
+  };
+
+  const chooseSubject = (subject) => {
+    setSelectedSubject(subject);
+    if (onSubjectSelect) onSubjectSelect(subject);
+  };
+
+  return (
+    <section className="bg-white border border-[#D7D3CF] rounded-[8px] p-5 md:p-6 space-y-5 min-h-[520px]">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-[#D7D3CF] pb-5">
+        <div>
+          <button onClick={onBack} className="mb-3 inline-flex items-center gap-1 text-xs text-[#666666] hover:text-[#111111]">
             <ArrowLeft size={13} /> Back
           </button>
           <h2 className="text-xl font-bold text-[#111111]">{title}</h2>
           <p className="text-xs text-[#666666] mt-1">{subtitle}</p>
         </div>
+        {headerAction}
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {semesters.map((semester) => (
           <button
-            key={sem}
-            onClick={() => chooseSemester(sem)}
-            className={`px-5 py-2 rounded-[6px] border text-xs font-mono font-semibold ${Number(selectedSem) === sem ? 'bg-[#102326] text-white border-[#102326]' : 'bg-white border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7]'}`}
+            key={semester.semester}
+            onClick={() => chooseSemester(semester.semester)}
+            className={`px-5 py-2 rounded-[6px] border text-xs font-semibold whitespace-nowrap ${Number(selectedSem) === Number(semester.semester) ? 'bg-[#102326] text-white border-[#102326]' : 'bg-white border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7]'}`}
           >
-            Sem {sem}
+            Sem {semester.semester}
           </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 items-start">
-        <div className="space-y-3">
+      <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6 items-start">
+        <aside className="rounded-[8px] border border-[#D7D3CF] bg-[#FAF9F7] p-3 max-h-[70vh] overflow-y-auto">
+          <div className="mb-3 px-1">
+            <p className="text-[10px] uppercase tracking-wider text-[#666666] font-semibold">Semester {selectedSem}</p>
+            <p className="text-xs text-[#666666] mt-1">{semesterSubjects.length} subjects</p>
+          </div>
+          <div className="space-y-2">
           {semesterSubjects.length > 0 ? semesterSubjects.map((subject) => (
             <button
               key={subject.id}
-              onClick={() => setSelectedSubject(subject)}
-              className={`w-full text-left border rounded-[6px] px-4 py-3 text-sm font-semibold ${selectedSubject?.id === subject.id ? 'border-[#102326] bg-[#F7F5F2] text-[#111111]' : 'border-[#D7D3CF] bg-white text-[#444444] hover:bg-[#FAF9F7]'}`}
+              onClick={() => chooseSubject(subject)}
+              className={`group w-full text-left border rounded-[8px] px-4 py-3 transition-colors ${selectedSubject?.id === subject.id ? 'border-[#102326] bg-white text-[#111111] shadow-sm' : 'border-transparent bg-white/70 text-[#444444] hover:bg-white hover:border-[#D7D3CF]'}`}
             >
-              {subject.name}
+              <span className="flex items-start justify-between gap-3">
+                <span className="text-sm font-bold leading-snug">{subject.name}</span>
+                <ChevronRight size={15} className={`mt-0.5 shrink-0 ${selectedSubject?.id === subject.id ? 'text-[#102326]' : 'text-[#999999] group-hover:text-[#102326]'}`} />
+              </span>
+              <span className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-[#666666]">
+                <span>{subject.code || 'Course'}</span>
+                <span>{subject.credit} credits</span>
+                <span>{subject.chapters?.length || 0} units</span>
+                {subject.sourcePdf && <span className="rounded-full border border-[#D7D3CF] bg-[#F7F5F2] px-2 py-0.5">PDF</span>}
+              </span>
             </button>
           )) : (
-            <EmptyPanel text={`No subjects found for Semester ${selectedSem}.`} compact />
+            <EmptyPanel text={emptySubjectText || `No subjects found for Semester ${selectedSem}.`} compact />
           )}
-        </div>
+          </div>
+        </aside>
 
-        <div className="border border-[#D7D3CF] rounded-[6px] p-5 bg-[#FAF9F7] min-h-[300px]">
+        <div className="min-h-[420px]">
           {children}
         </div>
       </div>
     </section>
+  );
+};
+
+const SubjectContent = ({ subject, onAiMode, onOpenPdf }) => {
+  if (!subject) {
+    return <EmptyPanel text="Choose a subject first." compact />;
+  }
+
+  const chapters = Array.isArray(subject.chapters) ? subject.chapters : [];
+
+  const totalTopics = chapters.reduce((count, chapter) => count + (Array.isArray(chapter.topics) ? chapter.topics.length : 0), 0);
+
+  return (
+    <div className="mb-4 overflow-hidden rounded-[10px] border border-[#D7D3CF] bg-white shadow-sm">
+      <div className="border-b border-[#D7D3CF] bg-white p-5 md:p-6">
+        <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-5">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-[#666666] font-semibold">Selected subject</p>
+            <h3 className="text-2xl md:text-3xl font-bold text-[#111111] mt-1 tracking-tight">{subject.name}</h3>
+            <div className="mt-4 grid grid-cols-3 max-w-md rounded-[8px] border border-[#D7D3CF] bg-[#FAF9F7] overflow-hidden">
+              <Metric label="Code" value={subject.code || 'Course'} />
+              <Metric label="Credits" value={subject.credit} />
+              <Metric label="Units" value={chapters.length} />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {subject.sourcePdf && (
+              <ActionButton onClick={() => onOpenPdf(subject)} icon={FileText} label="View PDF" />
+            )}
+            <ActionButton onClick={() => onAiMode(subject)} icon={CheckCircle2} label="Go AI Mode" primary />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-[#FAF9F7] p-5 md:p-6">
+        <div className="mb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-[#666666] font-semibold">Study plan</p>
+            <h4 className="text-lg font-bold text-[#111111]">Units and topics</h4>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#D7D3CF] bg-white px-3 py-1.5 text-xs text-[#444444] w-fit">
+            <BookOpen size={14} className="text-[#102326]" />
+            {totalTopics} topics
+          </div>
+        </div>
+
+        {chapters.length > 0 ? (
+          <div className="relative space-y-4">
+            {chapters.map((chapter, index) => (
+              <UnitCard
+                key={chapter.id}
+                chapter={chapter}
+                number={chapter.unit?.replace(/[^0-9]/g, '') || index + 1}
+                onAiMode={() => onAiMode(subject, chapter)}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyPanel text="Unit details are not available yet. You can still use AI Mode for this subject." compact />
+        )}
+      </div>
+    </div>
+  );
+};
+
+const Metric = ({ label, value }) => (
+  <div className="border-r border-[#D7D3CF] last:border-r-0 px-3 py-2">
+    <p className="text-[10px] uppercase tracking-wider text-[#777777] font-semibold">{label}</p>
+    <p className="text-sm font-bold text-[#111111] mt-0.5">{value}</p>
+  </div>
+);
+
+const UnitCard = ({ chapter, number, onAiMode }) => {
+  const topics = Array.isArray(chapter.topics) ? chapter.topics : [];
+  const previewTopics = topics.slice(0, 4);
+  const remaining = topics.length - previewTopics.length;
+
+  return (
+    <article className="group rounded-[10px] border border-[#D7D3CF] bg-white p-4 md:p-5 transition-colors hover:border-[#102326]">
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+        <div className="min-w-0 flex gap-4">
+          <div className="w-11 h-11 rounded-full bg-[#102326] text-white flex items-center justify-center text-sm font-bold shrink-0">
+            {number}
+          </div>
+          <div className="min-w-0">
+            <h5 className="text-lg font-bold text-[#111111] leading-snug">{chapter.title}</h5>
+            {chapter.summary && <p className="text-sm text-[#555555] leading-relaxed mt-1 max-w-3xl">{chapter.summary}</p>}
+            {previewTopics.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {previewTopics.map((topic, index) => (
+                  <span key={`${chapter.id}-preview-${index}`} className="rounded-full border border-[#D7D3CF] bg-[#FAF9F7] px-3 py-1 text-xs text-[#444444]">
+                    {topic}
+                  </span>
+                ))}
+                {remaining > 0 && (
+                  <span className="rounded-full bg-[#ECEAE7] px-3 py-1 text-xs font-semibold text-[#444444]">
+                    +{remaining} more
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        <ActionButton onClick={onAiMode} icon={CheckCircle2} label="Go AI Mode" />
+      </div>
+
+      {topics.length > previewTopics.length && (
+        <details className="mt-4 rounded-[8px] border border-[#D7D3CF] bg-[#FAF9F7]">
+          <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-[#102326]">Show all topics</summary>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border-t border-[#D7D3CF] p-3">
+            {topics.map((topic, index) => (
+              <div key={`${chapter.id}-${index}`} className="rounded-[6px] bg-white px-3 py-2 text-xs leading-relaxed text-[#444444]">
+                {topic}
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+    </article>
   );
 };
 
@@ -553,7 +1076,7 @@ const ActionButton = ({ icon: Icon, label, onClick, disabled = false, primary = 
     type="button"
     onClick={onClick}
     disabled={disabled}
-    className={`px-3 py-2 rounded-[4px] border text-xs font-mono uppercase inline-flex items-center gap-2 disabled:opacity-50 ${
+    className={`px-3 py-2 rounded-[4px] border text-xs font-semibold inline-flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 ${
       primary
         ? 'bg-[#102326] border-[#102326] text-white'
         : danger
@@ -565,5 +1088,59 @@ const ActionButton = ({ icon: Icon, label, onClick, disabled = false, primary = 
     {label}
   </button>
 );
+
+const OfficialPdfModal = ({ subject, blobUrl, loading, error, onClose }) => {
+  const filename = decodeURIComponent((subject.sourcePdf || '').split('/').pop() || `${subject.name}.pdf`);
+  const downloadPdf = () => {
+    if (!blobUrl) return;
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 p-3 md:p-5 flex items-center justify-center">
+      <div className="bg-white border border-[#D7D3CF] rounded-[8px] w-full max-w-6xl h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-[#D7D3CF] p-4 bg-[#FAF9F7]">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-wider text-[#666666] font-semibold">PDF view</p>
+            <h3 className="text-base font-bold text-[#111111] truncate">{subject.name}</h3>
+            <p className="text-xs text-[#666666] truncate">{filename}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <ActionButton onClick={downloadPdf} icon={Download} label="Download" disabled={!blobUrl} />
+            <button onClick={onClose} className="p-2 border border-[#D7D3CF] rounded-[4px] hover:bg-[#ECEAE7]" aria-label="Close PDF">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+        <div className="flex-1 bg-[#ECEAE7]">
+          {loading ? (
+            <div className="h-full flex items-center justify-center text-sm text-[#666666] gap-2">
+              <Loader2 size={18} className="animate-spin" /> Opening PDF...
+            </div>
+          ) : error ? (
+            <div className="h-full flex items-center justify-center p-8">
+              <div className="max-w-md rounded-[6px] border border-[#D7D3CF] bg-white p-6 text-center">
+                <FileText size={28} className="mx-auto text-[#666666] mb-3" />
+                <h4 className="text-base font-bold text-[#111111]">PDF could not open</h4>
+                <p className="text-sm text-[#666666] mt-2">{error}</p>
+              </div>
+            </div>
+          ) : blobUrl ? (
+            <iframe
+              title={`${subject.name} PDF`}
+              src={blobUrl}
+              className="w-full h-full bg-white"
+            />
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default SyllabusExplorer;
