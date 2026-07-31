@@ -1,10 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ChevronDown, Library, Sparkles } from 'lucide-react';
+import { ChevronDown, Library, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useUser } from '@clerk/react';
-import { Button } from '../components/ui/Button';
-import { ModernInput } from '../components/ui/ModernInput';
+import { syncClerkSession } from '../utils/syncClerkSession';
 
 const UNIVERSITY = 'Pokhara University';
 const COURSE = 'Computer Engineering';
@@ -17,6 +15,7 @@ const semesterOptions = [
   { value: '5', label: '5th Semester' },
   { value: '6', label: '6th Semester' },
   { value: '7', label: '7th Semester' },
+  { value: '8', label: '8th Semester' },
 ];
 
 const splitName = (fullName) => {
@@ -58,6 +57,15 @@ const ProfileSetupPage = () => {
       return;
     }
 
+    const clerkRole = clerkUser?.publicMetadata?.role || clerkUser?.unsafeMetadata?.role;
+
+    if (clerkRole === 'admin') {
+      syncClerkSession(clerkUser)
+        .then(() => navigate('/admin', { replace: true }))
+        .catch(() => navigate('/admin', { replace: true }));
+      return;
+    }
+
     const clerkFirstName = clerkUser?.firstName || '';
     const clerkLastName = clerkUser?.lastName || '';
     const clerkEmail = clerkUser?.primaryEmailAddress?.emailAddress || '';
@@ -71,7 +79,9 @@ const ProfileSetupPage = () => {
       avatarUrl: clerkUser?.imageUrl || '',
     }));
 
-    fetch('/api/auth/me', { credentials: 'include' })
+    const controller = new AbortController();
+
+    fetch('/api/auth/me', { credentials: 'include', signal: controller.signal })
       .then((response) => {
         if (!response.ok) {
           throw new Error('No backend session');
@@ -79,8 +89,17 @@ const ProfileSetupPage = () => {
         return response.json();
       })
       .then((profile) => {
-        // Removed auto-redirect to dashboard even if profile_complete is true,
-        // as we want to force confirmation every session.
+        // If profile is already complete, skip this page entirely
+        if (profile.profile_complete) {
+          sessionStorage.setItem('onboarded_session', 'true');
+          if (profile.role === 'admin' || clerkRole === 'admin') {
+            navigate('/admin', { replace: true });
+          } else {
+            navigate('/dashboard', { replace: true });
+          }
+          return;
+        }
+
         const derivedNames = splitName(profile.display_name || profile.name || '');
         setFormData((current) => ({
           ...current,
@@ -97,7 +116,9 @@ const ProfileSetupPage = () => {
       .finally(() => {
         setLoading(false);
       });
-  }, [clerkUser, isLoaded, navigate]);
+
+    return () => controller.abort();
+  }, [clerkUser?.id, clerkUser?.publicMetadata?.role, clerkUser?.unsafeMetadata?.role, isLoaded, navigate]);
 
   const handleChange = (field) => (event) => {
     setFormData((current) => ({ ...current, [field]: event.target.value }));
@@ -128,7 +149,10 @@ const ProfileSetupPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          role: clerkUser?.unsafeMetadata?.role || clerkUser?.publicMetadata?.role || '',
+        }),
       });
 
       const payload = await response.json();
@@ -138,7 +162,15 @@ const ProfileSetupPage = () => {
       }
 
       sessionStorage.setItem('onboarded_session', 'true');
-      navigate('/dashboard', { replace: true });
+
+      // Use the role from the onboard response instead of calling /auth/me
+      // (avoids cookie race condition where the new JWT cookie isn't committed yet)
+      const userRole = payload?.user?.role;
+      if (userRole === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (submitError) {
       setError(submitError.message || 'Failed to save profile');
     } finally {
@@ -148,153 +180,155 @@ const ProfileSetupPage = () => {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--surface)]">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[var(--outline-variant)] border-t-[var(--primary)]" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F7F5F2]">
+        <div className="w-6 h-6 border-2 border-[#102326] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', padding: '2rem', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', inset: 'auto auto -15% -10%', width: '32rem', height: '32rem', borderRadius: '9999px', background: 'radial-gradient(circle, rgba(26,115,232,0.12) 0%, rgba(26,115,232,0.02) 55%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', inset: '-20% -15% auto auto', width: '28rem', height: '28rem', borderRadius: '9999px', background: 'radial-gradient(circle, rgba(176,42,102,0.08) 0%, rgba(176,42,102,0.02) 55%, transparent 72%)', pointerEvents: 'none' }} />
-
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        style={{ width: '100%', maxWidth: '760px', background: 'var(--surface-container-lowest)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--outline-variant)', boxShadow: 'var(--shadow-ambient)', padding: '2rem', position: 'relative', zIndex: 1 }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: '2.75rem', height: '2.75rem', borderRadius: '0.85rem', background: 'var(--primary)', display: 'grid', placeItems: 'center', boxShadow: 'var(--shadow-ambient)' }}>
-              <Library color="white" size={22} />
+    <div className="min-h-screen flex items-center justify-center bg-[#F7F5F2] p-6 selection:bg-[#102326] selection:text-white font-sans text-[#111111]"
+      style={{
+        backgroundImage: 'radial-gradient(#D7D3CF 1px, transparent 1px)',
+        backgroundSize: '24px 24px',
+        backgroundPosition: '-12px -12px'
+      }}
+    >
+      <div className="w-full max-w-2xl bg-white border border-[#D7D3CF] rounded-[4px] p-8">
+        
+        {/* Header */}
+        <div className="flex items-center gap-4 border-b border-[#D7D3CF] pb-6 mb-8">
+          <div className="w-12 h-12 bg-[#102326] rounded-[4px] flex items-center justify-center shrink-0">
+            <Library size={24} className="text-white" />
+          </div>
+          <div>
+            <div className="text-[10px] font-mono text-[#666666] uppercase tracking-wider font-semibold mb-1">
+              ACCOUNT CONFIGURATION
             </div>
-            <div>
-              <span className="title-sm" style={{ color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Profile setup</span>
-              <h1 className="headline-sm" style={{ marginBottom: 0, letterSpacing: '-0.02em' }}>Confirm your academic profile</h1>
+            <h1 className="text-2xl font-bold text-[#111111] tracking-tight">
+              Academic Profile Setup
+            </h1>
+          </div>
+        </div>
+
+        <p className="text-sm text-[#666666] leading-relaxed mb-8">
+          Confirm your academic identity to proceed. The system is currently configured exclusively for the {UNIVERSITY} {COURSE} curriculum.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-1.5">
+              <label className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
+                <span>First Name</span>
+                {initials && (
+                  <span className="bg-[#ECEAE7] text-[#102326] px-1.5 py-0.5 rounded-[2px]">{initials}</span>
+                )}
+              </label>
+              <input
+                required
+                value={formData.firstName}
+                onChange={handleChange('firstName')}
+                placeholder={clerkUser?.firstName || 'First name'}
+                className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none transition-colors"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
+                Last Name
+              </label>
+              <input
+                required
+                value={formData.lastName}
+                onChange={handleChange('lastName')}
+                placeholder={clerkUser?.lastName || 'Last name'}
+                className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none transition-colors"
+              />
             </div>
           </div>
 
-          <p className="body-sm" style={{ color: 'var(--outline-variant)', lineHeight: 1.6, maxWidth: '52rem' }}>
-            Confirm your identity and study context before entering the workspace. Your university and course are locked to the Pokhara University Computer Engineering track.
-          </p>
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
+              College Name
+            </label>
+            <input
+              required
+              value={formData.college}
+              onChange={handleChange('college')}
+              placeholder="Enter your college name"
+              className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none transition-colors"
+            />
+          </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
-              <Field label="First Name" badge={initials}>
-                <ModernInput
-                  required
-                  value={formData.firstName}
-                  onChange={handleChange('firstName')}
-                  placeholder={clerkUser?.firstName || 'First name'}
-                />
-              </Field>
-              <Field label="Last Name">
-                <ModernInput
-                  required
-                  value={formData.lastName}
-                  onChange={handleChange('lastName')}
-                  placeholder={clerkUser?.lastName || 'Last name'}
-                />
-              </Field>
-            </div>
-
-            <Field label="College Name">
-              <ModernInput
-                required
-                value={formData.college}
-                onChange={handleChange('college')}
-                placeholder="Enter your college name"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
+                University
+              </label>
+              <input
+                value={UNIVERSITY}
+                readOnly
+                disabled
+                className="w-full bg-[#FAF9F7] border border-[#D7D3CF] rounded-[4px] px-3 py-2 text-xs font-mono text-[#666666] cursor-not-allowed outline-none"
               />
-            </Field>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
+                Course
+              </label>
+              <input
+                value={COURSE}
+                readOnly
+                disabled
+                className="w-full bg-[#FAF9F7] border border-[#D7D3CF] rounded-[4px] px-3 py-2 text-xs font-mono text-[#666666] cursor-not-allowed outline-none"
+              />
+            </div>
+          </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem' }}>
-              <Field label="University">
-                <ModernInput
-                  value={UNIVERSITY}
-                  readOnly
-                  disabled
-                  style={{ opacity: 0.82, cursor: 'not-allowed', backgroundColor: 'var(--surface-container-low)' }}
-                />
-              </Field>
-              <Field label="Course">
-                <ModernInput
-                  value={COURSE}
-                  readOnly
-                  disabled
-                  style={{ opacity: 0.82, cursor: 'not-allowed', backgroundColor: 'var(--surface-container-low)' }}
-                />
-              </Field>
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
+              Current Semester
+            </label>
+            <div className="relative">
+              <select
+                required
+                value={formData.semester}
+                onChange={handleChange('semester')}
+                className="w-full appearance-none bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none transition-colors cursor-pointer"
+              >
+                <option value="" disabled>Select semester</option>
+                {semesterOptions.map((semester) => (
+                  <option key={semester.value} value={semester.value}>{semester.label}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#666666] pointer-events-none" />
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-3 bg-[#FFFDFB] border border-[#D7D3CF] rounded-[4px] text-xs font-mono text-[#C96A32] flex items-center gap-2">
+              <AlertCircle size={14} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <div className="pt-6 border-t border-[#D7D3CF] flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[#666666]">
+              <CheckCircle2 size={14} />
+              <span className="text-[10px] font-mono uppercase tracking-wider font-semibold">Data securely processed</span>
             </div>
 
-            <Field label="Current Semester">
-              <div style={{ position: 'relative' }}>
-                <select
-                  required
-                  value={formData.semester}
-                  onChange={handleChange('semester')}
-                  style={{
-                    width: '100%',
-                    appearance: 'none',
-                    fontFamily: 'var(--font-functional)',
-                    fontSize: '1rem',
-                    padding: '0.9rem 3rem 0.9rem 1rem',
-                    backgroundColor: 'var(--surface-container-low)',
-                    color: 'var(--on-surface)',
-                    border: 'none',
-                    borderBottom: '2px solid var(--outline-variant)',
-                    outline: 'none',
-                    borderTopLeftRadius: 'var(--radius-sm)',
-                    borderTopRightRadius: 'var(--radius-sm)',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <option value="" disabled>Select semester</option>
-                  {semesterOptions.map((semester) => (
-                    <option key={semester.value} value={semester.value}>{semester.label}</option>
-                  ))}
-                </select>
-                <ChevronDown size={18} color="var(--outline-variant)" style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-              </div>
-            </Field>
-
-            {error ? (
-              <div style={{ padding: '0.85rem 1rem', borderRadius: 'var(--radius-default)', background: 'rgba(176, 42, 102, 0.08)', color: 'var(--tertiary)', fontSize: '0.875rem', fontWeight: 500 }}>
-                {error}
-              </div>
-            ) : null}
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: 'var(--outline-variant)' }}>
-                <Sparkles size={16} color="var(--primary)" />
-                <span className="body-sm" style={{ color: 'var(--outline-variant)', fontSize: '0.8rem' }}>This only takes a moment.</span>
-              </div>
-
-              <Button type="submit" style={{ minWidth: '180px', padding: '0.95rem 1.4rem' }} disabled={saving}>
-                {saving ? 'Saving profile...' : 'Continue'}
-              </Button>
-            </div>
-          </form>
-        </div>
-      </motion.div>
+            <button 
+              type="submit" 
+              disabled={saving}
+              className="px-6 py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors disabled:opacity-50"
+            >
+              {saving ? 'PROCESSING...' : 'CONTINUE'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
-
-const Field = ({ label, children, badge }) => (
-  <div style={{ display: 'grid', gap: '0.5rem' }}>
-    <label className="title-sm" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--on-surface)', letterSpacing: '0.01em' }}>
-      <span>{label}</span>
-      {badge ? (
-        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '2rem', height: '1.5rem', padding: '0 0.45rem', borderRadius: '9999px', background: 'var(--secondary-container)', color: 'var(--on-secondary-container)', fontSize: '0.7rem', fontWeight: 700 }}>
-          {badge}
-        </span>
-      ) : null}
-    </label>
-    {children}
-  </div>
-);
 
 export default ProfileSetupPage;

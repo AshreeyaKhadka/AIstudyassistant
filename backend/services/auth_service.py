@@ -1,7 +1,7 @@
 import jwt
 import datetime
 from functools import wraps
-from flask import request, jsonify
+from flask import request, jsonify, g
 from config import Config
 from models.user import User
 
@@ -40,6 +40,7 @@ def login_required(f):
         if not user or user.is_banned:
             return jsonify({"error": "User not found or banned"}), 403
             
+        g.user_id = user.id
         return f(user, *args, **kwargs)
     return decorated_function
 

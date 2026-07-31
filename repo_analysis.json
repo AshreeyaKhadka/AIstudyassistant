@@ -1,0 +1,477 @@
+[
+  {
+    "path": "frontend\\package-lock.json",
+    "size": 201899,
+    "lines": 5494
+  },
+  {
+    "path": "backend\\syllabusparser\\unitwise.json",
+    "size": 147502,
+    "lines": 3391
+  },
+  {
+    "path": "frontend\\src\\data\\unitwise.json",
+    "size": 147502,
+    "lines": 3391
+  },
+  {
+    "path": "backend\\syllabusparser\\syllabus_rag_chunks.json",
+    "size": 337529,
+    "lines": 2650
+  },
+  {
+    "path": "frontend\\src\\pages\\RevisionPlanner.jsx",
+    "size": 56220,
+    "lines": 1117
+  },
+  {
+    "path": "frontend\\src\\pages\\UploadedMaterials.jsx",
+    "size": 51203,
+    "lines": 1116
+  },
+  {
+    "path": "frontend\\src\\pages\\SyllabusExplorer.jsx",
+    "size": 49732,
+    "lines": 806
+  },
+  {
+    "path": "frontend\\src\\pages\\MCQPractice.jsx",
+    "size": 24367,
+    "lines": 560
+  },
+  {
+    "path": "frontend\\src\\pages\\AIChat.jsx",
+    "size": 16538,
+    "lines": 427
+  },
+  {
+    "path": "frontend\\src\\pages\\signup.css",
+    "size": 8423,
+    "lines": 379
+  },
+  {
+    "path": "frontend\\src\\pages\\sign_in.css",
+    "size": 8423,
+    "lines": 379
+  },
+  {
+    "path": "backend\\services\\generation_service.py",
+    "size": 12843,
+    "lines": 352
+  },
+  {
+    "path": "backend\\services\\rag_service.py",
+    "size": 11411,
+    "lines": 340
+  },
+  {
+    "path": "backend\\routes\\chat.py",
+    "size": 11916,
+    "lines": 336
+  },
+  {
+    "path": "backend\\routes\\syllabus.py",
+    "size": 11149,
+    "lines": 316
+  },
+  {
+    "path": "frontend\\src\\pages\\ProfilePage.jsx",
+    "size": 12272,
+    "lines": 312
+  },
+  {
+    "path": "backend\\routes\\generate.py",
+    "size": 10667,
+    "lines": 301
+  },
+  {
+    "path": "frontend\\src\\pages\\ProfileSetupPage.jsx",
+    "size": 12814,
+    "lines": 300
+  },
+  {
+    "path": "frontend\\src\\pages\\Flashcards.jsx",
+    "size": 12282,
+    "lines": 253
+  },
+  {
+    "path": "backend\\routes\\auth.py",
+    "size": 9251,
+    "lines": 243
+  },
+  {
+    "path": "backend\\routes\\upload.py",
+    "size": 8356,
+    "lines": 235
+  },
+  {
+    "path": "frontend\\src\\pages\\Dashboard.jsx",
+    "size": 10510,
+    "lines": 226
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\RevisionWidget.jsx",
+    "size": 8557,
+    "lines": 195
+  },
+  {
+    "path": "frontend\\src\\App.css",
+    "size": 3075,
+    "lines": 184
+  },
+  {
+    "path": "backend\\app.py",
+    "size": 8125,
+    "lines": 183
+  },
+  {
+    "path": "backend\\routes\\revision.py",
+    "size": 5983,
+    "lines": 175
+  },
+  {
+    "path": "frontend\\src\\layouts\\DashboardLayout.jsx",
+    "size": 6006,
+    "lines": 171
+  },
+  {
+    "path": "frontend\\src\\pages\\LandingPage.jsx",
+    "size": 9455,
+    "lines": 166
+  },
+  {
+    "path": "frontend\\src\\index.css",
+    "size": 3752,
+    "lines": 164
+  },
+  {
+    "path": "frontend\\src\\components\\focus\\PomodoroTimer.jsx",
+    "size": 6065,
+    "lines": 152
+  },
+  {
+    "path": "frontend\\src\\pages\\SmartFocusMode.jsx",
+    "size": 5228,
+    "lines": 143
+  },
+  {
+    "path": "backend\\services\\focus_service.py",
+    "size": 4972,
+    "lines": 138
+  },
+  {
+    "path": "frontend\\src\\components\\Sidebar.jsx",
+    "size": 5515,
+    "lines": 129
+  },
+  {
+    "path": "frontend\\src\\pages\\signup.jsx",
+    "size": 4327,
+    "lines": 116
+  },
+  {
+    "path": "frontend\\src\\pages\\sign_in.jsx",
+    "size": 4297,
+    "lines": 116
+  },
+  {
+    "path": "frontend\\src\\pages\\OnboardingPage.jsx",
+    "size": 4436,
+    "lines": 111
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\StatCards.jsx",
+    "size": 3875,
+    "lines": 110
+  },
+  {
+    "path": "frontend\\src\\pages\\DashboardHome.jsx",
+    "size": 3658,
+    "lines": 108
+  },
+  {
+    "path": "frontend\\src\\pages\\ExamPreparation.jsx",
+    "size": 5409,
+    "lines": 105
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\WelcomeSection.jsx",
+    "size": 5445,
+    "lines": 100
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\ProgressTracker.jsx",
+    "size": 4469,
+    "lines": 99
+  },
+  {
+    "path": "backend\\routes\\user.py",
+    "size": 4324,
+    "lines": 98
+  },
+  {
+    "path": "frontend\\src\\pages\\Notes.jsx",
+    "size": 5544,
+    "lines": 98
+  },
+  {
+    "path": "frontend\\src\\context\\GenerationContext.jsx",
+    "size": 2807,
+    "lines": 94
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\UploadedMaterials.jsx",
+    "size": 4720,
+    "lines": 90
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\NotesPreview.jsx",
+    "size": 3445,
+    "lines": 79
+  },
+  {
+    "path": "backend\\routes\\exam.py",
+    "size": 2504,
+    "lines": 77
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\SharedResources.jsx",
+    "size": 3685,
+    "lines": 77
+  },
+  {
+    "path": "frontend\\src\\router\\AppRouter.jsx",
+    "size": 3112,
+    "lines": 77
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\RecentQueries.jsx",
+    "size": 3287,
+    "lines": 75
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\FocusWidget.jsx",
+    "size": 3282,
+    "lines": 74
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\RecommendedMaterials.jsx",
+    "size": 3330,
+    "lines": 72
+  },
+  {
+    "path": "frontend\\dist\\assets\\index-B1slHp_j.js",
+    "size": 938902,
+    "lines": 71
+  },
+  {
+    "path": "frontend\\src\\pages\\AdminDashboard.jsx",
+    "size": 4785,
+    "lines": 70
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\ExamTools.jsx",
+    "size": 2939,
+    "lines": 69
+  },
+  {
+    "path": "frontend\\src\\pages\\QuizPage.jsx",
+    "size": 3644,
+    "lines": 69
+  },
+  {
+    "path": "frontend\\src\\components\\dashboard\\FlashcardPreview.jsx",
+    "size": 3577,
+    "lines": 68
+  },
+  {
+    "path": "frontend\\src\\components\\Navbar.jsx",
+    "size": 3003,
+    "lines": 65
+  },
+  {
+    "path": "frontend\\src\\components\\focus\\StudyRecommendations.jsx",
+    "size": 2606,
+    "lines": 63
+  },
+  {
+    "path": "backend\\services\\auth_service.py",
+    "size": 2182,
+    "lines": 61
+  },
+  {
+    "path": "backend\\routes\\quiz.py",
+    "size": 1853,
+    "lines": 58
+  },
+  {
+    "path": "backend\\models\\content.py",
+    "size": 2804,
+    "lines": 55
+  },
+  {
+    "path": "backend\\syllabusparser\\parse.py",
+    "size": 2491,
+    "lines": 55
+  },
+  {
+    "path": "frontend\\src\\components\\ui\\Button.jsx",
+    "size": 1487,
+    "lines": 53
+  },
+  {
+    "path": "backend\\routes\\admin.py",
+    "size": 1686,
+    "lines": 51
+  },
+  {
+    "path": "frontend\\src\\components\\focus\\FocusAnalytics.jsx",
+    "size": 2259,
+    "lines": 48
+  },
+  {
+    "path": "frontend\\src\\components\\ui\\CardList.jsx",
+    "size": 1516,
+    "lines": 47
+  },
+  {
+    "path": "backend\\models\\embedding.py",
+    "size": 1667,
+    "lines": 46
+  },
+  {
+    "path": "backend\\models\\user.py",
+    "size": 2069,
+    "lines": 45
+  },
+  {
+    "path": "frontend\\src\\components\\focus\\StudyHistory.jsx",
+    "size": 2096,
+    "lines": 45
+  },
+  {
+    "path": "frontend\\src\\data\\dummyDashboardData.js",
+    "size": 2944,
+    "lines": 45
+  },
+  {
+    "path": "frontend\\tailwind.config.js",
+    "size": 1397,
+    "lines": 43
+  },
+  {
+    "path": "frontend\\package.json",
+    "size": 1055,
+    "lines": 40
+  },
+  {
+    "path": "frontend\\src\\pages\\Settings.jsx",
+    "size": 1879,
+    "lines": 37
+  },
+  {
+    "path": "backend\\models\\revision.py",
+    "size": 1611,
+    "lines": 34
+  },
+  {
+    "path": "frontend\\src\\hooks\\useFilteredSubjects.js",
+    "size": 1340,
+    "lines": 34
+  },
+  {
+    "path": "analyze.py",
+    "size": 1176,
+    "lines": 31
+  },
+  {
+    "path": "backend\\routes\\focus.py",
+    "size": 933,
+    "lines": 30
+  },
+  {
+    "path": "frontend\\eslint.config.js",
+    "size": 787,
+    "lines": 29
+  },
+  {
+    "path": "frontend\\src\\components\\ui\\ModernInput.jsx",
+    "size": 851,
+    "lines": 29
+  },
+  {
+    "path": "backend\\scripts\\seed_admin.py",
+    "size": 847,
+    "lines": 28
+  },
+  {
+    "path": "backend\\models\\exam.py",
+    "size": 1042,
+    "lines": 26
+  },
+  {
+    "path": "frontend\\src\\pages\\ProgressTracker.jsx",
+    "size": 1031,
+    "lines": 25
+  },
+  {
+    "path": "backend\\config.py",
+    "size": 1023,
+    "lines": 24
+  },
+  {
+    "path": "backend\\models\\chat.py",
+    "size": 1069,
+    "lines": 24
+  },
+  {
+    "path": "backend\\models\\focus.py",
+    "size": 978,
+    "lines": 23
+  },
+  {
+    "path": "frontend\\src\\components\\ui\\Chips.jsx",
+    "size": 536,
+    "lines": 22
+  },
+  {
+    "path": "frontend\\src\\components\\ui\\InsightCard.jsx",
+    "size": 829,
+    "lines": 22
+  },
+  {
+    "path": "frontend\\src\\main.jsx",
+    "size": 463,
+    "lines": 17
+  },
+  {
+    "path": "frontend\\vite.config.js",
+    "size": 359,
+    "lines": 16
+  },
+  {
+    "path": "backend\\models\\quiz.py",
+    "size": 802,
+    "lines": 15
+  },
+  {
+    "path": "frontend\\src\\App.jsx",
+    "size": 278,
+    "lines": 13
+  },
+  {
+    "path": "backend\\models\\__init__.py",
+    "size": 368,
+    "lines": 9
+  },
+  {
+    "path": "frontend\\postcss.config.js",
+    "size": 86,
+    "lines": 6
+  },
+  {
+    "path": "frontend\\dist\\assets\\index-CLwojmGf.css",
+    "size": 107128,
+    "lines": 1
+  }
+]

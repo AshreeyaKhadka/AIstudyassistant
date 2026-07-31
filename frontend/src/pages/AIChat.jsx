@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, Loader2, MessageSquare, SendHorizontal, Sparkles, UserRound, ArrowLeft, Plus, Trash2, History, X } from 'lucide-react';
+import { Bot, Loader2, MessageSquare, SendHorizontal, UserRound, ArrowLeft, Plus, Trash2, History, X, AlertTriangle } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import syllabusData from '../data/syllabus.json';
 
 const AIChat = () => {
   const [searchParams] = useSearchParams();
@@ -14,28 +15,87 @@ const AIChat = () => {
   const unitLabel = searchParams.get('unitLabel') || '';
   const subject_id = searchParams.get('subject_id') || '';
   const doc_type = searchParams.get('doc_type') || '';
+  const syllabusContextId = searchParams.get('syllabusContext') || '';
 
+  const syllabusFocus = useMemo(() => {
+    const chapterText = (chapter) => {
+      const topics = Array.isArray(chapter.topics) && chapter.topics.length
+        ? `\nTopics:\n${chapter.topics.map((topic) => `- ${topic}`).join('\n')}`
+        : '';
+      return `${chapter.unit ? `${chapter.unit}: ` : ''}${chapter.title}\n${chapter.summary || ''}${topics}`;
+    };
+
+    if (!syllabusContextId) return null;
+    for (const semester of syllabusData.semesters || []) {
+      for (const item of semester.subjects || []) {
+        if (item.id === syllabusContextId) {
+          const hasDetails = Array.isArray(item.chapters) && item.chapters.length > 0;
+          return {
+            subject: item.name,
+            label: item.name,
+            contextText: hasDetails
+              ? `${item.name}\n${item.chapters.map(chapterText).join('\n\n')}`
+              : `${item.name}\nDetailed syllabus content is not available yet.`,
+            note: hasDetails ? '' : 'Detailed syllabus content is not available yet.'
+          };
+        }
+        const chapter = (item.chapters || []).find((entry) => entry.id === syllabusContextId);
+        if (chapter) {
+          return {
+            subject: item.name,
+            chapter: chapter.title,
+            label: `${item.name} - ${chapter.title}`,
+            contextText: `${item.name}\n${chapterText(chapter)}`,
+            note: ''
+          };
+        }
+      }
+    }
+    return subject ? { subject, label: subject, contextText: subject, note: 'Detailed syllabus content is not available yet.' } : null;
+  }, [syllabusContextId, subject]);
 
   const [messages, setMessages] = useState([
     {
       id: 1,
       role: 'assistant',
       content: subject
-        ? `Hi! I'm ready to help you study **${unit || subject}**. Ask me to explain concepts, quiz you, create notes, or anything else about this topic.`
+        ? `Hi! I am ready to help you study **${unit || syllabusFocus?.label || subject}**.${syllabusFocus?.note ? ` ${syllabusFocus.note}` : ''} Ask me to explain concepts, quiz you, or generate revision notes.`
         : 'Hi, I am ready to help with concepts, revision, and questions from your uploaded materials.',
     },
   ]);
   const [input, setInput] = useState('');
+  const [learningMode, setLearningMode] = useState('exam');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sessionId, setSessionId] = useState(null);
   const scrollRef = useRef(null);
 
-  // Session management state
   const [sessions, setSessions] = useState([]);
   const [showSessions, setShowSessions] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
-  const [deletingSession, setDeletingSession] = useState(null);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Dynamic Suggestion Chips
+  const [dynamicSuggestions, setDynamicSuggestions] = useState([]);
+
+  useEffect(() => {
+    // Fetch dynamic prompt suggestions from backend based on user uploads/subjects
+    const fetchSuggestions = async () => {
+      try {
+        const res = await fetch('/api/chat/suggestions', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setDynamicSuggestions(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch suggestions:', err);
+      }
+    };
+    if (!subject) {
+      fetchSuggestions();
+    }
+  }, [subject]);
 
   const history = useMemo(
     () => messages.map(({ role, content }) => ({ role, content })),
@@ -46,9 +106,7 @@ const AIChat = () => {
     const contentType = response.headers.get('content-type') || '';
     const rawBody = await response.text();
 
-    if (!rawBody) {
-      return null;
-    }
+    if (!rawBody) return null;
 
     if (contentType.includes('application/json')) {
       return JSON.parse(rawBody);
@@ -92,13 +150,12 @@ const AIChat = () => {
           role: m.role,
           content: m.content,
         }));
-        // Prepend welcome message if loaded messages don't have one
         if (loadedMessages.length > 0 && loadedMessages[0].role !== 'assistant') {
           loadedMessages.unshift({
             id: 0,
             role: 'assistant',
             content: subject
-              ? `Hi! I'm ready to help you study **${unit || subject}**.`
+              ? `Hi! I am ready to help you study **${unit || subject}**.`
               : 'Hi, I am ready to help with concepts, revision, and questions.',
           });
         }
@@ -111,23 +168,25 @@ const AIChat = () => {
     }
   };
 
-  const deleteSession = async (sessId) => {
-    setDeletingSession(sessId);
+  const confirmDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    setDeleting(true);
     try {
-      const res = await fetch(`/api/chat/sessions/${sessId}`, {
+      const res = await fetch(`/api/chat/sessions/${sessionToDelete.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
       if (res.ok) {
-        setSessions(prev => prev.filter(s => s.id !== sessId));
-        if (sessionId === sessId) {
+        setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
+        if (sessionId === sessionToDelete.id) {
           startNewChat();
         }
       }
     } catch (err) {
       console.error('Failed to delete session:', err);
     } finally {
-      setDeletingSession(null);
+      setDeleting(false);
+      setSessionToDelete(null);
     }
   };
 
@@ -137,7 +196,7 @@ const AIChat = () => {
         id: 1,
         role: 'assistant',
         content: subject
-          ? `Hi! I'm ready to help you study **${unit || subject}**. Ask me to explain concepts, quiz you, create notes, or anything else about this topic.`
+          ? `Hi! I am ready to help you study **${unit || syllabusFocus?.label || subject}**.${syllabusFocus?.note ? ` ${syllabusFocus.note}` : ''} Ask me to explain concepts, quiz you, or create notes.`
           : 'Hi, I am ready to help with concepts, revision, and questions from your uploaded materials.',
       },
     ]);
@@ -174,12 +233,14 @@ const AIChat = () => {
         body: JSON.stringify({
           message: text,
           history: history,
-          subject: subject || undefined,
+          subject: syllabusFocus?.subject || subject || undefined,
           unit: unit || undefined,
           unitLabel: unitLabel || undefined,
           session_id: sessionId || undefined,
           subject_id: subject_id ? parseInt(subject_id) : undefined,
           doc_type: doc_type || undefined,
+          syllabus_context: syllabusFocus?.contextText || undefined,
+          learning_mode: learningMode,
         }),
       });
 
@@ -198,7 +259,6 @@ const AIChat = () => {
         },
       ]);
 
-      // Update session ID from response
       if (data?.session_id && !sessionId) {
         setSessionId(data.session_id);
       }
@@ -209,7 +269,7 @@ const AIChat = () => {
         {
           id: Date.now() + 1,
           role: 'assistant',
-          content: 'I could not reach the AI service just now. Please try again in a moment.',
+          content: 'I could not reach the AI service just now. Please check your connection and try again.',
         },
       ]);
     } finally {
@@ -217,105 +277,139 @@ const AIChat = () => {
     }
   };
 
-  const quickPrompts = subject
+  const quickPrompts = subject || syllabusFocus
     ? [
-      `Explain the key concepts of ${unit || subject} in simple terms.`,
-      `Create 5 revision bullet points for ${unit || subject}.`,
-      `Quiz me on the important concepts from ${unit || subject}.`,
-    ]
+        `Explain key concepts of ${unit || syllabusFocus?.label || subject}`,
+        `5 revision bullet points for ${unit || syllabusFocus?.label || subject}`,
+        `Quiz me on important concepts from ${unit || syllabusFocus?.label || subject}`,
+      ]
+    : dynamicSuggestions.length > 0
+    ? dynamicSuggestions
     : [
-      'Explain the last topic in simple terms.',
-      'Turn my notes into 5 revision bullets.',
-      'Quiz me on the important concepts from my materials.',
-    ];
+        'Explain the last topic in simple terms',
+        'Turn my notes into 5 revision bullets',
+        'Quiz me on key concepts from my materials',
+      ];
 
   return (
-    <div className="flex flex-col h-full min-h-[72vh] bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          {subject && (
+    <div className="flex flex-col h-[calc(100vh-8rem)] bg-white border border-[#D7D3CF] rounded-[4px] overflow-hidden">
+      {/* Delete Confirmation Modal */}
+      {sessionToDelete && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 max-w-sm w-full space-y-4 shadow-lg">
+            <div className="flex items-center gap-3 text-[#C96A32]">
+              <AlertTriangle size={24} />
+              <h3 className="text-base font-bold text-[#111111]">Delete Conversation?</h3>
+            </div>
+            <p className="text-xs text-[#666666] leading-relaxed font-sans">
+              Are you sure you want to delete <span className="font-semibold text-[#111111]">"{sessionToDelete.title}"</span>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#D7D3CF]">
+              <button
+                onClick={() => setSessionToDelete(null)}
+                disabled={deleting}
+                className="px-3 py-1.5 border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={confirmDeleteSession}
+                disabled={deleting}
+                className="px-3 py-1.5 bg-[#C96A32] text-white hover:bg-[#a85222] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5"
+              >
+                {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                <span>DELETE</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="px-4 md:px-6 py-3.5 border-b border-[#D7D3CF] bg-[#F7F5F2] flex items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          {(subject || syllabusFocus) && (
             <button
               onClick={() => navigate('/dashboard/syllabus')}
-              className="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm"
+              className="p-1.5 rounded-[4px] bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] transition-colors shrink-0"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={16} />
             </button>
           )}
-          <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <MessageSquare size={22} />
+          <div className="w-8 h-8 rounded-[4px] bg-[#102326] text-white flex items-center justify-center shrink-0">
+            <MessageSquare size={16} />
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-slate-800">
-              {subject ? `Study: ${unit || subject}` : 'AI Chat Assistant'}
+          <div className="min-w-0">
+            <h3 className="text-sm md:text-base font-bold text-[#111111] tracking-tight truncate">
+              {subject || syllabusFocus ? `Study: ${unit || syllabusFocus?.label || subject}` : 'Chat Assistant'}
             </h3>
-            <p className="text-sm text-slate-500">
-              {subject
-                ? `Focused on ${subject}${unit ? ` — ${unit}` : ''}`
-                : 'Connected to Gemini on the server, with your uploaded materials included when available.'}
+            <p className="text-[10px] text-[#666666] font-mono truncate">
+              {subject || syllabusFocus ? `FOCUSED ON ${(syllabusFocus?.subject || subject).toUpperCase()}` : 'Study help'}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => { fetchSessions(); setShowSessions(!showSessions); }}
-            className="p-2.5 bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 rounded-xl transition-colors shadow-sm"
+            className="px-3 py-1.5 bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] transition-colors text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5"
             title="Chat History"
           >
-            <History size={18} />
+            <History size={14} />
+            <span className="hidden sm:inline">HISTORY</span>
           </button>
           <button
             onClick={startNewChat}
-            className="p-2.5 bg-white border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 rounded-xl transition-colors shadow-sm"
+            className="px-3 py-1.5 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] transition-colors text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5"
             title="New Chat"
           >
-            <Plus size={18} />
+            <Plus size={14} />
+            <span className="hidden sm:inline">NEW CHAT</span>
           </button>
-          <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500 bg-white/80 border border-slate-200 rounded-full px-3 py-1.5">
-            <Sparkles size={14} className="text-blue-500" /> Study mode
-          </div>
         </div>
       </div>
 
-      {/* Session History Panel */}
+      {/* History Drawer */}
       {showSessions && (
-        <div className="border-b border-slate-100 bg-slate-50/80 p-4 max-h-64 overflow-y-auto">
+        <div className="border-b border-[#D7D3CF] bg-[#F7F5F2] p-4 max-h-60 overflow-y-auto shrink-0">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-slate-700">Chat History</h4>
-            <button onClick={() => setShowSessions(false)} className="text-slate-400 hover:text-slate-600">
+            <h4 className="text-xs font-mono uppercase tracking-wider text-[#666666] font-semibold">Previous Conversations</h4>
+            <button onClick={() => setShowSessions(false)} className="text-[#666666] hover:text-[#111111]">
               <X size={16} />
             </button>
           </div>
           {loadingSessions ? (
             <div className="flex justify-center py-4">
-              <Loader2 className="animate-spin text-slate-300" size={20} />
+              <Loader2 className="animate-spin text-[#102326]" size={18} />
             </div>
           ) : sessions.length === 0 ? (
-            <p className="text-sm text-slate-400 text-center py-4">No previous chats</p>
+            <p className="text-xs font-mono text-[#666666] text-center py-3">No previous chat sessions found.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {sessions.map((sess) => (
                 <div
                   key={sess.id}
-                  className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all ${sessionId === sess.id
-                    ? 'bg-blue-50 border border-blue-200'
-                    : 'bg-white border border-slate-100 hover:border-blue-200'
-                    }`}
+                  className={`flex items-center justify-between p-2.5 rounded-[4px] border cursor-pointer transition-colors ${
+                    sessionId === sess.id
+                      ? 'bg-[#102326] text-white border-[#102326]'
+                      : 'bg-white text-[#111111] border-[#D7D3CF] hover:bg-[#ECEAE7]'
+                  }`}
                 >
                   <button
                     onClick={() => loadSession(sess.id)}
-                    className="flex-1 text-left min-w-0"
+                    className="flex-1 text-left min-w-0 pr-2"
                   >
-                    <p className="text-sm font-bold text-slate-700 truncate">{sess.title}</p>
-                    <p className="text-xs text-slate-400">
-                      {sess.message_count} messages · {new Date(sess.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    <p className="text-xs font-bold truncate">{sess.title}</p>
+                    <p className={`text-[10px] font-mono mt-0.5 ${sessionId === sess.id ? 'text-[#A0B0B3]' : 'text-[#666666]'}`}>
+                      {sess.message_count} msgs • {new Date(sess.created_at).toLocaleDateString()}
                     </p>
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); deleteSession(sess.id); }}
-                    disabled={deletingSession === sess.id}
-                    className="p-1.5 text-slate-300 hover:text-rose-500 transition-colors disabled:opacity-50"
+                    onClick={(e) => { e.stopPropagation(); setSessionToDelete(sess); }}
+                    className="p-1 hover:text-[#C96A32] transition-colors"
+                    title="Delete Chat"
                   >
-                    {deletingSession === sess.id ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
+                    <Trash2 size={13} />
                   </button>
                 </div>
               ))}
@@ -324,32 +418,63 @@ const AIChat = () => {
         </div>
       )}
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/70">
+      {/* Messages Scroll Area */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-[#F7F5F2]">
+        {syllabusFocus && (
+          <div className="inline-flex max-w-full items-center gap-2 rounded-[4px] border border-[#D7D3CF] bg-white px-3 py-2 text-xs font-mono text-[#111111]">
+            <span className="font-semibold">Studying:</span>
+            <span className="truncate">{syllabusFocus.label}</span>
+            {syllabusFocus.note && <span className="text-[#666666]">- {syllabusFocus.note}</span>}
+          </div>
+        )}
         {messages.map((message) => (
           <ChatBubble key={message.id} role={message.role} content={message.content} />
         ))}
         {loading && (
-          <div className="flex items-center gap-3 text-sm text-slate-500">
-            <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-blue-600 shadow-sm">
-              <Bot size={18} />
+          <div className="flex items-center gap-3 text-xs font-mono text-[#666666]">
+            <div className="w-8 h-8 rounded-[4px] bg-[#102326] text-white flex items-center justify-center shrink-0">
+              <Bot size={15} />
             </div>
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
-              <Loader2 size={16} className="animate-spin text-blue-600" />
-              Thinking through your question...
+            <div className="flex items-center gap-2 bg-white border border-[#D7D3CF] rounded-[4px] px-3.5 py-2.5">
+              <Loader2 size={14} className="animate-spin text-[#102326]" />
+              Processing academic request...
             </div>
           </div>
         )}
       </div>
 
-      <div className="border-t border-slate-100 bg-white p-4 sm:p-5">
-        <div className="flex flex-wrap gap-2 mb-4">
+      {/* Input Footer */}
+      <div className="border-t border-[#D7D3CF] bg-white p-3 md:p-4 shrink-0">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-mono uppercase text-[#666666] font-semibold">Mode</span>
+          {[
+            { id: 'beginner', label: 'Beginner', title: 'Detailed simple explanation with prerequisites' },
+            { id: 'exam', label: 'Exam', title: 'Full exam-ready answer with marks guidance' },
+            { id: 'deep', label: 'Deep', title: 'Advanced technical explanation with details' },
+          ].map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => setLearningMode(mode.id)}
+              title={mode.title}
+              className={`px-2.5 py-1 rounded-[4px] border text-[10px] font-mono font-semibold uppercase ${
+                learningMode === mode.id
+                  ? 'bg-[#102326] text-white border-[#102326]'
+                  : 'bg-[#F7F5F2] text-[#111111] border-[#D7D3CF] hover:bg-[#ECEAE7]'
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-1.5 md:gap-2 mb-3 max-h-24 overflow-y-auto custom-scrollbar">
           {quickPrompts.map((prompt) => (
             <button
               key={prompt}
               type="button"
               onClick={() => handleSend(prompt)}
               disabled={loading}
-              className="text-xs sm:text-sm font-medium text-slate-600 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 border border-transparent hover:border-blue-100 rounded-full px-3 py-2 transition-colors disabled:opacity-60"
+              className="text-[11px] font-mono text-[#111111] bg-[#F7F5F2] hover:bg-[#102326] hover:text-white border border-[#D7D3CF] rounded-[4px] px-2.5 py-1 transition-colors disabled:opacity-50 text-left truncate max-w-full"
             >
               {prompt}
             </button>
@@ -357,33 +482,34 @@ const AIChat = () => {
         </div>
 
         {error ? (
-          <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
-            {error}
+          <div className="mb-3 text-xs font-mono text-[#C96A32] bg-[#FFFDFB] border border-[#D7D3CF] rounded-[4px] px-3 py-2 flex justify-between items-center">
+            <span>{error}</span>
+            <button onClick={() => setError('')} className="underline text-[10px] ml-2">Dismiss</button>
           </div>
         ) : null}
 
-        <div className="flex items-end gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-3 shadow-sm">
-          <textarea
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
+              if (event.key === 'Enter') {
                 event.preventDefault();
                 handleSend();
               }
             }}
-            rows={1}
-            placeholder="Ask about a topic, paste a question, or request a revision summary..."
-            className="flex-1 resize-none bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none min-h-[48px] max-h-40 px-1 py-2"
+            placeholder="Ask a question or request revision notes..."
+            className="flex-1 bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3.5 py-2.5 text-xs text-[#111111] outline-none"
           />
           <button
             type="button"
             onClick={() => handleSend()}
             disabled={loading || !input.trim()}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            className="px-3.5 md:px-4 py-2.5 rounded-[4px] bg-[#102326] hover:bg-[#0b191c] text-white font-mono text-xs font-semibold uppercase tracking-wider disabled:opacity-50 transition-colors inline-flex items-center gap-1.5 shrink-0"
           >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : <SendHorizontal size={16} />}
-            Send
+            {loading ? <Loader2 size={14} className="animate-spin" /> : <SendHorizontal size={14} />}
+            <span className="hidden sm:inline">SEND</span>
           </button>
         </div>
       </div>
@@ -395,29 +521,30 @@ const ChatBubble = ({ role, content }) => {
   const isUser = role === 'user';
 
   return (
-    <div className={`flex items-end gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex items-start gap-2.5 md:gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
       {!isUser && (
-        <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-blue-600 shadow-sm flex-shrink-0">
-          <Bot size={18} />
+        <div className="w-7 h-7 md:w-8 md:h-8 rounded-[4px] bg-[#102326] text-white flex items-center justify-center shrink-0 mt-0.5">
+          <Bot size={15} />
         </div>
       )}
       <div
-        className={`max-w-[min(44rem,85%)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm border ${isUser
-          ? 'bg-blue-600 text-white border-blue-500 rounded-br-md'
-          : 'bg-white text-slate-700 border-slate-200 rounded-bl-md'
-          }`}
+        className={`max-w-[85%] sm:max-w-[75%] rounded-[4px] px-3.5 py-2.5 md:px-4 md:py-3 text-xs leading-relaxed border ${
+          isUser
+            ? 'bg-[#102326] text-white border-[#102326]'
+            : 'bg-white text-[#111111] border-[#D7D3CF]'
+        }`}
       >
         {isUser ? (
-          <span className="whitespace-pre-wrap">{content}</span>
+          <span className="whitespace-pre-wrap break-words">{content}</span>
         ) : (
-          <div className="prose prose-sm prose-slate max-w-none prose-p:my-1 prose-pre:bg-slate-100 prose-pre:border prose-pre:border-slate-200 prose-code:text-pink-600 prose-code:bg-slate-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-[13px] prose-code:font-normal prose-pre:code:bg-transparent prose-pre:code:p-0">
+          <div className="prose prose-xs max-w-none text-[#111111] break-words">
             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{content}</ReactMarkdown>
           </div>
         )}
       </div>
       {isUser && (
-        <div className="w-10 h-10 rounded-full bg-slate-900 text-white border border-slate-800 flex items-center justify-center shadow-sm flex-shrink-0">
-          <UserRound size={18} />
+        <div className="w-7 h-7 md:w-8 md:h-8 rounded-[4px] bg-[#ECEAE7] text-[#111111] border border-[#D7D3CF] flex items-center justify-center shrink-0 mt-0.5">
+          <UserRound size={15} />
         </div>
       )}
     </div>

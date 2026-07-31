@@ -35,6 +35,7 @@ logs
 # Databases
 *.sqlite3
 *.db
+backend/chroma_db/
 
 # OS / Editor Files
 .DS_Store

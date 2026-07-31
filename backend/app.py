@@ -1,7 +1,10 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+from flask_socketio import SocketIO
 from config import Config, db
 from sqlalchemy import inspect, text
+
+socketio = SocketIO(cors_allowed_origins=["http://localhost:5173", "http://localhost:5174"], async_mode='threading')
 
 
 def _ensure_student_upload_schema():
@@ -21,10 +24,26 @@ def _ensure_student_upload_schema():
             connection.execute(text("ALTER TABLE student_uploads ADD COLUMN embedding_status VARCHAR(50) DEFAULT 'pending'"))
         if 'embedding_error' not in columns:
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN embedding_error TEXT'))
+        if 'extraction_method' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN extraction_method VARCHAR(50)'))
+        if 'extraction_quality' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN extraction_quality VARCHAR(50)'))
         if 'subject_id' not in columns:
             connection.execute(text('ALTER TABLE student_uploads ADD COLUMN subject_id INTEGER REFERENCES subjects(id)'))
         if 'doc_type' not in columns:
             connection.execute(text("ALTER TABLE student_uploads ADD COLUMN doc_type VARCHAR(50) DEFAULT 'material'"))
+        if 'syllabus_kind' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN syllabus_kind VARCHAR(20)'))
+        if 'is_active_syllabus' not in columns:
+            connection.execute(text("ALTER TABLE student_uploads ADD COLUMN is_active_syllabus BOOLEAN DEFAULT 0 NOT NULL"))
+        if 'validation_status' not in columns:
+            connection.execute(text("ALTER TABLE student_uploads ADD COLUMN validation_status VARCHAR(50) DEFAULT 'pending' NOT NULL"))
+        if 'validation_error' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN validation_error TEXT'))
+        if 'syllabus_match_score' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN syllabus_match_score FLOAT'))
+        if 'syllabus_match_coverage' not in columns:
+            connection.execute(text('ALTER TABLE student_uploads ADD COLUMN syllabus_match_coverage FLOAT'))
         
         # Drop old NOT NULL constraint on storage_path if present
         if 'storage_path' in columns:
@@ -62,6 +81,8 @@ def _ensure_mcq_count_schema():
     with db.engine.begin() as connection:
         if 'mcq_generation_count' not in columns:
             connection.execute(text("ALTER TABLE student_uploads ADD COLUMN mcq_generation_count INTEGER DEFAULT 0"))
+        if 'structured_syllabus' not in columns:
+            connection.execute(text("ALTER TABLE student_uploads ADD COLUMN structured_syllabus TEXT"))
 
 
 def _ensure_quiz_set_upload_schema():
@@ -87,18 +108,138 @@ def _ensure_chat_session_schema():
         if 'updated_at' not in columns:
             connection.execute(text('ALTER TABLE chat_sessions ADD COLUMN updated_at TIMESTAMP'))
 
+
+def _ensure_subject_schema():
+    inspector = inspect(db.engine)
+    if 'subjects' not in inspector.get_table_names():
+        return
+
+    columns = {column['name'] for column in inspector.get_columns('subjects')}
+    with db.engine.begin() as connection:
+        if 'user_id' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN user_id INTEGER REFERENCES users(id)'))
+        if 'name' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN name VARCHAR(255)'))
+        if 'semester' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN semester INTEGER'))
+        if 'code' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN code VARCHAR(50)'))
+        if 'credits' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN credits INTEGER DEFAULT 3'))
+        if 'is_current' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN is_current BOOLEAN DEFAULT 1'))
+        if 'is_backlog' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN is_backlog BOOLEAN DEFAULT 0'))
+        if 'description' not in columns:
+            connection.execute(text('ALTER TABLE subjects ADD COLUMN description TEXT'))
+        if 'created_at' not in columns:
+                connection.execute(text('ALTER TABLE subjects ADD COLUMN created_at DATETIME'))
+
+
+def _ensure_arcade_schema():
+    inspector = inspect(db.engine)
+    if 'game_rooms' not in inspector.get_table_names():
+        return
+
+    with db.engine.begin() as connection:
+        room_columns = {column['name'] for column in inspector.get_columns('game_rooms')}
+        if 'created_by_id' not in room_columns:
+            connection.execute(text('ALTER TABLE game_rooms ADD COLUMN created_by_id INTEGER REFERENCES users(id) DEFAULT 1 NOT NULL'))
+        if 'invite_code' not in room_columns:
+            connection.execute(text('ALTER TABLE game_rooms ADD COLUMN invite_code VARCHAR(10)'))
+        if 'expires_at' not in room_columns:
+            connection.execute(text('ALTER TABLE game_rooms ADD COLUMN expires_at TIMESTAMP'))
+        connection.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS uq_game_rooms_invite_code ON game_rooms (invite_code)'))
+
+        if 'game_room_players' not in inspector.get_table_names():
+            return
+        player_columns = {column['name'] for column in inspector.get_columns('game_room_players')}
+        if 'avatar_id' not in player_columns:
+            connection.execute(text('ALTER TABLE game_room_players ADD COLUMN avatar_id VARCHAR(50)'))
+        if 'ready' not in player_columns:
+            connection.execute(text('ALTER TABLE game_room_players ADD COLUMN ready BOOLEAN DEFAULT 0 NOT NULL'))
+        if 'connected' not in player_columns:
+            connection.execute(text('ALTER TABLE game_room_players ADD COLUMN connected BOOLEAN DEFAULT 0 NOT NULL'))
+        if 'last_seen_at' not in player_columns:
+            connection.execute(text('ALTER TABLE game_room_players ADD COLUMN last_seen_at TIMESTAMP'))
+        connection.execute(text('CREATE UNIQUE INDEX IF NOT EXISTS uq_game_room_user ON game_room_players (room_id, user_id)'))
+
+
+def _ensure_calendar_schema():
+    inspector = inspect(db.engine)
+    with db.engine.begin() as connection:
+        if 'revision_plans' in inspector.get_table_names():
+            columns = {column['name'] for column in inspector.get_columns('revision_plans')}
+            if 'event_type' not in columns:
+                connection.execute(text("ALTER TABLE revision_plans ADD COLUMN event_type VARCHAR(30) DEFAULT 'Study Session'"))
+            if 'reminder' not in columns:
+                connection.execute(text("ALTER TABLE revision_plans ADD COLUMN reminder BOOLEAN DEFAULT 0 NOT NULL"))
+        if 'exams' in inspector.get_table_names():
+            columns = {column['name'] for column in inspector.get_columns('exams')}
+            if 'start_time' not in columns:
+                connection.execute(text('ALTER TABLE exams ADD COLUMN start_time VARCHAR(5)'))
+            if 'end_time' not in columns:
+                connection.execute(text('ALTER TABLE exams ADD COLUMN end_time VARCHAR(5)'))
+            if 'reminder' not in columns:
+                connection.execute(text("ALTER TABLE exams ADD COLUMN reminder BOOLEAN DEFAULT 0 NOT NULL"))
+
+
+def _ensure_user_token_quota_schema():
+    inspector = inspect(db.engine)
+    if 'users' not in inspector.get_table_names():
+        return
+    columns = {column['name'] for column in inspector.get_columns('users')}
+    with db.engine.begin() as connection:
+        if 'token_quota' not in columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN token_quota INTEGER DEFAULT 100000"))
+        if 'token_quota_enabled' not in columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN token_quota_enabled BOOLEAN DEFAULT 0"))
+
+
+def _ensure_ai_usage_logs_schema():
+    inspector = inspect(db.engine)
+    if 'ai_usage_logs' not in inspector.get_table_names():
+        return
+    # Table exists, check for missing columns
+    columns = {column['name'] for column in inspector.get_columns('ai_usage_logs')}
+    with db.engine.begin() as connection:
+        if 'model_used' not in columns:
+            connection.execute(text('ALTER TABLE ai_usage_logs ADD COLUMN model_used VARCHAR(100)'))
+        if 'subject' not in columns:
+            connection.execute(text('ALTER TABLE ai_usage_logs ADD COLUMN subject VARCHAR(255)'))
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
     # Allow requests from Vite frontend (usually port 5173)
-    CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}}, supports_credentials=True)
+    CORS(
+        app,
+        resources={r"/*": {"origins": ["http://localhost:5173", "http://localhost:5174"]}},
+        supports_credentials=True,
+    )
 
     db.init_app(app)
+    socketio.init_app(app)
 
     @app.route('/health', methods=['GET'])
     def health_check():
         return jsonify({"status": "ok", "message": "CE Study Assistant API is running"}), 200
+
+    @app.errorhandler(413)
+    def request_entity_too_large(error):
+        return jsonify({"error": "File too large. Maximum size is 10MB."}), 413
+
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        return jsonify({"error": "An unexpected error occurred. Please try again."}), 500
+
+    @app.errorhandler(Exception)
+    def handle_exception(error):
+        import logging
+        logging.getLogger(__name__).exception(f"Unhandled exception: {error}")
+        return jsonify({"error": "An unexpected error occurred. Please try again."}), 500
 
     # Import and register blueprints
     from routes.auth import auth_bp, oauth
@@ -111,6 +252,12 @@ def create_app():
     from routes.exam import exam_bp
     from routes.user import user_bp
     from routes.syllabus import syllabus_bp
+    from routes.exam_prep import exam_prep_bp
+    from routes.focus import focus_bp
+    from routes.career import career_bp
+    from routes.execute import execute_bp
+    from routes.progress import progress_bp
+    from routes.arcade import arcade_bp, register_arcade_socketio
     
     oauth.init_app(app)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -123,6 +270,13 @@ def create_app():
     app.register_blueprint(exam_bp, url_prefix='/exams')
     app.register_blueprint(user_bp, url_prefix='/user')
     app.register_blueprint(syllabus_bp, url_prefix='/syllabus')
+    app.register_blueprint(exam_prep_bp, url_prefix='/exam-prep')
+    app.register_blueprint(focus_bp, url_prefix='/focus')
+    app.register_blueprint(career_bp, url_prefix='/career')
+    app.register_blueprint(progress_bp, url_prefix='/progress')
+    app.register_blueprint(execute_bp)
+    app.register_blueprint(arcade_bp, url_prefix='/arcade')
+    register_arcade_socketio(socketio)
 
 
     # Ensure DB tables are created (useful for dev)
@@ -135,19 +289,29 @@ def create_app():
         from models.embedding import DocEmbedding
         from models.revision import RevisionPlan
         from models.exam import Exam
+        from models.focus import StudySession, UserAchievement
+        from models.career import CareerProfile
+        from models.arcade import Question, GameRoom, GameRoomPlayer, GameRound, ScoreboardEntry, ArcadePointEvent, ArcadeTopicMastery
+        from models.progress import ActivityLog, TopicProgress
+        from models.ai_usage import AiUsageLog
 
         
         # We will set up pgvector later during DB migrations, 
         # but for initial start, this avoids missing table errors.
         db.create_all()
         _ensure_user_profile_schema()
+        _ensure_subject_schema()
         _ensure_student_upload_schema()
         _ensure_mcq_count_schema()
         _ensure_quiz_set_upload_schema()
         _ensure_chat_session_schema()
+        _ensure_arcade_schema()
+        _ensure_calendar_schema()
+        _ensure_user_token_quota_schema()
+        _ensure_ai_usage_logs_schema()
 
     return app
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)

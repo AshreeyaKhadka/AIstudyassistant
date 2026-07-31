@@ -11,7 +11,9 @@ const OnboardingPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('/api/auth/me', { credentials: 'include' })
+    const controller = new AbortController();
+
+    fetch('/api/auth/me', { credentials: 'include', signal: controller.signal })
       .then(res => {
         if (!res.ok) throw new Error('Not logged in');
         return res.json();
@@ -21,9 +23,13 @@ const OnboardingPage = () => {
         setLoading(false);
       })
       .catch((err) => {
-        console.error(err);
-        navigate('/');
+        if (err.name !== 'AbortError') {
+          console.error(err);
+          navigate('/');
+        }
       });
+
+    return () => controller.abort();
   }, [navigate]);
 
   const handleSubmit = async (e) => {

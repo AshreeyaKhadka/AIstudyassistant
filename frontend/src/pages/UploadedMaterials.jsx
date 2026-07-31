@@ -1,34 +1,105 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   FileUp, Search, Trash2, Loader2, CheckCircle2,
-  AlertCircle, FileText, HardDrive, Filter, Plus,
-  Sparkles, BrainCircuit, Target, Trophy, ChevronRight, X, RefreshCw
+  AlertCircle, FileText, Folder, FolderOpen, ChevronRight, X,
+  BrainCircuit, Target, Trophy, AlertTriangle, UploadCloud, CornerLeftUp,
+  Eye
 } from 'lucide-react';
-import { useOutletContext } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useOutletContext, useNavigate, useLocation } from 'react-router-dom';
+import PDFViewerModal from '../components/PDFViewerModal';
+
+const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
+const SUPPORTED_UPLOAD_EXTENSIONS = ['.pdf', '.pptx', '.txt', '.png', '.jpg', '.jpeg', '.webp'];
+const SUPPORTED_UPLOAD_ACCEPT = SUPPORTED_UPLOAD_EXTENSIONS.join(',');
+
+const DEFAULT_SUBJECTS_BY_SEMESTER = {
+  1: ['Calculus I', 'Digital Logic', 'Programming in C', 'Basic Electrical Engineering', 'Computer Workshop', 'Communication Technique', 'Electronics Devices & Circuits'],
+  2: ['Algebra & Geometry', 'Applied Physics', 'Applied Chemistry', 'Basic Engineering Drawing', 'Object Oriented Programming in C++', 'Data Structure & Algorithm', 'Instrumentation'],
+  3: ['Calculus II', 'Database Management System', 'Operating Systems', 'Microprocessor & Assembly Language Programming', 'Computer Graphics', 'Data Communication'],
+  4: ['Applied Mathematics', 'Numerical Methods', 'Advanced Programming with Java', 'Theory of Computation', 'Computer Architecture', 'Research Fundamentals'],
+  5: ['Probability & Statistics', 'Embedded System', 'Engineering Management', 'Artificial Intelligence', 'Digital Signal Analysis Processing', 'Software Engineering'],
+  6: ['Image Processing & Pattern Recognition', 'Machine Learning', 'Data Science & Analytics', 'Computer Networks', 'Simulation & Modeling'],
+  7: ['Network & Cyber Security', 'Cloud Computing & Virtualization', 'Compiler Design', 'Project Phase I'],
+  8: ['Project Phase II', 'Engineering Ethics', 'Elective III']
+};
 
 const UploadedMaterials = () => {
   const { user } = useOutletContext();
-  const userSemester = user?.semester || '';
-  const [dbSubjects, setDbSubjects] = useState([]);
-  const [selectedUploadSubjectId, setSelectedUploadSubjectId] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
 
+  // Navigation State (Mac Finder hierarchy)
+  const [currentSemester, setCurrentSemester] = useState(null);
+  const [currentSubject, setCurrentSubject] = useState(null);
+
+  const [dbSubjects, setDbSubjects] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [mastery, setMastery] = useState(null);
+  const [masteryLoading, setMasteryLoading] = useState(false);
+  const [autoPlanning, setAutoPlanning] = useState(false);
+
+  // Search & Filter
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Upload Modal State
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadSemester, setUploadSemester] = useState(1);
+  const [uploadSubject, setUploadSubject] = useState('');
+  const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+
+  // Document viewer modal state
+  const [viewingFile, setViewingFile] = useState(null);
+
+  // Status notification
   const [status, setStatus] = useState({ type: '', message: '' });
-  const [filterSubject, setFilterSubject] = useState('All');
-  const [generating, setGenerating] = useState(null); // { uploadId, type }
-  const [generatedContent, setGeneratedContent] = useState(null); // { type, data, source }
-  const [retrying, setRetrying] = useState(null); // uploadId being retried
-  const [deleting, setDeleting] = useState(null); // uploadId being deleted
-  const [confirmDelete, setConfirmDelete] = useState(null); // uploadId to confirm delete
+
+  // Action Modals
+  const [generating, setGenerating] = useState(null);
+  const [validatingUploadId, setValidatingUploadId] = useState(null);
+  const [generatedContent, setGeneratedContent] = useState(null);
+  const [confirmDeleteFile, setConfirmDeleteFile] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchMaterials();
     fetchDbSubjects();
   }, []);
+
+  useEffect(() => {
+    if (!currentSubject || !dbSubjects.length) {
+      setMastery(null);
+      return;
+    }
+    const matchedSub = dbSubjects.find(s => s.name.toLowerCase() === currentSubject.toLowerCase());
+    if (!matchedSub) {
+      setMastery(null);
+      return;
+    }
+    fetchSubjectMastery(matchedSub.id);
+  }, [currentSubject, dbSubjects.length]);
+
+  // Handle location state redirection from Dashboard
+  useEffect(() => {
+    if (location.state?.search) {
+      setSearchQuery(location.state.search);
+    } else if (location.state?.subject) {
+      const subj = location.state.subject;
+      // Find semester for subject
+      let semFound = 1;
+      for (const [sem, subs] of Object.entries(DEFAULT_SUBJECTS_BY_SEMESTER)) {
+        if (subs.some(s => s.toLowerCase() === subj.toLowerCase())) {
+          semFound = Number(sem);
+          break;
+        }
+      }
+      setCurrentSemester(semFound);
+      setCurrentSubject(subj);
+    }
+  }, [location.state]);
 
   const fetchDbSubjects = async () => {
     try {
@@ -57,32 +128,93 @@ const UploadedMaterials = () => {
     }
   };
 
-  const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const fetchSubjectMastery = async (subjectId) => {
+    try {
+      setMasteryLoading(true);
+      const res = await fetch(`/api/syllabus/${subjectId}/mastery`, { credentials: 'include' });
+      if (res.ok) {
+        setMastery(await res.json());
+      } else {
+        setMastery(null);
+      }
+    } catch (err) {
+      setMastery(null);
+    } finally {
+      setMasteryLoading(false);
+    }
+  };
 
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setStatus({ type: 'error', message: 'Only PDF files are allowed.' });
+  const getSubjectsForSemester = (sem) => {
+    const fromDb = dbSubjects.filter(s => Number(s.semester) === Number(sem)).map(s => s.name);
+    const defaults = DEFAULT_SUBJECTS_BY_SEMESTER[sem] || [];
+    return Array.from(new Set([...fromDb, ...defaults]));
+  };
+
+  const getMaterialSemester = (m) => {
+    if (!m.subject) return 1;
+    const dbSub = dbSubjects.find(s => s.name.toLowerCase() === m.subject.toLowerCase());
+    if (dbSub && dbSub.semester) return Number(dbSub.semester);
+    for (const [sem, subs] of Object.entries(DEFAULT_SUBJECTS_BY_SEMESTER)) {
+      if (subs.some(s => s.toLowerCase() === m.subject.toLowerCase())) {
+        return Number(sem);
+      }
+    }
+    return 1;
+  };
+
+  const handleOpenUpload = () => {
+    setUploadSemester(currentSemester || 1);
+    const availSubs = getSubjectsForSemester(currentSemester || 1);
+    setUploadSubject(currentSubject || availSubs[0] || '');
+    setUploadFile(null);
+    setShowUploadModal(true);
+  };
+
+  const handleUploadSubmit = async (e) => {
+    e.preventDefault();
+    if (!uploadFile) {
+      setStatus({ type: 'error', message: 'Please select a study material file.' });
       return;
     }
 
-    if (!selectedUploadSubjectId) {
-      setStatus({ type: 'error', message: 'You must select a subject from the dropdown before uploading study materials.' });
-      if (fileInputRef.current) fileInputRef.current.value = '';
+    const lowerName = uploadFile.name.toLowerCase();
+    const supported = SUPPORTED_UPLOAD_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
+    if (!supported) {
+      setStatus({ type: 'error', message: 'Upload PDF/PPTX slides, TXT notes, or PNG/JPG/WEBP handwritten-note images.' });
       return;
     }
 
-    const matchedSub = dbSubjects.find(s => String(s.id) === String(selectedUploadSubjectId));
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('subject_id', selectedUploadSubjectId);
-    if (matchedSub) {
-      formData.append('subject', matchedSub.name);
+    if (!uploadSubject.trim()) {
+      setStatus({ type: 'error', message: 'Please select or enter a subject.' });
+      return;
     }
 
     try {
       setUploading(true);
-      setStatus({ type: 'loading', message: 'Uploading and analyzing your document...' });
+      setStatus({ type: 'loading', message: 'Filing document into vault...' });
+
+      let matchedSub = dbSubjects.find(s => s.name.toLowerCase() === uploadSubject.trim().toLowerCase());
+      if (!matchedSub) {
+        const subjectRes = await fetch('/api/syllabus/subjects', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: uploadSubject.trim(),
+            semester: uploadSemester,
+            credits: 3,
+          }),
+        });
+        const subjectData = await subjectRes.json();
+        if (!subjectRes.ok) throw new Error(subjectData.error || 'Could not create the selected subject.');
+        matchedSub = subjectData;
+        setDbSubjects((current) => [...current, subjectData]);
+      }
+
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('subject_id', matchedSub.id);
+      formData.append('subject', matchedSub.name || uploadSubject.trim());
 
       const res = await fetch('/api/upload/', {
         method: 'POST',
@@ -93,17 +225,76 @@ const UploadedMaterials = () => {
       const data = await res.json();
 
       if (res.ok) {
-        setStatus({ type: 'success', message: 'File uploaded successfully! AI indexing in background...' });
+        setStatus({ type: 'success', message: `Filed "${uploadFile.name}" into ${uploadSubject}. Validation will run after indexing.` });
+        setShowUploadModal(false);
         fetchMaterials();
-        setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+        setCurrentSemester(uploadSemester);
+        setCurrentSubject(matchedSub.name || uploadSubject.trim());
+        setTimeout(() => setStatus({ type: '', message: '' }), 4000);
       } else {
-        setStatus({ type: 'error', message: data.error || 'Failed to upload file.' });
+        setStatus({ type: 'error', message: data.error || 'Failed to upload document.' });
       }
     } catch (err) {
-      setStatus({ type: 'error', message: 'Network error. Please try again.' });
+      setStatus({ type: 'error', message: err.message || 'Network error during upload.' });
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleValidate = async (uploadId) => {
+    setValidatingUploadId(uploadId);
+    try {
+      const res = await fetch(`/api/upload/${uploadId}/validate`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const pct = Math.round((data.syllabus_match_coverage || 0) * 100);
+        setStatus({
+          type: data.validation_status === 'approved' ? 'success' : 'error',
+          message: data.validation_status === 'approved'
+            ? `Material approved against syllabus (${pct}% chunk match).`
+            : data.validation_error || 'Material did not match the selected syllabus.',
+        });
+        fetchMaterials();
+        if (currentSubject) {
+          const matchedSub = dbSubjects.find(s => s.name.toLowerCase() === currentSubject.toLowerCase());
+          if (matchedSub) fetchSubjectMastery(matchedSub.id);
+        }
+      } else {
+        setStatus({ type: 'error', message: data.error || 'Could not validate this material.' });
+      }
+    } catch (err) {
+      setStatus({ type: 'error', message: 'Network error during validation.' });
+    } finally {
+      setValidatingUploadId(null);
+      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+    }
+  };
+
+  const handleAutoPlan = async () => {
+    const matchedSub = dbSubjects.find(s => currentSubject && s.name.toLowerCase() === currentSubject.toLowerCase());
+    if (!matchedSub) return;
+    setAutoPlanning(true);
+    try {
+      const res = await fetch(`/api/revision-plans/auto/${matchedSub.id}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 5 }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatus({ type: 'success', message: `Created ${data.count} revision task${data.count === 1 ? '' : 's'} from mastery gaps.` });
+      } else {
+        setStatus({ type: 'error', message: data.error || 'Could not create revision tasks.' });
+      }
+    } catch (err) {
+      setStatus({ type: 'error', message: 'Network error during revision planning.' });
+    } finally {
+      setAutoPlanning(false);
+      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
     }
   };
 
@@ -134,782 +325,864 @@ const UploadedMaterials = () => {
         setGeneratedContent({
           type,
           data,
-          source: data.source_doc,
+          source: data.source_doc || 'Uploaded material',
         });
       } else {
-        setStatus({ type: 'error', message: data.error || 'Generation failed.' });
-        setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+        setStatus({ type: 'error', message: data.error || 'Material generation failed.' });
+        setTimeout(() => setStatus({ type: '', message: '' }), 4000);
       }
     } catch (err) {
       setStatus({ type: 'error', message: 'Network error during generation.' });
-      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
+      setTimeout(() => setStatus({ type: '', message: '' }), 4000);
     } finally {
       setGenerating(null);
     }
   };
 
-  const handleRetryEmbedding = async (uploadId) => {
-    setRetrying(uploadId);
+  const executeDelete = async () => {
+    if (!confirmDeleteFile) return;
+    setDeleting(true);
     try {
-      const res = await fetch('/api/upload/retry-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ upload_id: uploadId }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        setStatus({ type: 'success', message: 'Re-indexing started...' });
-        setTimeout(() => {
-          fetchMaterials();
-          setStatus({ type: '', message: '' });
-        }, 2000);
-      } else {
-        setStatus({ type: 'error', message: data.error || 'Retry failed.' });
-        setTimeout(() => setStatus({ type: '', message: '' }), 5000);
-      }
-    } catch (err) {
-      setStatus({ type: 'error', message: 'Network error during retry.' });
-      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
-    } finally {
-      setRetrying(null);
-    }
-  };
-
-  const handleDelete = async (uploadId) => {
-    setDeleting(uploadId);
-    setConfirmDelete(null);
-    try {
-      const res = await fetch(`/api/upload/${uploadId}`, {
+      const res = await fetch(`/api/upload/${confirmDeleteFile.id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
 
-      const data = await res.json();
-
       if (res.ok) {
-        setMaterials(prev => prev.filter(m => m.id !== uploadId));
-        setStatus({ type: 'success', message: 'Document deleted successfully.' });
+        setMaterials(prev => prev.filter(m => m.id !== confirmDeleteFile.id));
+        setStatus({ type: 'success', message: `Removed "${confirmDeleteFile.filename}".` });
         setTimeout(() => setStatus({ type: '', message: '' }), 3000);
-      } else {
-        setStatus({ type: 'error', message: data.error || 'Failed to delete.' });
-        setTimeout(() => setStatus({ type: '', message: '' }), 5000);
       }
     } catch (err) {
       setStatus({ type: 'error', message: 'Network error during deletion.' });
-      setTimeout(() => setStatus({ type: '', message: '' }), 5000);
     } finally {
-      setDeleting(null);
-    }
-  };
-
-  const handleUpdateSubject = async (uploadId, newSubject) => {
-    try {
-      const res = await fetch(`/api/upload/${uploadId}/subject`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ subject: newSubject }),
-      });
-
-      if (res.ok) {
-        setMaterials(prev => prev.map(m => m.id === uploadId ? { ...m, subject: newSubject } : m));
-        setStatus({ type: 'success', message: `Subject updated to ${newSubject}` });
-        setTimeout(() => setStatus({ type: '', message: '' }), 3000);
-      }
-    } catch (err) {
-      console.error("Failed to update subject:", err);
+      setDeleting(false);
+      setConfirmDeleteFile(null);
     }
   };
 
   const formatSize = (bytes) => {
-    if (!bytes) return '0 Bytes';
+    if (!bytes) return '0.1 MB';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const filteredMaterials = materials.filter(m =>
-    filterSubject === 'All' || m.subject === filterSubject
-  );
+  const totalSizeBytes = materials.reduce((acc, m) => acc + (m.size_bytes || 0), 0);
+  const uniqueSubjectsCount = new Set(materials.map(m => m.subject).filter(Boolean)).size;
 
-  const UPLOAD_LIMIT = 10;
-  const usagePercentage = (materials.length / UPLOAD_LIMIT) * 100;
+  const isSearching = searchQuery.trim() !== '';
+
+  const getSemesterFileCount = (sem) => {
+    return materials.filter(m => getMaterialSemester(m) === sem).length;
+  };
+
+  const getSubjectFileCount = (sem, subj) => {
+    return materials.filter(m => getMaterialSemester(m) === sem && m.subject?.toLowerCase() === subj.toLowerCase()).length;
+  };
+
+  const currentFiles = materials.filter(m => {
+    if (isSearching) {
+      return m.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             (m.subject && m.subject.toLowerCase().includes(searchQuery.toLowerCase()));
+    }
+    if (currentSemester && currentSubject) {
+      return getMaterialSemester(m) === currentSemester && m.subject?.toLowerCase() === currentSubject.toLowerCase();
+    }
+    return false;
+  });
 
   return (
-    <div className="flex flex-col min-h-full gap-12 pb-12">
-      {/* Dynamic Header with Animated Quota */}
-      <div className="relative overflow-hidden bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] w-full">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/40 rounded-full blur-3xl -mr-32 -mt-32" />
-        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-1">
-            <h3 className="text-3xl font-extrabold text-slate-800 tracking-tight">Study Vault</h3>
-            <p className="text-slate-500 font-medium max-w-md">Your personalized AI-ready repository of study materials and insights.</p>
+    <div className="flex flex-col gap-6 pb-12">
+      {/* 1. Header Card */}
+      <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-1 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#102326]"></span>
+            YOUR BRAIN'S EXTERNAL HARD DRIVE
           </div>
+          <h1 className="text-2xl font-bold text-[#111111] tracking-tight">Study Vault</h1>
+          <p className="text-xs text-[#666666] mt-0.5 max-w-xl">
+            Drop PDFs, PPTX slide decks, typed notes, or handwritten-note images here. We'll validate them against the syllabus before using them for RAG.
+          </p>
+        </div>
 
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="hidden lg:flex flex-col items-end gap-2 pr-4 border-r border-slate-100">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <HardDrive size={12} /> Storage Usage
-              </div>
-              <div className="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${usagePercentage}%` }}
-                  className={`h-full ${usagePercentage > 80 ? 'bg-rose-500' : 'bg-blue-600'}`}
-                />
-              </div>
-              <span className="text-[11px] font-bold text-slate-600">{materials.length} / {UPLOAD_LIMIT} PDFs</span>
-            </div>
+        <button
+          onClick={handleOpenUpload}
+          className="px-4 py-2.5 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] font-mono text-xs font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-2 shrink-0 shadow-xs"
+        >
+          <FileUp size={15} />
+          <span>UPLOAD MATERIAL</span>
+        </button>
+      </div>
 
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept=".pdf"
-              onChange={handleUpload}
-            />
-            {/* Subject selector dropdown (required before upload) */}
-            <select
-              value={selectedUploadSubjectId}
-              onChange={(e) => setSelectedUploadSubjectId(e.target.value)}
-              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all min-w-[160px]"
-            >
-              <option value="">Select subject...</option>
-              {dbSubjects.map(s => (
-                <option key={s.id} value={s.id}>{s.name} (S{s.semester})</option>
-              ))}
-            </select>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className={`flex-1 md:flex-none px-7 py-4 bg-slate-900 text-white rounded-2xl text-sm font-bold shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all flex items-center justify-center gap-3 ${uploading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              {uploading ? <Loader2 className="animate-spin" size={20} /> : <FileUp size={20} />}
-              {uploading ? 'Processing...' : 'Upload Material'}
-            </motion.button>
-          </div>
+      {/* 2. Stats Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 border border-[#D7D3CF] bg-white rounded-[4px] divide-y sm:divide-y-0 sm:divide-x divide-[#D7D3CF] overflow-hidden">
+        <div className="p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">TOTAL MATERIALS</span>
+          <span className="text-xl font-bold font-mono text-[#111111] mt-1">{materials.length} Files</span>
+        </div>
+        <div className="p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">STORAGE USED</span>
+          <span className="text-xl font-bold font-mono text-[#111111] mt-1">{formatSize(totalSizeBytes)}</span>
+        </div>
+        <div className="p-4 flex flex-col justify-between bg-[#FFFDFB]">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#C96A32] font-semibold">COVERED SUBJECTS</span>
+          <span className="text-xl font-bold font-mono text-[#C96A32] mt-1">{uniqueSubjectsCount} Subjects</span>
         </div>
       </div>
 
-      {/* Real-time Status Inbox */}
-      <AnimatePresence>
-        {status.message && (
-          <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className={`flex items-center gap-4 p-5 rounded-[1.5rem] text-sm font-bold border-2 ${status.type === 'error' ? 'bg-red-50 text-red-700 border-red-100' :
-              status.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                'bg-blue-50/50 text-blue-800 border-blue-100 backdrop-blur-sm'
-              }`}
-          >
-            <div className={`p-2 rounded-xl ${status.type === 'error' ? 'bg-red-100' :
-              status.type === 'success' ? 'bg-emerald-100' : 'bg-blue-100'
-              }`}>
-              {status.type === 'error' && <AlertCircle size={20} />}
-              {status.type === 'success' && <CheckCircle2 size={20} />}
-              {status.type === 'loading' && <Loader2 className="animate-spin text-blue-600" size={20} />}
-            </div>
-            <div className="flex-1">
-              <p>{status.message}</p>
-              {status.type === 'loading' && (
-                <div className="w-full h-1 bg-blue-200/50 rounded-full mt-2 overflow-hidden">
-                  <motion.div
-                    initial={{ x: '-100%' }}
-                    animate={{ x: '100%' }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                    className="w-1/2 h-full bg-blue-600"
-                  />
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Smart Subject Filter Ribbon */}
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-            <Filter size={14} /> Filter Curriculum
+      {/* Status Alert */}
+      {status.message && (
+        <div className={`p-3 rounded-[4px] text-xs font-mono flex items-center justify-between border ${
+          status.type === 'error' ? 'bg-[#FFFDFB] text-[#C96A32] border-[#D7D3CF]' :
+          status.type === 'success' ? 'bg-white text-[#102326] border-[#102326]' :
+          'bg-white text-[#111111] border-[#D7D3CF]'
+        }`}>
+          <div className="flex items-center gap-2">
+            {status.type === 'loading' && <Loader2 className="animate-spin" size={14} />}
+            {status.type === 'success' && <CheckCircle2 size={14} />}
+            {status.type === 'error' && <AlertCircle size={14} />}
+            <span>{status.message}</span>
           </div>
-          <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full uppercase">
-            Semester {userSemester}
-          </span>
+          <button onClick={() => setStatus({ type: '', message: '' })} className="underline text-[10px]">Dismiss</button>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none">
+      )}
+
+      {/* 3. Finder Toolbar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 border border-[#D7D3CF] rounded-[4px]">
+        {/* Breadcrumb Navigation */}
+        <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-[#111111] overflow-x-auto py-1">
           <button
-            onClick={() => setFilterSubject('All')}
-            className={`px-6 py-3 rounded-2xl text-xs font-bold whitespace-nowrap transition-all shadow-sm ${filterSubject === 'All'
-              ? 'bg-blue-600 text-white shadow-blue-200'
-              : 'bg-white text-slate-500 border border-slate-100 hover:border-blue-200'
-              }`}
+            onClick={() => { setCurrentSemester(null); setCurrentSubject(null); setSearchQuery(''); }}
+            className={`hover:text-[#C96A32] transition-colors flex items-center gap-1 ${
+              !currentSemester && !isSearching ? 'font-bold text-[#102326]' : 'text-[#666666]'
+            }`}
           >
-            Full Collection
+            <Folder size={14} className="text-[#102326]" />
+            <span>Study Vault</span>
           </button>
-          {dbSubjects.map(subject => (
-            <button
-              key={subject.id}
-              onClick={() => setFilterSubject(subject.name)}
-              className={`px-6 py-3 rounded-2xl text-xs font-bold whitespace-nowrap transition-all shadow-sm ${filterSubject === subject.name
-                ? 'bg-blue-600 text-white shadow-blue-200'
-                : 'bg-white text-slate-500 border border-slate-100 hover:border-blue-200'
+
+          {currentSemester && (
+            <>
+              <ChevronRight size={13} className="text-[#666666] shrink-0" />
+              <button
+                onClick={() => { setCurrentSubject(null); setSearchQuery(''); }}
+                className={`hover:text-[#C96A32] transition-colors whitespace-nowrap ${
+                  !currentSubject && !isSearching ? 'font-bold text-[#102326]' : 'text-[#666666]'
                 }`}
-            >
-              {subject.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Grid View */}
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center justify-between px-1">
-          <h4 className="text-xl font-bold text-slate-800 flex items-center gap-3">
-            Your Documents
-            <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full font-mono text-[11px] text-slate-500">
-              <FileIcon size={12} /> {materials.length}
-            </div>
-          </h4>
-        </div>
-
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-32 bg-white rounded-[3rem] border border-dashed border-slate-200 gap-6">
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-slate-100 border-t-blue-600 rounded-full animate-spin" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <HardDrive size={24} className="text-slate-300" />
-              </div>
-            </div>
-            <div className="text-center space-y-1">
-              <p className="text-slate-800 font-extrabold text-sm uppercase tracking-widest">Accessing Vault</p>
-              <p className="text-slate-400 text-xs font-medium">Encrypting local connection...</p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {/* Functional Upload Trigger */}
-            <motion.div
-              whileHover={{ scale: 1.02, borderColor: '#3b82f6' }}
-              onClick={() => fileInputRef.current?.click()}
-              className="h-full min-h-[220px] bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-[2.5rem] flex flex-col items-center justify-center text-center p-8 cursor-pointer group transition-all"
-            >
-              <div className="w-14 h-14 bg-white text-slate-300 group-hover:text-blue-500 group-hover:shadow-blue-100 rounded-2xl flex items-center justify-center mb-4 transition-all shadow-sm">
-                <Plus size={32} />
-              </div>
-              <p className="text-sm font-bold text-slate-400 group-hover:text-slate-600">Add Source</p>
-            </motion.div>
-
-            <AnimatePresence mode="popLayout">
-              {filteredMaterials.map((file) => (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  key={file.id}
-                  className="group relative bg-white rounded-[2.5rem] border border-slate-100 p-6 flex flex-col gap-5 hover:shadow-[0_20px_50px_rgba(37,99,235,0.08)] hover:border-blue-100 transition-all duration-300"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="w-14 h-14 bg-rose-50 text-rose-500 rounded-[1.25rem] flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-all duration-500 shadow-sm">
-                      <FileText size={28} />
-                    </div>
-                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setConfirmDelete(file.id); }}
-                        disabled={deleting === file.id}
-                        className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all shadow-sm disabled:opacity-50"
-                        title="Delete"
-                      >
-                        {deleting === file.id ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <p className="text-[15px] font-extrabold text-slate-800 truncate leading-tight" title={file.filename}>
-                      {file.filename}
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[11px] font-bold text-slate-400">{formatSize(file.size_bytes)}</span>
-                      <span className="w-1.5 h-1.5 bg-slate-100 rounded-full" />
-                      <span className="text-[11px] font-bold text-slate-400">
-                        {new Date(file.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg border ${file.subject ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-slate-50 text-slate-400 border-slate-100'
-                        }`}>
-                        {file.subject || 'No Subject'}
-                      </span>
-                      <select
-                        value={file.subject || ''}
-                        onChange={(e) => handleUpdateSubject(file.id, e.target.value)}
-                        className="text-[10px] bg-slate-50 border-none rounded-lg px-2 py-1 font-bold text-slate-500 focus:ring-0 cursor-pointer hover:bg-slate-100 transition-colors"
-                      >
-                        <option value="">Move to...</option>
-                        {dbSubjects.map(s => (
-                          <option key={s.id} value={s.name}>{s.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md ${(file.mcq_generation_count || 0) >= 2
-                        ? 'bg-rose-50 text-rose-600'
-                        : (file.mcq_generation_count || 0) >= 1
-                          ? 'bg-amber-50 text-amber-600'
-                          : 'bg-slate-50 text-slate-400'
-                        }`}>
-                        MCQs: {file.mcq_generation_count || 0}/2 used
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Embedding Status */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      {file.embedding_status === 'embedded' && (
-                        <>
-                          <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-tight">AI Indexed</span>
-                        </>
-                      )}
-                      {file.embedding_status === 'indexing' && (
-                        <>
-                          <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tight">Indexing...</span>
-                        </>
-                      )}
-                      {file.embedding_status === 'pending' && (
-                        <>
-                          <div className="w-2 h-2 rounded-full bg-amber-400" />
-                          <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tight">Pending</span>
-                        </>
-                      )}
-                      {file.embedding_status === 'failed' && (
-                        <>
-                          <div className="w-2 h-2 rounded-full bg-red-400" />
-                          <span className="text-[10px] font-bold text-red-600 uppercase tracking-tight">Failed</span>
-                        </>
-                      )}
-                    </div>
-                    {file.embedding_status === 'failed' && file.embedding_error && (
-                      <div className="bg-red-50 border border-red-100 rounded-xl p-3">
-                        <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mb-1">Error</p>
-                        <p className="text-[11px] text-red-700 leading-relaxed line-clamp-2">{file.embedding_error}</p>
-                        <button
-                          onClick={() => handleRetryEmbedding(file.id)}
-                          disabled={retrying === file.id}
-                          className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-red-600 hover:text-red-700 disabled:opacity-50"
-                        >
-                          {retrying === file.id ? (
-                            <Loader2 className="animate-spin" size={12} />
-                          ) : (
-                            <RefreshCw size={12} />
-                          )}
-                          {retrying === file.id ? 'Retrying...' : 'Retry Indexing'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Generate Study Materials Buttons */}
-                  <div className="pt-4 border-t border-slate-50/80 flex flex-col gap-2">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Generate from this doc</p>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <GenerateButton
-                        icon={<BrainCircuit size={14} />}
-                        label="Cards"
-                        color="orange"
-                        loading={generating?.uploadId === file.id && generating?.type === 'flashcards'}
-                        onClick={() => handleGenerate(file.id, 'flashcards')}
-                        disabled={!!generating}
-                      />
-                      <GenerateButton
-                        icon={<Target size={14} />}
-                        label="MCQs"
-                        color="blue"
-                        loading={generating?.uploadId === file.id && generating?.type === 'mcqs'}
-                        onClick={() => handleGenerate(file.id, 'mcqs')}
-                        disabled={!!generating}
-                      />
-                      <GenerateButton
-                        icon={<Trophy size={14} />}
-                        label="Exam"
-                        color="indigo"
-                        loading={generating?.uploadId === file.id && generating?.type === 'exam-questions'}
-                        onClick={() => handleGenerate(file.id, 'exam-questions')}
-                        disabled={!!generating}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-
-            {filteredMaterials.length === 0 && !loading && (
-              <div className="col-span-full py-24 bg-white border-2 border-dashed border-slate-100 rounded-[3.5rem] flex flex-col items-center justify-center text-center">
-                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                  <Search size={32} className="text-slate-200" />
-                </div>
-                <p className="text-slate-800 font-extrabold text-lg mb-1">No documents found</p>
-                <p className="text-slate-400 text-sm font-medium max-w-xs px-6">We couldn't find any documents matching your current filters. Try selecting "Full Collection".</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {confirmDelete && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-            onClick={() => setConfirmDelete(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 40 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 40 }}
-              onClick={e => e.stopPropagation()}
-              className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8 text-center"
-            >
-              <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Trash2 size={28} className="text-rose-500" />
-              </div>
-              <h3 className="text-xl font-extrabold text-slate-800 mb-2">Delete Document?</h3>
-              <p className="text-slate-500 text-sm font-medium mb-8">
-                This will permanently remove the file and all its AI embeddings. This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setConfirmDelete(null)}
-                  className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-2xl font-bold hover:bg-slate-200 transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleDelete(confirmDelete)}
-                  disabled={deleting === confirmDelete}
-                  className="flex-1 py-3 bg-rose-600 text-white rounded-2xl font-bold hover:bg-rose-700 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
-                >
-                  {deleting === confirmDelete ? (
-                    <><Loader2 className="animate-spin" size={16} /> Deleting...</>
-                  ) : (
-                    'Delete'
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Generated Content Modal */}
-      <AnimatePresence>
-        {generatedContent && (
-          <GeneratedContentModal
-            content={generatedContent}
-            onClose={() => setGeneratedContent(null)}
-          />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// Sub-components
-// ---------------------------------------------------------------------------
-
-const GenerateButton = ({ icon, label, color, loading, onClick, disabled }) => {
-  const colors = {
-    orange: 'bg-orange-50 text-orange-600 hover:bg-orange-100 border-orange-100',
-    blue: 'bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-100',
-    indigo: 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100',
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl text-[10px] font-bold border transition-all ${colors[color]} ${disabled && !loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-    >
-      {loading ? <Loader2 className="animate-spin" size={14} /> : icon}
-      {label}
-    </button>
-  );
-};
-
-const GeneratedContentModal = ({ content, onClose }) => {
-  const { type, data, source } = content;
-
-  const titles = {
-    flashcards: 'Generated Flashcards',
-    mcqs: 'Generated MCQs',
-    'exam-questions': 'Probable Exam Questions',
-  };
-
-  const icons = {
-    flashcards: <BrainCircuit size={24} />,
-    mcqs: <Target size={24} />,
-    'exam-questions': <Trophy size={24} />,
-  };
-
-  const colorClasses = {
-    flashcards: 'from-orange-500 to-amber-500',
-    mcqs: 'from-blue-500 to-indigo-500',
-    'exam-questions': 'from-indigo-500 to-purple-500',
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 40 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 40 }}
-        onClick={e => e.stopPropagation()}
-        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
-      >
-        {/* Header */}
-        <div className={`p-6 bg-gradient-to-r ${colorClasses[type]} text-white flex items-center justify-between`}>
-          <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">{icons[type]}</div>
-            <div>
-              <h2 className="text-xl font-extrabold">{titles[type]}</h2>
-              <p className="text-sm opacity-80 font-medium">From: {source}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-colors">
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {type === 'flashcards' && data.flashcards?.map((fc, i) => (
-            <FlashcardItem key={i} index={i} front={fc.front} back={fc.back} />
-          ))}
-
-          {type === 'mcqs' && data.mcqs?.map((mcq, i) => (
-            <MCQItem key={i} index={i} {...mcq} />
-          ))}
-
-          {type === 'exam-questions' && data.exam_questions?.map((q, i) => (
-            <ExamQuestionItem key={i} index={i} {...q} />
-          ))}
-        </div>
-
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <span className="text-xs font-bold text-slate-400">
-            {data.count || 0} items • {data.chunks_used || 0} context sections used
-          </span>
-          <button
-            onClick={onClose}
-            className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-slate-800 transition-all"
-          >
-            Close
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
-
-const FlashcardItem = ({ index, front, back }) => {
-  const [flipped, setFlipped] = useState(false);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      onClick={() => setFlipped(!flipped)}
-      className="bg-white border border-slate-100 rounded-2xl p-5 cursor-pointer hover:shadow-lg hover:border-blue-100 transition-all group"
-    >
-      <div className="flex items-start gap-4">
-        <div className="w-8 h-8 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center text-xs font-extrabold flex-shrink-0">
-          {index + 1}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-slate-800 text-sm leading-relaxed">{front}</p>
-          <AnimatePresence>
-            {flipped && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-3 pt-3 border-t border-slate-100"
               >
-                <p className="text-slate-600 text-sm leading-relaxed">{back}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {!flipped && (
-            <p className="text-[10px] font-bold text-blue-500 mt-2 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-              Click to reveal answer
-            </p>
+                Semester {currentSemester}
+              </button>
+            </>
+          )}
+
+          {currentSubject && (
+            <>
+              <ChevronRight size={13} className="text-[#666666] shrink-0" />
+              <span className="font-bold text-[#102326] truncate max-w-[180px]">
+                {currentSubject}
+              </span>
+            </>
+          )}
+
+          {isSearching && (
+            <>
+              <ChevronRight size={13} className="text-[#666666] shrink-0" />
+              <span className="font-bold text-[#C96A32]">Search Results</span>
+            </>
+          )}
+        </div>
+
+        {/* Search Input */}
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666]" size={14} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search all files or subjects..."
+            className="w-full pl-9 pr-8 py-1.5 bg-[#F7F5F2] border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] text-xs font-mono text-[#111111] outline-none"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#666666] hover:text-[#111111]"
+            >
+              <X size={13} />
+            </button>
           )}
         </div>
       </div>
-    </motion.div>
-  );
-};
 
-const MCQItem = ({ index, question, options, correct, explanation }) => {
-  const [selected, setSelected] = useState(null);
-  const [showExplanation, setShowExplanation] = useState(false);
-
-  const handleSelect = (key) => {
-    setSelected(key);
-    setShowExplanation(true);
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="bg-white border border-slate-100 rounded-2xl p-5"
-    >
-      <div className="flex items-start gap-4">
-        <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xs font-extrabold flex-shrink-0">
-          {index + 1}
+      {/* 4. Mac Finder Style Grid Content */}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 animate-pulse">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+            <div key={i} className="h-28 bg-white border border-[#D7D3CF] rounded-[4px]"></div>
+          ))}
         </div>
-        <div className="flex-1">
-          <p className="font-bold text-slate-800 text-sm leading-relaxed mb-4">{question}</p>
-          <div className="grid grid-cols-1 gap-2">
-            {Object.entries(options || {}).map(([key, val]) => {
-              const isCorrect = key === correct;
-              const isSelected = key === selected;
-              let btnClass = 'bg-slate-50 border-slate-100 text-slate-700 hover:border-blue-200';
+      ) : isSearching ? (
+        /* Search View */
+        <div className="space-y-4">
+          <div className="text-xs font-mono text-[#666666]">
+            Showing results for <span className="font-bold text-[#111111]">"{searchQuery}"</span> ({currentFiles.length} found)
+          </div>
 
-              if (selected) {
-                if (isCorrect) btnClass = 'bg-emerald-50 border-emerald-300 text-emerald-800';
-                else if (isSelected && !isCorrect) btnClass = 'bg-rose-50 border-rose-300 text-rose-800';
-                else btnClass = 'bg-slate-50 border-slate-100 text-slate-400';
-              }
-
+          {currentFiles.length === 0 ? (
+            <div className="bg-white border border-dashed border-[#D7D3CF] rounded-[4px] p-12 text-center">
+              <FileText size={32} className="text-[#666666] mx-auto mb-2" />
+              <p className="text-xs font-mono text-[#666666]">No files found matching "{searchQuery}".</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {currentFiles.map(file => (
+                <FileCard
+                  key={file.id}
+                  file={file}
+                  formatSize={formatSize}
+                  onView={() => setViewingFile(file)}
+                  onDelete={() => setConfirmDeleteFile(file)}
+                  onGenerate={handleGenerate}
+                  onValidate={handleValidate}
+                  generating={generating}
+                  validating={validatingUploadId === file.id}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : !currentSemester ? (
+        /* Top Level View: Semester Folders 1..8 */
+        <div>
+          <div className="mb-3 text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
+            SEMESTER DIRECTORIES
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {SEMESTERS.map((sem) => {
+              const fileCount = getSemesterFileCount(sem);
+              const subjectCount = getSubjectsForSemester(sem).length;
               return (
                 <button
-                  key={key}
-                  onClick={() => !selected && handleSelect(key)}
-                  disabled={!!selected}
-                  className={`text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all ${btnClass}`}
+                  key={sem}
+                  onClick={() => setCurrentSemester(sem)}
+                  className="bg-white hover:bg-[#FAF9F7] border border-[#D7D3CF] rounded-[4px] p-4 text-left transition-all hover:border-[#102326] flex flex-col justify-between group shadow-2xs"
                 >
-                  <span className="font-bold mr-2">{key}.</span> {val}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-9 h-9 rounded-[4px] bg-[#ECEAE7] group-hover:bg-[#102326] group-hover:text-white text-[#102326] flex items-center justify-center transition-colors">
+                      <Folder size={20} strokeWidth={1.8} />
+                    </div>
+                    <span className="font-mono text-[10px] bg-[#F7F5F2] border border-[#D7D3CF] text-[#666666] px-1.5 py-0.5 rounded-[2px]">
+                      SEM {sem}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#111111] group-hover:text-[#102326]">
+                      Semester {sem}
+                    </h3>
+                    <p className="text-[11px] font-mono text-[#666666] mt-1">
+                      {subjectCount} Subjects • {fileCount} Files
+                    </p>
+                  </div>
                 </button>
               );
             })}
           </div>
-          <AnimatePresence>
-            {showExplanation && explanation && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100"
-              >
-                <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">Explanation</p>
-                <p className="text-sm text-blue-800 leading-relaxed">{explanation}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
-      </div>
-    </motion.div>
+      ) : !currentSubject ? (
+        /* Inside Semester View: Subject Folders */
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
+              SEMESTER {currentSemester} SUBJECT DIRECTORIES
+            </div>
+            <button
+              onClick={() => setCurrentSemester(null)}
+              className="text-xs font-mono text-[#666666] hover:text-[#102326] flex items-center gap-1"
+            >
+              <CornerLeftUp size={13} />
+              <span>Back to Semesters</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {getSubjectsForSemester(currentSemester).map((subjName) => {
+              const fileCount = getSubjectFileCount(currentSemester, subjName);
+              return (
+                <button
+                  key={subjName}
+                  onClick={() => setCurrentSubject(subjName)}
+                  className="bg-white hover:bg-[#FAF9F7] border border-[#D7D3CF] rounded-[4px] p-4 text-left transition-all hover:border-[#102326] flex items-center justify-between group shadow-2xs"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-[4px] bg-[#ECEAE7] group-hover:bg-[#102326] group-hover:text-white text-[#102326] flex items-center justify-center shrink-0 transition-colors">
+                      <FolderOpen size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-[#111111] truncate group-hover:text-[#102326]">
+                        {subjName}
+                      </h4>
+                      <p className="text-[10px] font-mono text-[#666666] mt-0.5">
+                        {fileCount} {fileCount === 1 ? 'File' : 'Files'} uploaded
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} className="text-[#666666] group-hover:text-[#102326] shrink-0" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* Inside Subject View: Material List */
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
+              FILES IN {currentSubject.toUpperCase()} ({currentFiles.length})
+            </div>
+            <button
+              onClick={() => setCurrentSubject(null)}
+              className="text-xs font-mono text-[#666666] hover:text-[#102326] flex items-center gap-1"
+            >
+              <CornerLeftUp size={13} />
+              <span>Back to Subject List</span>
+            </button>
+          </div>
+
+          <SubjectMasteryPanel
+            mastery={mastery}
+            loading={masteryLoading}
+            onAutoPlan={handleAutoPlan}
+            autoPlanning={autoPlanning}
+          />
+
+          {currentFiles.length === 0 ? (
+            <div className="bg-white border border-dashed border-[#D7D3CF] rounded-[4px] p-12 text-center space-y-3">
+              <FileText size={36} className="text-[#666666] mx-auto" />
+              <h3 className="text-sm font-bold text-[#111111]">This folder is empty</h3>
+              <p className="text-xs font-mono text-[#666666] max-w-sm mx-auto">
+                No materials uploaded for {currentSubject} yet. Click below to add syllabus-aligned notes or slides.
+              </p>
+              <button
+                onClick={handleOpenUpload}
+                className="px-4 py-2 bg-[#102326] text-white rounded-[4px] font-mono text-xs font-semibold uppercase inline-flex items-center gap-2"
+              >
+                <FileUp size={14} />
+                <span>UPLOAD TO {currentSubject.toUpperCase()}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {currentFiles.map(file => (
+                <FileCard
+                  key={file.id}
+                  file={file}
+                  formatSize={formatSize}
+                  onView={() => setViewingFile(file)}
+                  onDelete={() => setConfirmDeleteFile(file)}
+                  onGenerate={handleGenerate}
+                  onValidate={handleValidate}
+                  generating={generating}
+                  validating={validatingUploadId === file.id}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 5. Document Viewer Popup Modal */}
+      {viewingFile && (
+        <PDFViewerModal
+          file={viewingFile}
+          onClose={() => setViewingFile(null)}
+        />
+      )}
+
+      {/* 6. Upload Material Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white border border-[#D7D3CF] rounded-[4px] max-w-md w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#D7D3CF] pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-[#102326] text-white rounded-[4px] flex items-center justify-center">
+                  <UploadCloud size={16} />
+                </div>
+                <h3 className="text-sm font-bold text-[#111111]">Upload Material to Study Vault</h3>
+              </div>
+              <button onClick={() => setShowUploadModal(false)} className="text-[#666666] hover:text-[#111111]">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUploadSubmit} className="space-y-4">
+              {/* Semester Selector */}
+              <div>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-[#666666] mb-1">
+                  1. SELECT SEMESTER
+                </label>
+                <select
+                  value={uploadSemester}
+                  onChange={(e) => {
+                    const sem = Number(e.target.value);
+                    setUploadSemester(sem);
+                    const avail = getSubjectsForSemester(sem);
+                    setUploadSubject(avail[0] || '');
+                  }}
+                  className="w-full bg-[#F7F5F2] border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+                >
+                  {SEMESTERS.map(s => (
+                    <option key={s} value={s}>Semester {s}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Subject Selector */}
+              <div>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-[#666666] mb-1">
+                  2. SELECT SUBJECT
+                </label>
+                <select
+                  value={uploadSubject}
+                  onChange={(e) => setUploadSubject(e.target.value)}
+                  className="w-full bg-[#F7F5F2] border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+                >
+                  {getSubjectsForSemester(uploadSemester).map(sub => (
+                    <option key={sub} value={sub}>{sub}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* File Selector */}
+              <div>
+                <label className="block text-[10px] font-mono uppercase font-semibold text-[#666666] mb-1">
+                  3. SELECT MATERIAL FILE
+                </label>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-[#D7D3CF] hover:border-[#102326] bg-[#F7F5F2] rounded-[4px] p-6 text-center cursor-pointer transition-colors"
+                >
+                  <FileText size={28} className="text-[#666666] mx-auto mb-2" />
+                  {uploadFile ? (
+                    <div>
+                      <p className="text-xs font-bold text-[#102326] truncate">{uploadFile.name}</p>
+                      <p className="text-[10px] font-mono text-[#666666] mt-0.5">{(uploadFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-xs font-semibold text-[#111111]">Click to choose a file</p>
+                      <p className="text-[10px] font-mono text-[#666666] mt-0.5">PDF, PPTX, TXT, PNG, JPG, WEBP up to 10MB</p>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept={SUPPORTED_UPLOAD_ACCEPT}
+                    className="hidden"
+                    onChange={(e) => setUploadFile(e.target.files[0] || null)}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#D7D3CF]">
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(false)}
+                  className="px-3.5 py-2 border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase"
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="submit"
+                  disabled={uploading || !uploadFile || !uploadSubject.trim()}
+                  className="px-4 py-2 bg-[#102326] hover:bg-[#0b191c] text-white rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  {uploading ? <Loader2 size={14} className="animate-spin" /> : <FileUp size={14} />}
+                  <span>{uploading ? 'UPLOADING...' : 'FILE INTO VAULT'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 7. Delete Confirmation Modal */}
+      {confirmDeleteFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 max-w-sm w-full space-y-4 shadow-lg">
+            <div className="flex items-center gap-[#C96A32]">
+              <AlertTriangle size={24} />
+              <h3 className="text-base font-bold text-[#111111]">Delete Document?</h3>
+            </div>
+            <p className="text-xs text-[#666666] leading-relaxed">
+              Are you sure you want to delete <span className="font-semibold text-[#111111]">"{confirmDeleteFile.filename}"</span>? This will remove the source file and purge its index.
+            </p>
+            <div className="flex gap-2 justify-end pt-2 border-t border-[#D7D3CF]">
+              <button
+                onClick={() => setConfirmDeleteFile(null)}
+                disabled={deleting}
+                className="px-3 py-1.5 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase transition-colors"
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={executeDelete}
+                disabled={deleting}
+                className="px-3 py-1.5 bg-[#C96A32] text-white hover:bg-[#a85222] rounded-[4px] text-xs font-mono font-semibold uppercase transition-colors inline-flex items-center gap-1.5"
+              >
+                {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                <span>DELETE</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Generated Content Modal */}
+      {generatedContent && (
+        <GeneratedContentModal
+          content={generatedContent}
+          onClose={() => setGeneratedContent(null)}
+          onNavigate={(path) => { setGeneratedContent(null); navigate(path); }}
+        />
+      )}
+    </div>
   );
 };
 
-const ExamQuestionItem = ({ index, question, type, marks, key_points }) => {
-  const [expanded, setExpanded] = useState(false);
+const fileExtension = (filename = '') => {
+  const parts = filename.split('.');
+  return parts.length > 1 ? parts.pop().toUpperCase() : 'FILE';
+};
 
-  const typeColors = {
-    short_answer: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    long_answer: 'bg-blue-50 text-blue-600 border-blue-100',
-    problem_solving: 'bg-amber-50 text-amber-600 border-amber-100',
-  };
+const SubjectMasteryPanel = ({ mastery, loading, onAutoPlan, autoPlanning }) => {
+  if (loading) {
+    return (
+      <div className="mb-4 border border-[#D7D3CF] bg-white rounded-[4px] p-4 text-xs font-mono text-[#666666] flex items-center gap-2">
+        <Loader2 size={14} className="animate-spin text-[#102326]" />
+        <span>Loading subject mastery...</span>
+      </div>
+    );
+  }
+
+  if (!mastery) return null;
+
+  const summary = mastery.summary || {};
+  const weakTopics = (mastery.topics || []).filter(topic => topic.weak).slice(0, 3);
+  const uncoveredTopics = (mastery.topics || []).filter(topic => !topic.covered).slice(0, 3);
+  const resources = (mastery.recommended_resources || []).slice(0, 3);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="bg-white border border-slate-100 rounded-2xl p-5"
-    >
-      <div className="flex items-start gap-4">
-        <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-xs font-extrabold flex-shrink-0">
-          {index + 1}
+    <div className="mb-4 border border-[#D7D3CF] bg-white rounded-[4px] p-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">Subject Mastery</p>
+          <h3 className="text-sm font-bold text-[#111111]">{mastery.subject?.name}</h3>
         </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-lg border ${typeColors[type] || typeColors.short_answer}`}>
-              {(type || 'short_answer').replace('_', ' ')}
-            </span>
-            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-lg">
-              {marks || 5} marks
-            </span>
-          </div>
-          <p className="font-bold text-slate-800 text-sm leading-relaxed">{question}</p>
-
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 mt-3 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
-          >
-            <ChevronRight size={14} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
-            {expanded ? 'Hide' : 'Show'} Key Points ({key_points?.length || 0})
-          </button>
-
-          <AnimatePresence>
-            {expanded && key_points?.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-3 p-3 bg-indigo-50/50 rounded-xl border border-indigo-100"
-              >
-                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-2">Key points for a perfect answer:</p>
-                <ul className="space-y-1.5">
-                  {key_points.map((kp, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-indigo-800">
-                      <CheckCircle2 size={14} className="text-indigo-400 mt-0.5 flex-shrink-0" />
-                      {kp}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        <button
+          onClick={onAutoPlan}
+          disabled={autoPlanning}
+          className="px-3 py-2 border border-[#102326] text-[#102326] hover:bg-[#102326] hover:text-white rounded-[4px] text-[10px] font-mono font-semibold uppercase inline-flex items-center gap-1.5 disabled:opacity-50"
+        >
+          {autoPlanning ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
+          <span>Auto Plan Revision</span>
+        </button>
       </div>
-    </motion.div>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
+        <MasteryMetric label="Covered" value={`${summary.coverage_percent || 0}%`} />
+        <MasteryMetric label="Topics" value={summary.total_topics || 0} />
+        <MasteryMetric label="Weak" value={summary.weak_topics || 0} />
+        <MasteryMetric label="Approved" value={summary.approved_materials || 0} />
+        <MasteryMetric label="Rejected" value={summary.rejected_materials || 0} />
+      </div>
+
+      {(weakTopics.length > 0 || uncoveredTopics.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <TopicPreview title="Weak Topics" topics={weakTopics} empty="No weak topics detected yet." />
+          <TopicPreview title="Uncovered Topics" topics={uncoveredTopics} empty="All seeded topics have coverage." />
+        </div>
+      )}
+      {resources.length > 0 && (
+        <div className="mt-3 border border-[#D7D3CF] rounded-[4px] p-3 bg-white">
+          <p className="text-[10px] font-mono uppercase text-[#666666] font-semibold mb-2">Helpful Resources</p>
+          <div className="flex flex-wrap gap-2">
+            {resources.map(resource => (
+              <div key={resource.topic_id} className="flex items-center gap-1.5 text-[10px] font-mono">
+                <span className="text-[#666666] max-w-[180px] truncate">{resource.topic_title}</span>
+                {resource.links?.map(link => (
+                  <a
+                    key={`${resource.topic_id}-${link.label}`}
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-2 py-1 border border-[#D7D3CF] rounded-[4px] text-[#102326] hover:bg-[#102326] hover:text-white"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
-// Internal SVG Helper Components
-const SparklesIcon = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" /></svg>
+const MasteryMetric = ({ label, value }) => (
+  <div className="border border-[#D7D3CF] bg-[#F7F5F2] rounded-[4px] p-2">
+    <p className="text-[9px] font-mono uppercase text-[#666666]">{label}</p>
+    <p className="text-sm font-bold text-[#111111] mt-0.5">{value}</p>
+  </div>
 );
 
-const FileIcon = ({ size }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /></svg>
+const TopicPreview = ({ title, topics, empty }) => (
+  <div className="border border-[#D7D3CF] rounded-[4px] p-3 bg-[#FAF9F7]">
+    <p className="text-[10px] font-mono uppercase text-[#666666] font-semibold mb-2">{title}</p>
+    {topics.length === 0 ? (
+      <p className="text-[11px] text-[#666666]">{empty}</p>
+    ) : (
+      <div className="space-y-1.5">
+        {topics.map(topic => (
+          <div key={topic.topic_id} className="flex items-center justify-between gap-2">
+            <span className="truncate text-[#111111]">{topic.topic_title}</span>
+            <span className="font-mono text-[10px] text-[#666666] shrink-0">{Math.round(topic.mastery_score || topic.coverage_score || 0)}%</span>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
 );
+
+const validationMeta = (file) => {
+  const status = file.validation_status || 'pending';
+  if (file.embedding_status !== 'embedded') {
+    return { label: 'INDEXING', className: 'bg-[#F7F5F2] text-[#666666] border-[#D7D3CF]', icon: Loader2, spinning: true };
+  }
+  if (status === 'approved') {
+    return { label: 'APPROVED', className: 'bg-white text-[#102326] border-[#102326]', icon: CheckCircle2 };
+  }
+  if (status === 'rejected') {
+    return { label: 'REJECTED', className: 'bg-[#FFFDFB] text-[#C96A32] border-[#C96A32]', icon: AlertCircle };
+  }
+  return { label: 'VALIDATE', className: 'bg-[#F7F5F2] text-[#666666] border-[#D7D3CF]', icon: AlertCircle };
+};
+
+const extractionLabel = (method) => ({
+  pdf_text: 'PDF Text',
+  pdf_text_ocr: 'PDF + OCR',
+  slide_text: 'Slides',
+  typed_text: 'Text',
+  ocr: 'OCR',
+}[method] || 'Extracted');
+
+const FileCard = ({ file, formatSize, onView, onDelete, onGenerate, onValidate, generating, validating }) => {
+  const meta = validationMeta(file);
+  const StatusIcon = meta.icon;
+  const approved = file.embedding_status === 'embedded' && file.validation_status === 'approved';
+  const validationPct = file.syllabus_match_coverage != null ? Math.round(file.syllabus_match_coverage * 100) : null;
+
+  return (
+    <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-5 flex flex-col justify-between hover:bg-[#FAF9F7] transition-colors shadow-2xs">
+      <div>
+        <div className="flex items-start justify-between mb-3">
+          <div className="w-8 h-8 bg-[#ECEAE7] text-[#102326] rounded-[4px] flex items-center justify-center shrink-0">
+            <FileText size={16} />
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onView}
+              className="p-1 text-[#666666] hover:text-[#102326] hover:bg-[#ECEAE7] rounded-[2px] transition-colors"
+              title="View document"
+            >
+              <Eye size={16} />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-1 text-[#666666] hover:text-[#C96A32] hover:bg-[#ECEAE7] rounded-[2px] transition-colors"
+              title="Delete Document"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        </div>
+
+        <h4 className="text-xs font-bold text-[#111111] truncate cursor-pointer hover:text-[#102326]" onClick={onView} title={file.filename}>
+          {file.filename}
+        </h4>
+
+        <div className="flex items-center gap-2 mt-1.5 font-mono text-[10px] text-[#666666]">
+          <span>{formatSize(file.size_bytes)}</span>
+          <span>•</span>
+          <span>{file.created_at ? new Date(file.created_at).toLocaleDateString() : 'Recent'}</span>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          <span className="bg-[#ECEAE7] text-[#111111] font-mono text-[9px] uppercase px-2 py-0.5 rounded-[2px] font-semibold">
+            {file.subject || 'GENERAL'}
+          </span>
+          <span className="bg-[#F7F5F2] text-[#102326] border border-[#D7D3CF] font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-[2px]">
+            {fileExtension(file.filename)}
+          </span>
+          <span className={`border font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-[2px] inline-flex items-center gap-1 ${meta.className}`}>
+            <StatusIcon size={10} className={meta.spinning ? 'animate-spin' : ''} />
+            {meta.label}
+          </span>
+        </div>
+        {validationPct !== null && (
+          <p className="mt-2 text-[10px] font-mono text-[#666666]">
+            Syllabus match: {validationPct}%
+          </p>
+        )}
+        {(file.extraction_method || file.extraction_quality) && (
+          <p className="mt-1 text-[10px] font-mono text-[#666666]">
+            Extraction: {extractionLabel(file.extraction_method)}{file.extraction_quality ? ` · ${file.extraction_quality.toUpperCase()}` : ''}
+          </p>
+        )}
+        {file.validation_status === 'rejected' && file.validation_error && (
+          <p className="mt-2 text-[10px] font-mono text-[#C96A32] line-clamp-2">
+            {file.validation_error}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-5 pt-3 border-t border-[#D7D3CF]">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-[9px] font-mono uppercase text-[#666666] font-semibold">GENERATE STUDY TOOL</p>
+          {file.embedding_status === 'embedded' && file.validation_status !== 'approved' && (
+            <button
+              onClick={() => onValidate(file.id)}
+              disabled={validating}
+              className="px-2 py-1 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#102326] hover:text-white text-[9px] font-mono font-semibold uppercase inline-flex items-center gap-1 disabled:opacity-50"
+              title="Validate against syllabus"
+            >
+              {validating ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
+              <span>CHECK</span>
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          <button
+            onClick={() => onGenerate(file.id, 'flashcards')}
+            disabled={!approved || generating?.uploadId === file.id}
+            className="p-1.5 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#102326] hover:text-white transition-colors font-mono text-[10px] font-semibold uppercase text-[#111111] flex flex-col items-center gap-1 disabled:opacity-50"
+            title={approved ? 'Generate Flashcards' : 'Material must be approved against the syllabus first'}
+          >
+            {generating?.uploadId === file.id && generating?.type === 'flashcards' ? (
+              <Loader2 size={13} className="animate-spin text-[#102326]" />
+            ) : (
+              <BrainCircuit size={13} />
+            )}
+            <span>CARDS</span>
+          </button>
+
+          <button
+            onClick={() => onGenerate(file.id, 'mcqs')}
+            disabled={!approved || generating?.uploadId === file.id}
+            className="p-1.5 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#102326] hover:text-white transition-colors font-mono text-[10px] font-semibold uppercase text-[#111111] flex flex-col items-center gap-1 disabled:opacity-50"
+            title={approved ? 'Generate MCQs' : 'Material must be approved against the syllabus first'}
+          >
+            {generating?.uploadId === file.id && generating?.type === 'mcqs' ? (
+              <Loader2 size={13} className="animate-spin text-[#102326]" />
+            ) : (
+              <Target size={13} />
+            )}
+            <span>MCQS</span>
+          </button>
+
+          <button
+            onClick={() => onGenerate(file.id, 'exam-questions')}
+            disabled={!approved || generating?.uploadId === file.id}
+            className="p-1.5 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#102326] hover:text-white transition-colors font-mono text-[10px] font-semibold uppercase text-[#111111] flex flex-col items-center gap-1 disabled:opacity-50"
+            title={approved ? 'Generate Exam Questions' : 'Material must be approved against the syllabus first'}
+          >
+            {generating?.uploadId === file.id && generating?.type === 'exam-questions' ? (
+              <Loader2 size={13} className="animate-spin text-[#102326]" />
+            ) : (
+              <Trophy size={13} />
+            )}
+            <span>EXAM</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const GeneratedContentModal = ({ content, onClose, onNavigate }) => {
+  const { type, data, source } = content;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+      <div className="bg-white border border-[#D7D3CF] rounded-[4px] max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-xl">
+        <div className="p-4 bg-[#102326] text-white flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold tracking-tight uppercase font-mono">{type.toUpperCase()} GENERATED</h3>
+            <p className="text-[10px] font-mono text-[#A0B0B3]">Source: {source}</p>
+          </div>
+          <button onClick={onClose} className="text-white hover:text-[#A0B0B3]">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 flex-1 overflow-y-auto space-y-3 bg-[#F7F5F2]">
+          {type === 'flashcards' && data.flashcards?.map((fc, i) => (
+            <div key={i} className="p-4 bg-white border border-[#D7D3CF] rounded-[4px] space-y-2">
+              <div className="text-[10px] font-mono text-[#666666] font-semibold uppercase">FLASHCARD {i + 1}</div>
+              <p className="text-xs font-bold text-[#111111]">{fc.front}</p>
+              <div className="pt-2 border-t border-[#ECEAE7] text-xs text-[#666666] leading-relaxed">
+                <span className="font-mono text-[9px] uppercase font-bold text-[#C96A32] block mb-1">ANSWER:</span>
+                {fc.back}
+              </div>
+            </div>
+          ))}
+
+          {type === 'mcqs' && data.mcqs?.map((mcq, i) => (
+            <div key={i} className="p-4 bg-white border border-[#D7D3CF] rounded-[4px] space-y-2">
+              <p className="text-xs font-bold text-[#111111]">{i + 1}. {mcq.question}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mt-2">
+                {Object.entries(mcq.options || {}).map(([k, v]) => (
+                  <div key={k} className={`text-xs p-2 rounded-[2px] font-mono border ${k === mcq.correct ? 'bg-[#ECEAE7] border-[#102326] font-bold text-[#102326]' : 'bg-white border-[#D7D3CF] text-[#666666]'}`}>
+                    {k}. {v}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {type === 'exam-questions' && data.exam_questions?.map((q, i) => (
+            <div key={i} className="p-4 bg-white border border-[#D7D3CF] rounded-[4px] space-y-1">
+              <div className="text-[10px] font-mono text-[#666666] font-semibold uppercase">QUESTION {i + 1} • {q.marks || 5} MARKS</div>
+              <p className="text-xs font-bold text-[#111111]">{q.question}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="p-3 border-t border-[#D7D3CF] bg-white flex justify-between items-center">
+          <button
+            onClick={() => {
+              if (type === 'flashcards') onNavigate('/dashboard/flashcards');
+              else if (type === 'mcqs') onNavigate('/dashboard/mcq');
+              else onNavigate('/dashboard/exam-prep');
+            }}
+            className="px-3.5 py-1.5 bg-[#102326] text-white rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider inline-flex items-center gap-1.5"
+          >
+            <span>PRACTICE IN {type.toUpperCase()}</span>
+            <ChevronRight size={14} />
+          </button>
+
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase"
+          >
+            CLOSE
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default UploadedMaterials;

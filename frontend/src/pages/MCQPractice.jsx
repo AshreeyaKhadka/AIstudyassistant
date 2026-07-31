@@ -1,25 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { Target, Library, Sparkles, Loader2, ChevronLeft, CheckCircle2, XCircle, FileText, AlertCircle, Trophy, Bookmark, Clock } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useOutletContext, useNavigate } from 'react-router-dom';
+import {
+  Target, Library, Sparkles, Loader2, ChevronLeft, CheckCircle2,
+  XCircle, FileText, AlertCircle, Trophy, Bookmark, Clock, Search,
+  RotateCcw, ArrowRight, BookOpen, Check, HelpCircle
+} from 'lucide-react';
 
 const MCQPractice = () => {
   const { user } = useOutletContext();
+  const navigate = useNavigate();
+
   const [uploads, setUploads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUpload, setSelectedUpload] = useState(null);
+  const [currentQuizSetId, setCurrentQuizSetId] = useState(null);
+
   const [mcqs, setMcqs] = useState([]);
   const [generating, setGenerating] = useState(false);
-  const [quizMode, setQuizMode] = useState(false);
+  const [quizMode, setQuizMode] = useState(false); // false | true | 'summary'
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showResult, setShowResult] = useState(false);
   const [limitError, setLimitError] = useState('');
+  const [submittingScore, setSubmittingScore] = useState(false);
 
-  // Saved MCQs state
-  const [savedMCQs, setSavedMCQs] = useState([]);
-  const [loadingSaved, setLoadingSaved] = useState(false);
+  const [savedMCQs, setSavedMCQs] = useState({});
+  const [loadingSaved, setLoadingSaved] = useState({});
   const [activeTab, setActiveTab] = useState('generate'); // 'generate' | 'saved'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('ALL');
 
   useEffect(() => {
     fetchUploads();
@@ -27,6 +36,7 @@ const MCQPractice = () => {
 
   const fetchUploads = async () => {
     try {
+      setLoading(true);
       const res = await fetch('/api/upload/', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
@@ -40,17 +50,17 @@ const MCQPractice = () => {
   };
 
   const fetchSavedMCQs = async (uploadId) => {
-    setLoadingSaved(true);
+    setLoadingSaved(prev => ({ ...prev, [uploadId]: true }));
     try {
       const res = await fetch(`/api/generate/saved-mcqs/${uploadId}`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setSavedMCQs(data.saved_sets || []);
+        setSavedMCQs(prev => ({ ...prev, [uploadId]: data.saved_sets || [] }));
       }
     } catch (err) {
       console.error('Failed to fetch saved MCQs:', err);
     } finally {
-      setLoadingSaved(false);
+      setLoadingSaved(prev => ({ ...prev, [uploadId]: false }));
     }
   };
 
@@ -76,15 +86,18 @@ const MCQPractice = () => {
 
       if (res.ok && data.mcqs) {
         setMcqs(data.mcqs);
+        setCurrentQuizSetId(data.quiz_set_id);
         setQuizMode(true);
         setCurrentIndex(0);
         setAnswers({});
         setShowResult(false);
-        // Refresh uploads to get updated count
         fetchUploads();
+      } else {
+        setLimitError(data.error || 'Failed to generate MCQs.');
       }
     } catch (err) {
       console.error('Generate failed:', err);
+      setLimitError('Network error while generating MCQs.');
     } finally {
       setGenerating(false);
     }
@@ -103,8 +116,32 @@ const MCQPractice = () => {
     return score;
   };
 
-  const startSavedQuiz = (questions) => {
+  const handleFinishQuiz = async () => {
+    const finalScore = calculateScore();
+    if (currentQuizSetId) {
+      setSubmittingScore(true);
+      try {
+        await fetch('/api/quiz/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            quiz_set_id: currentQuizSetId,
+            score: finalScore
+          })
+        });
+      } catch (err) {
+        console.error('Failed to submit score:', err);
+      } finally {
+        setSubmittingScore(false);
+      }
+    }
+    setQuizMode('summary');
+  };
+
+  const startSavedQuiz = (questions, quizSetId = null) => {
     setMcqs(questions);
+    setCurrentQuizSetId(quizSetId);
     setQuizMode(true);
     setCurrentIndex(0);
     setAnswers({});
@@ -112,142 +149,157 @@ const MCQPractice = () => {
     setActiveTab('generate');
   };
 
-  // Quiz mode (only when quizMode is strictly true, not 'summary')
+  // Filter materials
+  const subjectsList = ['ALL', ...Array.from(new Set(uploads.map(u => u.subject).filter(Boolean)))];
+
+  const filteredUploads = uploads.filter(u => {
+    const matchesSearch = u.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (u.subject && u.subject.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesSubject = selectedSubjectFilter === 'ALL' || u.subject?.toLowerCase() === selectedSubjectFilter.toLowerCase();
+    return matchesSearch && matchesSubject;
+  });
+
+  // Calculate aggregated stats
+  const totalGenerationsCount = uploads.reduce((acc, u) => acc + (u.mcq_generation_count || 0), 0);
+
+  // 1. ACTIVE QUIZ SESSION MODE
   if (quizMode === true && mcqs.length > 0) {
     const q = mcqs[currentIndex];
     const isAnswered = answers[currentIndex] !== undefined;
     const isLast = currentIndex === mcqs.length - 1;
 
     return (
-      <div className="flex flex-col h-full gap-8 pb-12">
-        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-6 pb-12 max-w-3xl mx-auto">
+        {/* Session Header */}
+        <div className="bg-white p-5 border border-[#D7D3CF] rounded-[4px] flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => { setQuizMode(false); setMcqs([]); }}
-              className="p-2.5 bg-slate-50 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all"
+              className="p-1.5 bg-[#F7F5F2] border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] transition-colors"
+              title="Exit Quiz"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={16} />
             </button>
             <div>
-              <h2 className="text-xl font-extrabold text-slate-800">Practice Session</h2>
-              <p className="text-sm text-slate-500 font-medium">Question {currentIndex + 1} of {mcqs.length}</p>
+              <h2 className="text-base font-bold text-[#111111]">MCQ Drill Session</h2>
+              <p className="text-xs font-mono text-[#666666]">Question {currentIndex + 1} of {mcqs.length}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Progress</span>
-              <div className="w-32 h-1.5 bg-slate-100 rounded-full mt-1 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${((currentIndex + 1) / mcqs.length) * 100}%` }}
-                  className="h-full bg-blue-600"
-                />
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-32 bg-[#ECEAE7] rounded-full h-2 overflow-hidden hidden sm:block border border-[#D7D3CF]">
+              <div
+                className="bg-[#102326] h-full transition-all duration-300"
+                style={{ width: `${((currentIndex + 1) / mcqs.length) * 100}%` }}
+              ></div>
             </div>
+            <span className="font-mono text-xs text-[#102326] font-bold">
+              {Math.round(((currentIndex + 1) / mcqs.length) * 100)}%
+            </span>
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto w-full flex flex-col gap-8">
-          <motion.div
-            key={currentIndex}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="bg-white p-8 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm"
-          >
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-bold flex-shrink-0">
-                  {currentIndex + 1}
-                </div>
-                <h3 className="text-xl font-bold text-slate-800 leading-relaxed pt-1">
-                  {q.question}
-                </h3>
-              </div>
-
-              <div className="grid grid-cols-1 gap-3">
-                {Object.entries(q.options || {}).map(([key, val]) => {
-                  const isSelected = answers[currentIndex] === key;
-                  const isCorrect = key === q.correct;
-                  let colorClass = "bg-slate-50 border-slate-100 hover:border-blue-200 text-slate-700";
-
-                  if (showResult) {
-                    if (isCorrect) colorClass = "bg-emerald-50 border-emerald-300 text-emerald-800 ring-2 ring-emerald-100";
-                    else if (isSelected) colorClass = "bg-rose-50 border-rose-300 text-rose-800";
-                    else colorClass = "bg-slate-50 border-slate-100 opacity-50";
-                  } else if (isSelected) {
-                    colorClass = "bg-blue-50 border-blue-600 text-blue-700 ring-2 ring-blue-100";
-                  }
-
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => handleSelectOption(key)}
-                      disabled={showResult}
-                      className={`w-full text-left p-5 rounded-2xl border-2 transition-all flex items-center gap-4 ${colorClass}`}
-                    >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm ${isSelected ? 'bg-blue-600 text-white' : 'bg-white border text-slate-400'}`}>
-                        {key}
-                      </div>
-                      <span className="font-semibold">{val}</span>
-                      {showResult && isCorrect && <CheckCircle2 className="ml-auto text-emerald-500" size={20} />}
-                      {showResult && isSelected && !isCorrect && <XCircle className="ml-auto text-rose-500" size={20} />}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <AnimatePresence>
-                {showResult && q.explanation && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <AlertCircle size={14} className="text-blue-600" />
-                      <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Contextual Explanation</span>
-                    </div>
-                    <p className="text-sm text-blue-800 leading-relaxed font-medium">
-                      {q.explanation}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+        {/* Question Card */}
+        <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px] space-y-6 shadow-xs">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[#102326] font-semibold bg-[#ECEAE7] px-2.5 py-1 rounded-[2px]">
+                QUESTION {currentIndex + 1} OF {mcqs.length}
+              </span>
+              <span className="text-[10px] font-mono text-[#666666]">
+                {Object.keys(answers).length} / {mcqs.length} Answered
+              </span>
             </div>
-          </motion.div>
 
-          <div className="flex justify-between items-center px-4">
+            <h3 className="text-base font-bold text-[#111111] leading-relaxed">
+              {q.question}
+            </h3>
+
+            {/* MCQ Options Grid */}
+            <div className="space-y-2.5 pt-2">
+              {Object.entries(q.options || {}).map(([key, val]) => {
+                const isSelected = answers[currentIndex] === key;
+                const isCorrect = key === q.correct;
+                let colorClass = "bg-white border-[#D7D3CF] text-[#111111] hover:border-[#102326] hover:bg-[#FAF9F7]";
+
+                if (showResult) {
+                  if (isCorrect) colorClass = "bg-[#ECEAE7] border-[#102326] text-[#102326] font-bold shadow-xs";
+                  else if (isSelected) colorClass = "bg-[#FFFDFB] border-[#C96A32] text-[#C96A32]";
+                  else colorClass = "bg-white border-[#D7D3CF] opacity-40";
+                } else if (isSelected) {
+                  colorClass = "bg-[#102326] text-white border-[#102326] font-medium";
+                }
+
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleSelectOption(key)}
+                    disabled={showResult}
+                    className={`w-full text-left p-3.5 rounded-[4px] border transition-all flex items-center justify-between text-xs font-mono ${colorClass}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className={`w-5 h-5 rounded-[2px] border text-[10px] flex items-center justify-center font-bold ${
+                        isSelected && !showResult ? 'border-white text-white' : 'border-[#D7D3CF] text-[#666666]'
+                      }`}>
+                        {key}
+                      </span>
+                      <span>{val}</span>
+                    </span>
+                    {showResult && isCorrect && <CheckCircle2 className="text-[#102326] shrink-0" size={16} />}
+                    {showResult && isSelected && !isCorrect && <XCircle className="text-[#C96A32] shrink-0" size={16} />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Explanation Section */}
+            {showResult && q.explanation && (
+              <div className="p-4 bg-[#FAF9F7] border border-[#D7D3CF] rounded-[4px] space-y-1.5">
+                <span className="text-[10px] font-mono uppercase text-[#C96A32] font-bold tracking-wider flex items-center gap-1">
+                  <HelpCircle size={12} />
+                  EXPLANATION & REASONING
+                </span>
+                <p className="text-xs text-[#111111] leading-relaxed">{q.explanation}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Question Controls */}
+          <div className="flex justify-between items-center pt-4 border-t border-[#D7D3CF]">
             <button
               onClick={() => { setCurrentIndex(i => Math.max(0, i - 1)); setShowResult(false); }}
               disabled={currentIndex === 0}
-              className="px-6 py-3 text-slate-500 font-bold disabled:opacity-0 transition-opacity flex items-center gap-2"
+              className="px-3.5 py-1.5 border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono uppercase disabled:opacity-30 transition-colors"
             >
-              <ChevronLeft size={20} /> Previous
+              PREVIOUS
             </button>
 
             {!showResult ? (
               <button
                 onClick={() => setShowResult(true)}
                 disabled={!isAnswered}
-                className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-lg disabled:opacity-50 transition-all hover:bg-slate-800 flex items-center gap-2"
+                className="px-5 py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase disabled:opacity-50 transition-colors inline-flex items-center gap-1.5"
               >
-                Check Answer
+                <span>CHECK ANSWER</span>
+                <Check size={14} />
               </button>
             ) : (
               !isLast ? (
                 <button
                   onClick={() => { setCurrentIndex(i => i + 1); setShowResult(false); }}
-                  className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2"
+                  className="px-5 py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase transition-colors inline-flex items-center gap-1.5"
                 >
-                  Next Question <Sparkles size={18} />
+                  <span>NEXT QUESTION</span>
+                  <ArrowRight size={14} />
                 </button>
               ) : (
                 <button
-                  onClick={() => setQuizMode('summary')}
-                  className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg hover:bg-emerald-700 transition-all flex items-center gap-2"
+                  onClick={handleFinishQuiz}
+                  disabled={submittingScore}
+                  className="px-5 py-2 bg-[#C96A32] text-white hover:bg-[#a85222] rounded-[4px] text-xs font-mono font-semibold uppercase transition-colors inline-flex items-center gap-1.5"
                 >
-                  View Summary <Trophy size={18} />
+                  {submittingScore ? <Loader2 size={14} className="animate-spin" /> : <Trophy size={14} />}
+                  <span>VIEW SUMMARY</span>
                 </button>
               )
             )}
@@ -257,230 +309,258 @@ const MCQPractice = () => {
     );
   }
 
-  // Summary mode
+  // 2. QUIZ SUMMARY RESULT SCREEN
   if (quizMode === 'summary') {
     const score = calculateScore();
     const percentage = Math.round((score / mcqs.length) * 100);
 
     return (
-      <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto text-center gap-8 py-12">
-        <div className="relative">
-          <div className="w-48 h-48 bg-emerald-50 rounded-full flex items-center justify-center">
-            <Trophy size={80} className="text-emerald-500" />
+      <div className="flex flex-col items-center justify-center max-w-md mx-auto text-center gap-6 py-12">
+        <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-8 w-full space-y-5 shadow-lg">
+          <div className="w-16 h-16 bg-[#ECEAE7] text-[#102326] rounded-[4px] flex items-center justify-center mx-auto">
+            <Trophy size={32} />
           </div>
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="absolute -top-2 -right-2 bg-blue-600 text-white w-16 h-16 rounded-full flex flex-col items-center justify-center border-4 border-white shadow-lg"
-          >
-            <span className="text-lg font-bold">{percentage}%</span>
-          </motion.div>
-        </div>
 
-        <div className="space-y-2">
-          <h2 className="text-4xl font-black text-slate-800">Battle Complete!</h2>
-          <p className="text-slate-500 font-medium text-lg">You correctly answered {score} out of {mcqs.length} questions.</p>
-        </div>
+          <div>
+            <span className="text-[10px] font-mono uppercase text-[#666666] font-semibold tracking-wider">PRACTICE DRILL COMPLETE</span>
+            <h2 className="text-4xl font-mono font-bold text-[#111111] mt-1">{percentage}% SCORE</h2>
+            <p className="text-xs text-[#666666] mt-1.5">
+              Answered <span className="font-bold text-[#111111]">{score}</span> out of <span className="font-bold text-[#111111]">{mcqs.length}</span> questions correctly.
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-          <button
-            onClick={() => { setQuizMode(true); setCurrentIndex(0); setAnswers({}); setShowResult(false); }}
-            className="w-full py-4 bg-white border-2 border-slate-100 text-slate-700 rounded-3xl font-bold hover:bg-slate-50 transition-all"
-          >
-            Try Again
-          </button>
-          <button
-            onClick={() => { setQuizMode(false); setMcqs([]); }}
-            className="w-full py-4 bg-slate-900 text-white rounded-3xl font-bold hover:bg-slate-800 transition-all shadow-xl shadow-slate-200"
-          >
-            Return to Library
-          </button>
+          <div className="p-3 bg-[#F7F5F2] border border-[#D7D3CF] rounded-[4px] text-left text-xs font-mono space-y-1">
+            <div className="flex justify-between text-[#666666]">
+              <span>Correct Answers:</span>
+              <span className="font-bold text-[#102326]">{score}</span>
+            </div>
+            <div className="flex justify-between text-[#666666]">
+              <span>Incorrect Answers:</span>
+              <span className="font-bold text-[#C96A32]">{mcqs.length - score}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-2 border-t border-[#D7D3CF]">
+            <button
+              onClick={() => { setQuizMode(true); setCurrentIndex(0); setAnswers({}); setShowResult(false); }}
+              className="flex-1 py-2 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase transition-colors inline-flex items-center justify-center gap-1.5"
+            >
+              <RotateCcw size={14} />
+              <span>RETRY</span>
+            </button>
+            <button
+              onClick={() => { setQuizMode(false); setMcqs([]); }}
+              className="flex-1 py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase transition-colors"
+            >
+              FINISH DRILL
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Main view
+  // 3. MAIN MCQ PRACTICE DASHBOARD
   return (
-    <div className="flex flex-col h-full gap-10 pb-12">
-      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-6">
-          <div className="bg-blue-600 p-4 rounded-3xl shadow-lg shadow-blue-100">
-            <Target className="text-white" size={32} />
+    <div className="flex flex-col gap-6 pb-12">
+      {/* Header Card */}
+      <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-2xs">
+        <div>
+          <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-1 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#102326]"></span>
+            TARGETED AI-GENERATED QUIZ DRILLS
           </div>
-          <div>
-            <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">MCQ Strategist</h1>
-            <p className="text-slate-500 font-medium">AI-driven practice tests derived directly from your personal study notes.</p>
+          <h1 className="text-2xl font-bold text-[#111111] tracking-tight">MCQ Strategist</h1>
+          <p className="text-xs text-[#666666] mt-0.5 max-w-xl">
+            Test your understanding with automated multiple-choice questions extracted directly from your course syllabus PDFs.
+          </p>
+        </div>
+
+        <button
+          onClick={() => navigate('/dashboard/upload')}
+          className="px-4 py-2 bg-white border border-[#102326] text-[#102326] hover:bg-[#102326] hover:text-white rounded-[4px] font-mono text-xs font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-2 shrink-0"
+        >
+          <BookOpen size={15} />
+          <span>STUDY VAULT</span>
+        </button>
+      </div>
+
+      {/* Metrics Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 border border-[#D7D3CF] bg-white rounded-[4px] divide-y sm:divide-y-0 sm:divide-x divide-[#D7D3CF] overflow-hidden shadow-2xs">
+        <div className="p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">AVAILABLE SOURCE PDFS</span>
+          <span className="text-xl font-bold font-mono text-[#111111] mt-1">{uploads.length} Materials</span>
+        </div>
+        <div className="p-4 flex flex-col justify-between">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">TOTAL MCQ SETS CREATED</span>
+          <span className="text-xl font-bold font-mono text-[#111111] mt-1">{totalGenerationsCount} Quiz Sets</span>
+        </div>
+        <div className="p-4 flex flex-col justify-between bg-[#FFFDFB]">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#C96A32] font-semibold">PRACTICE LIMIT PER PDF</span>
+          <span className="text-xl font-bold font-mono text-[#C96A32] mt-1">2 Sets / PDF</span>
+        </div>
+      </div>
+
+      {limitError && (
+        <div className="p-3 bg-[#FFFDFB] border border-[#D7D3CF] rounded-[4px] text-xs font-mono text-[#C96A32] flex items-center gap-2">
+          <AlertCircle size={14} />
+          <span>{limitError}</span>
+        </div>
+      )}
+
+      {/* Toolbar & Filters */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 border border-[#D7D3CF] rounded-[4px]">
+        {/* Tabs */}
+        <div className="flex bg-[#ECEAE7] p-1 rounded-[4px] border border-[#D7D3CF]">
+          <button
+            onClick={() => setActiveTab('generate')}
+            className={`px-4 py-1.5 rounded-[2px] font-mono text-xs font-semibold uppercase tracking-wider transition-colors ${
+              activeTab === 'generate' ? 'bg-[#102326] text-white' : 'text-[#666666] hover:text-[#111111]'
+            }`}
+          >
+            GENERATE NEW
+          </button>
+          <button
+            onClick={() => setActiveTab('saved')}
+            className={`px-4 py-1.5 rounded-[2px] font-mono text-xs font-semibold uppercase tracking-wider transition-colors ${
+              activeTab === 'saved' ? 'bg-[#102326] text-white' : 'text-[#666666] hover:text-[#111111]'
+            }`}
+          >
+            SAVED MCQ DRILLS
+          </button>
+        </div>
+
+        {/* Search & Subject Filter */}
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedSubjectFilter}
+            onChange={(e) => setSelectedSubjectFilter(e.target.value)}
+            className="bg-[#F7F5F2] border border-[#D7D3CF] text-xs font-mono px-2.5 py-1.5 rounded-[4px] text-[#111111] outline-none"
+          >
+            {subjectsList.map(s => (
+              <option key={s} value={s}>{s === 'ALL' ? 'All Subjects' : s}</option>
+            ))}
+          </select>
+
+          <div className="relative w-48 sm:w-56">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#666666]" size={14} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter materials..."
+              className="w-full pl-8 pr-3 py-1.5 bg-[#F7F5F2] border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] text-xs font-mono text-[#111111] outline-none"
+            />
           </div>
         </div>
       </div>
 
-      {/* Limit error banner */}
-      <AnimatePresence>
-        {limitError && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex items-center gap-4 p-5 rounded-[1.5rem] text-sm font-bold border-2 bg-amber-50 text-amber-700 border-amber-100"
-          >
-            <AlertCircle size={20} />
-            {limitError}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Tab switcher */}
-      <div className="flex gap-2 bg-slate-100 p-1.5 rounded-2xl w-fit">
-        <button
-          onClick={() => setActiveTab('generate')}
-          className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${
-            activeTab === 'generate'
-              ? 'bg-white text-slate-800 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Target size={16} className="inline mr-2" />
-          Generate New
-        </button>
-        <button
-          onClick={() => setActiveTab('saved')}
-          className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${
-            activeTab === 'saved'
-              ? 'bg-white text-slate-800 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Bookmark size={16} className="inline mr-2" />
-          Saved MCQs
-        </button>
-      </div>
-
+      {/* Tab Content */}
       {activeTab === 'generate' ? (
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xl font-extrabold text-slate-800">Deployment Sources</h4>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              {uploads.filter(u => u.embedding_status === 'embedded').length} Ready Targets
-            </span>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-[#D7D3CF]">
+            <h4 className="text-xs font-mono uppercase tracking-wider text-[#666666] font-semibold">Select Source Material</h4>
+            <span className="text-[10px] font-mono text-[#666666]">{filteredUploads.length} files matched</span>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="animate-spin text-slate-300" size={32} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-40 bg-white border border-[#D7D3CF] rounded-[4px]"></div>
+              ))}
             </div>
-          ) : uploads.length === 0 ? (
-            <div className="py-24 text-center bg-white rounded-[3.5rem] border-2 border-dashed border-slate-100">
-              <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FileText size={32} className="text-slate-200" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-700 mb-2">No documents synced</h3>
-              <p className="text-slate-400 font-medium max-w-xs mx-auto">Upload curriculum materials in the Study Vault to activate MCQ generation.</p>
+          ) : filteredUploads.length === 0 ? (
+            <div className="py-12 text-center bg-white rounded-[4px] border border-dashed border-[#D7D3CF] p-8 space-y-3">
+              <FileText size={36} className="text-[#666666] mx-auto" />
+              <h3 className="text-sm font-bold text-[#111111]">No matching PDF materials</h3>
+              <p className="text-xs font-mono text-[#666666] max-w-xs mx-auto">Upload course notes in Study Vault to generate instant MCQ practice sets.</p>
+              <button
+                onClick={() => navigate('/dashboard/upload')}
+                className="px-4 py-2 bg-[#102326] text-white rounded-[4px] text-xs font-mono font-semibold uppercase"
+              >
+                GO TO STUDY VAULT
+              </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {uploads.map((upload, idx) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredUploads.map((upload) => {
                 const genCount = upload.mcq_generation_count || 0;
                 const limitReached = genCount >= 2;
+                const isReady = upload.embedding_status === 'embedded' || upload.embedding_status === 'ready' || !upload.embedding_status;
 
                 return (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
+                  <div
                     key={upload.id}
-                    className="group bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-blue-50 hover:border-blue-100 transition-all flex flex-col gap-4"
+                    className="bg-white rounded-[4px] p-5 border border-[#D7D3CF] flex flex-col justify-between hover:bg-[#FAF9F7] transition-colors shadow-2xs"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner">
-                        <Library size={24} />
-                      </div>
-                      <div className={`p-1.5 rounded-lg border ${upload.embedding_status === 'embedded' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-amber-50 border-amber-100 text-amber-600 animate-pulse'}`}>
-                        <Sparkles size={14} />
-                      </div>
-                    </div>
-
                     <div>
-                      <h4 className="text-lg font-extrabold text-slate-800 truncate group-hover:text-blue-700 transition-colors uppercase tracking-tight">{upload.filename}</h4>
-                      <p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-widest">
-                        Source: User Vault
-                      </p>
-                    </div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-8 h-8 bg-[#ECEAE7] text-[#102326] rounded-[4px] flex items-center justify-center shrink-0">
+                          <Library size={18} />
+                        </div>
+                        <span className="text-[9px] font-mono font-semibold text-[#666666] bg-[#F7F5F2] border border-[#D7D3CF] px-2 py-0.5 rounded-[2px] uppercase">
+                          {upload.subject || 'GENERAL'}
+                        </span>
+                      </div>
 
-                    {/* MCQ generation count */}
-                    <div className="flex items-center gap-2">
-                      <Clock size={14} className="text-slate-400" />
-                      <span className={`text-xs font-bold ${
-                        limitReached ? 'text-rose-600' : genCount > 0 ? 'text-amber-600' : 'text-slate-400'
-                      }`}>
-                        {genCount}/2 MCQ sets generated
-                      </span>
+                      <h4 className="text-xs font-bold text-[#111111] truncate" title={upload.filename}>
+                        {upload.filename}
+                      </h4>
+                      <div className="flex items-center justify-between mt-2 font-mono text-[10px] text-[#666666]">
+                        <span>Quota Used:</span>
+                        <span className="font-bold text-[#102326]">{genCount}/2 Sets</span>
+                      </div>
                     </div>
 
                     <button
                       onClick={() => handleGenerate(upload.id)}
-                      disabled={generating || limitReached || upload.embedding_status !== 'embedded'}
-                      className={`mt-auto w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold transition-all ${
+                      disabled={generating || limitReached}
+                      className={`mt-4 w-full flex items-center justify-center gap-2 py-2 rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors ${
                         limitReached
-                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                          ? 'bg-[#ECEAE7] text-[#666666] cursor-not-allowed border border-[#D7D3CF]'
                           : generating && selectedUpload === upload.id
-                            ? 'bg-blue-100 text-blue-600'
-                            : 'bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-200'
-                      } ${generating && selectedUpload !== upload.id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            ? 'bg-[#ECEAE7] text-[#111111] border border-[#D7D3CF]'
+                            : 'bg-[#102326] text-white hover:bg-[#0b191c]'
+                      }`}
                     >
                       {limitReached ? (
-                        'Limit Reached'
+                        'LIMIT REACHED (2/2)'
                       ) : generating && selectedUpload === upload.id ? (
-                        <><Loader2 className="animate-spin" size={18} /> Constructing MCQ...</>
+                        <><Loader2 className="animate-spin" size={14} /> GENERATING MCQS...</>
                       ) : (
-                        <><Target size={18} /> Initiate Test</>
+                        <><Target size={14} /> INITIATE MCQ TEST</>
                       )}
                     </button>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
           )}
         </div>
       ) : (
-        /* Saved MCQs Tab */
-        <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xl font-extrabold text-slate-800">Saved MCQ Sets</h4>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              Previously Generated
-            </span>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-[#D7D3CF]">
+            <h4 className="text-xs font-mono uppercase tracking-wider text-[#666666] font-semibold">Saved MCQ Sets</h4>
           </div>
 
-          {uploads.length === 0 && !loading ? (
-            <div className="py-24 text-center bg-white rounded-[3.5rem] border-2 border-dashed border-slate-100">
-              <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Bookmark size={32} className="text-slate-200" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-700 mb-2">No saved MCQs</h3>
-              <p className="text-slate-400 font-medium max-w-xs mx-auto">Generate MCQs from your documents and they will be saved here for later practice.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {uploads.map((upload) => (
-                <SavedMCQCard
-                  key={upload.id}
-                  upload={upload}
-                  fetchSavedMCQs={fetchSavedMCQs}
-                  savedMCQs={savedMCQs}
-                  loadingSaved={loadingSaved}
-                  onStartQuiz={startSavedQuiz}
-                />
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredUploads.map((upload) => (
+              <SavedMCQCard
+                key={upload.id}
+                upload={upload}
+                fetchSavedMCQs={fetchSavedMCQs}
+                savedMCQs={savedMCQs[upload.id] || []}
+                loadingSaved={loadingSaved[upload.id]}
+                onStartQuiz={startSavedQuiz}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-// Saved MCQ Card sub-component
 const SavedMCQCard = ({ upload, fetchSavedMCQs, savedMCQs, loadingSaved, onStartQuiz }) => {
   const [expanded, setExpanded] = useState(false);
   const genCount = upload.mcq_generation_count || 0;
@@ -491,69 +571,57 @@ const SavedMCQCard = ({ upload, fetchSavedMCQs, savedMCQs, loadingSaved, onStart
     }
   }, [expanded]);
 
-  const uploadSavedSets = savedMCQs.filter(s => true); // All saved sets are for this upload when fetched per-upload
-
   return (
-    <motion.div
-      layout
-      className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm hover:shadow-lg transition-all flex flex-col gap-4"
-    >
+    <div className="bg-white rounded-[4px] p-5 border border-[#D7D3CF] space-y-3 shadow-2xs">
       <div className="flex items-start justify-between">
-        <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center">
-          <Bookmark size={24} />
+        <div className="w-8 h-8 bg-[#ECEAE7] text-[#102326] rounded-[4px] flex items-center justify-center">
+          <Bookmark size={18} />
         </div>
-        <span className="text-xs font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-full">
-          {genCount} set{genCount !== 1 ? 's' : ''} saved
+        <span className="text-[9px] font-mono text-[#666666] bg-[#F7F5F2] border border-[#D7D3CF] px-2 py-0.5 rounded-[2px] uppercase">
+          {upload.subject || 'GENERAL'}
         </span>
       </div>
 
-      <div>
-        <h4 className="text-lg font-extrabold text-slate-800 truncate uppercase tracking-tight">{upload.filename}</h4>
-      </div>
+      <h4 className="text-xs font-bold text-[#111111] truncate" title={upload.filename}>
+        {upload.filename}
+      </h4>
 
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full py-3 bg-slate-50 text-slate-600 rounded-2xl text-sm font-bold hover:bg-slate-100 transition-all"
+        className="w-full py-1.5 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase transition-colors"
       >
-        {expanded ? 'Hide Sets' : 'View Saved Sets'}
+        {expanded ? 'HIDE SAVED SETS' : `VIEW SETS (${genCount})`}
       </button>
 
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="space-y-3 overflow-hidden"
-          >
-            {loadingSaved ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="animate-spin text-slate-300" size={20} />
-              </div>
-            ) : uploadSavedSets.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">No saved sets yet</p>
-            ) : (
-              uploadSavedSets.map((qs) => (
-                <div key={qs.id} className="bg-slate-50 rounded-xl p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-slate-700">{qs.question_count} questions</p>
-                    <p className="text-xs text-slate-400">
-                      {new Date(qs.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => onStartQuiz(qs.questions)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all"
-                  >
-                    Practice
-                  </button>
+      {expanded && (
+        <div className="space-y-2 pt-2 border-t border-[#D7D3CF]">
+          {loadingSaved ? (
+            <div className="flex justify-center py-2">
+              <Loader2 className="animate-spin text-[#102326]" size={16} />
+            </div>
+          ) : savedMCQs.length === 0 ? (
+            <p className="text-[10px] font-mono text-[#666666] text-center py-2">No saved sets for this document</p>
+          ) : (
+            savedMCQs.map((qs) => (
+              <div key={qs.id} className="p-3 bg-[#FAF9F7] border border-[#D7D3CF] rounded-[4px] flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-bold text-[#111111]">{qs.question_count} Questions</p>
+                  <p className="text-[9px] font-mono text-[#666666]">
+                    {qs.created_at ? new Date(qs.created_at).toLocaleDateString() : 'Saved'} • {qs.score !== null ? `Score: ${qs.score}/${qs.question_count}` : 'Unattempted'}
+                  </p>
                 </div>
-              ))
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+                <button
+                  onClick={() => onStartQuiz(qs.questions, qs.id)}
+                  className="px-3 py-1.5 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-[10px] font-mono uppercase font-semibold shrink-0"
+                >
+                  PRACTICE
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 

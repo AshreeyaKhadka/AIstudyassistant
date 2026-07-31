@@ -1,28 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 
-export const ModernInput = ({ ...props }) => {
-  const [isFocused, setIsFocused] = useState(false);
-
-  const style = {
-    fontFamily: 'var(--font-functional)',
-    fontSize: '1rem',
-    padding: '0.75rem 1rem',
-    backgroundColor: isFocused ? 'var(--surface-container-lowest)' : 'var(--surface-container-low)',
-    color: 'var(--on-surface)',
-    border: 'none',
-    borderBottom: `2px solid ${isFocused ? 'var(--primary)' : 'var(--outline-variant)'}`,
-    outline: 'none',
-    transition: 'all 0.2s ease',
-    width: '100%',
-    borderTopLeftRadius: 'var(--radius-sm)',
-    borderTopRightRadius: 'var(--radius-sm)'
-  };
-
+export const ModernInput = ({ className = '', ...props }) => {
   return (
     <input
-      style={style}
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
+      className={`w-full bg-white text-[#111111] border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3.5 py-2 text-sm outline-none transition-colors ${className}`}
       {...props}
     />
   );
