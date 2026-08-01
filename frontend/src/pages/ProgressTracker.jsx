@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   LineChart, BookOpen, Brain, Target, Calendar, AlertTriangle,
   CheckCircle2, XCircle, Clock, TrendingUp, TrendingDown,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const VALID_SECTIONS = ['overview', 'recommendations', 'summary', 'mistakes', 'weekly'];
 
 const PRIORITY_STYLES = {
   high: 'bg-[#FFFDFB] border-[#C96A32] text-[#C96A32]',
@@ -24,6 +25,10 @@ const TASK_TYPE_STYLES = {
 
 const ProgressTracker = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedSection = searchParams.get('section');
+  const requestedUploadId = Number(searchParams.get('upload_id')) || null;
+  const activeSection = VALID_SECTIONS.includes(requestedSection) ? requestedSection : 'overview';
 
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState(null);
@@ -33,7 +38,6 @@ const ProgressTracker = () => {
   const [mistakes, setMistakes] = useState(null);
   const [recommendations, setRecommendations] = useState(null);
   const [weeklyPlan, setWeeklyPlan] = useState(null);
-  const [activeSection, setActiveSection] = useState('overview');
   const [coachSubject, setCoachSubject] = useState('');
   const [mistakeSubject, setMistakeSubject] = useState('');
   const [error, setError] = useState('');
@@ -46,14 +50,31 @@ const ProgressTracker = () => {
       const data = await res.json();
       setOverview(data);
       if (data.uploads?.length > 0) {
-        setSelectedUploadId((current) => current || data.uploads[0].id);
+        const requestedOwnedUpload = data.uploads.find((upload) => upload.id === requestedUploadId);
+        setSelectedUploadId((current) => requestedOwnedUpload?.id || current || data.uploads[0].id);
       }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [requestedUploadId]);
+
+  const chooseSection = (section) => {
+    const next = new URLSearchParams(searchParams);
+    if (section === 'overview') next.delete('section');
+    else next.set('section', section);
+    if (section !== 'summary') next.delete('upload_id');
+    setSearchParams(next, { replace: true });
+  };
+
+  const chooseSummaryUpload = (uploadId) => {
+    setSelectedUploadId(uploadId);
+    const next = new URLSearchParams(searchParams);
+    next.set('section', 'summary');
+    next.set('upload_id', String(uploadId));
+    setSearchParams(next, { replace: true });
+  };
 
   const fetchSummary = useCallback(async (uploadId) => {
     if (!uploadId) return;
@@ -209,7 +230,7 @@ const ProgressTracker = () => {
         ].map(({ id, label, icon }) => (
           <button
             key={id}
-            onClick={() => setActiveSection(id)}
+            onClick={() => chooseSection(id)}
             className={`px-4 py-1.5 rounded-[2px] font-mono text-xs font-semibold uppercase tracking-wider transition-colors whitespace-nowrap inline-flex items-center gap-1.5 ${
               activeSection === id ? 'bg-[#102326] text-white' : 'text-[#666666] hover:text-[#111111]'
             }`}
@@ -586,7 +607,7 @@ const ProgressTracker = () => {
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-2 block">SELECT DOCUMENT</span>
                 <select
                   value={selectedUploadId || ''}
-                  onChange={(e) => setSelectedUploadId(Number(e.target.value))}
+                  onChange={(e) => chooseSummaryUpload(Number(e.target.value))}
                   className="w-full bg-[#F7F5F2] border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
                 >
                   {overview.uploads.map(u => (

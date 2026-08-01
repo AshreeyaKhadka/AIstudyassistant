@@ -16,6 +16,7 @@ from services.rag_service import (
 )
 from services.generation_service import parse_syllabus_hierarchy
 from services.syllabus_catalog import get_catalog, find_subject
+from services.syllabus_admission import validate_personal_syllabus
 from werkzeug.utils import secure_filename
 import os
 import json
@@ -61,6 +62,9 @@ def _serialize_upload(upload, include_text=False):
         "is_active_syllabus": bool(upload.is_active_syllabus),
         "embedding_status": upload.embedding_status or 'pending',
         "embedding_error": upload.embedding_error,
+        "processing_status": upload.processing_status or 'uploaded',
+        "processing_error": upload.processing_error,
+        "processing_warnings": upload.processing_warnings or [],
         "extraction_method": upload.extraction_method,
         "extraction_quality": upload.extraction_quality,
         "validation_status": upload.validation_status or 'pending',
@@ -79,9 +83,12 @@ def _serialize_upload(upload, include_text=False):
         except (json.JSONDecodeError, TypeError):
             data["structured_syllabus"] = None
             data["structure_status"] = "failed"
+    elif upload.processing_status == 'failed' or upload.validation_status == 'rejected':
+        data["structured_syllabus"] = None
+        data["structure_status"] = "failed"
     else:
         data["structured_syllabus"] = None
-        data["structure_status"] = "processing" if upload.parsed_text else "pending"
+        data["structure_status"] = "processing" if upload.processing_status in {'validating', 'structuring', 'indexing'} else "pending"
     if include_text:
         data["parsed_text"] = upload.parsed_text or ""
     else:
@@ -116,11 +123,17 @@ def _start_structure_extraction(upload_id, parsed_text):
     def _bg_extract(app, uid, ptext):
         with app.app_context():
             try:
+                upload = StudentUpload.query.get(uid)
+                if upload:
+                    upload.processing_status = 'structuring'
+                    upload.processing_error = None
+                    db.session.commit()
                 structured = normalize_syllabus_structure(parse_syllabus_hierarchy(ptext))
                 upload = StudentUpload.query.get(uid)
                 if upload:
                     upload.structured_syllabus = json.dumps(structured)
                     upload.syllabus_structure_hash = structured.get('structure_hash')
+                    upload.processing_status = 'ready'
                     db.session.commit()
                     logger.info(f"Structure extraction completed for upload {uid}")
 
@@ -132,6 +145,11 @@ def _start_structure_extraction(upload_id, parsed_text):
                 )
             except Exception as e:
                 logger.error(f"Background structure extraction failed for upload {uid}: {e}")
+                upload = StudentUpload.query.get(uid)
+                if upload:
+                    upload.processing_status = 'failed'
+                    upload.processing_error = 'Could not identify chapters or units. Check the syllabus content and retry.'
+                    db.session.commit()
 
     from flask import current_app
     app = current_app._get_current_object()
@@ -141,6 +159,59 @@ def _start_structure_extraction(upload_id, parsed_text):
         daemon=True,
     )
     t.start()
+
+
+def _start_personal_syllabus_pipeline(upload_id):
+    def _process(app, uid):
+        with app.app_context():
+            upload = StudentUpload.query.get(uid)
+            if not upload:
+                return
+            try:
+                subject = Subject.query.filter_by(id=upload.subject_id, user_id=upload.user_id).first()
+                upload.processing_status = 'validating'
+                upload.processing_error = None
+                db.session.commit()
+
+                decision = validate_personal_syllabus(subject, upload.parsed_text)
+                upload.admission_status = decision['admission_status']
+                upload.validation_status = decision['validation_status']
+                upload.validation_details = decision
+                upload.validation_error = decision.get('reason') if decision['validation_status'] == 'rejected' else None
+                if decision['admission_status'] == 'rejected':
+                    upload.processing_status = 'failed'
+                    upload.processing_error = decision.get('reason') or 'This file is not a relevant syllabus.'
+                    db.session.commit()
+                    return
+
+                upload.processing_status = 'structuring'
+                db.session.commit()
+                structured = normalize_syllabus_structure(parse_syllabus_hierarchy(upload.parsed_text))
+                upload.structured_syllabus = json.dumps(structured)
+                upload.syllabus_structure_hash = structured.get('structure_hash')
+                upload.processing_status = 'indexing'
+                db.session.commit()
+
+                indexed_chunks = embed_document(upload.id, upload.user_id, upload.filename, upload.parsed_text)
+                if not indexed_chunks:
+                    raise ValueError('No readable syllabus sections could be indexed.')
+                embed_structured_syllabus(upload.id, upload.user_id, upload.filename, structured)
+                upload = StudentUpload.query.get(uid)
+                upload.processing_status = 'ready'
+                upload.processing_error = None
+                db.session.commit()
+            except Exception as exc:
+                logger.error(f"Personal syllabus pipeline failed for upload {uid}: {exc}")
+                db.session.rollback()
+                upload = StudentUpload.query.get(uid)
+                if upload:
+                    upload.processing_status = 'failed'
+                    upload.processing_error = 'Syllabus processing failed. Review the file and retry.'
+                    db.session.commit()
+
+    from flask import current_app
+    app = current_app._get_current_object()
+    threading.Thread(target=_process, args=(app, upload_id), daemon=True).start()
 
 
 def _set_active_syllabus(user_id, upload):
@@ -720,8 +791,14 @@ def get_syllabus_workspace(user):
         .order_by(StudentUpload.created_at.desc())
         .first()
     )
+    if active and active.syllabus_kind == 'personal' and (
+        active.processing_status != 'ready' or not active.structured_syllabus
+    ):
+        active.is_active_syllabus = False
+        active = None
     if not active:
-        active = official or personal
+        personal_ready = personal if personal and personal.processing_status == 'ready' and personal.structured_syllabus else None
+        active = official or personal_ready
         if active and active.user_id == user.id:
             _set_active_syllabus(user.id, active)
             db.session.commit()
@@ -738,16 +815,22 @@ def get_syllabus_workspace(user):
 @syllabus_bp.route('/workspace/personal', methods=['POST'])
 @login_required
 def upsert_personal_syllabus(user):
-    text = (request.form.get('text') or '').strip()
     file = request.files.get('file')
     replace_id = request.form.get('replace_id')
     semester = request.form.get('semester', type=int)
     subject_id = request.form.get('subject_id', type=int)
     subject_name = (request.form.get('subject') or '').strip()
     syllabus_name = (request.form.get('syllabus_name') or '').strip()
+    subject_code = (request.form.get('code') or '').strip() or None
+    subject_credits = request.form.get('credits', default=3, type=int)
 
-    if not text and not file:
-        return jsonify({"error": "Paste syllabus text or upload a PDF/TXT file"}), 400
+    if not file or not file.filename:
+        return jsonify({"error": "Choose a text-based syllabus PDF", "code": "pdf_required"}), 400
+    if os.path.splitext(secure_filename(file.filename))[1].lower() != '.pdf':
+        return jsonify({
+            "error": "Personal syllabi must be uploaded as PDF files",
+            "code": "pdf_required",
+        }), 400
     if not semester or not subject_name:
         return jsonify({"error": "Choose a semester and subject first"}), 400
 
@@ -759,7 +842,6 @@ def upsert_personal_syllabus(user):
             semester = subject.semester
     if not subject:
         subject = Subject.query.filter_by(user_id=user.id, semester=semester, name=subject_name).first()
-
     existing_query = StudentUpload.query.filter_by(user_id=user.id, doc_type='syllabus', syllabus_kind='personal')
     if subject:
         existing_query = existing_query.filter_by(subject_id=subject.id)
@@ -771,42 +853,46 @@ def upsert_personal_syllabus(user):
     if existing and not replace_id:
         return jsonify({"error": "Personal syllabus already exists. Edit or delete it first."}), 409
 
-    filename = f"{_slugify(syllabus_name or subject_name)}.txt"
     subject_slug = _slugify(subject_name)
     scoped_dir = os.path.join(UPLOAD_FOLDER, 'syllabus', str(user.id), f"sem-{semester}", subject_slug)
     os.makedirs(scoped_dir, exist_ok=True)
-    filepath = os.path.join(scoped_dir, filename)
-    parsed_text = text
-    size_bytes = len(text.encode('utf-8'))
-    extraction_meta = {
-        'extraction_method': 'typed_text',
-        'extraction_quality': 'good' if len(parsed_text.strip()) >= 500 else 'partial' if len(parsed_text.strip()) >= 120 else 'low',
-        'warnings': [],
-        'page_count': 1,
-        'character_count': len(parsed_text.strip()),
-    }
+    filepath = None
 
     try:
-        if file:
-            original_name = secure_filename(file.filename)
-            if syllabus_name:
-                _, ext = os.path.splitext(original_name)
-                filename = secure_filename(f"{syllabus_name}{ext or '.pdf'}")
-            else:
-                filename = original_name
-            if not filename:
-                return jsonify({"error": "Uploaded file must have a filename"}), 400
-            filepath = os.path.join(scoped_dir, filename)
-            parsed_text, extraction_meta = parse_uploaded_material_with_metadata(file, filepath)
-            size_bytes = os.path.getsize(filepath)
-        else:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                f.write(parsed_text)
+        original_name = secure_filename(file.filename)
+        filename = secure_filename(f"{syllabus_name}.pdf") if syllabus_name else original_name
+        filepath = os.path.join(scoped_dir, filename)
+        parsed_text, extraction_meta = parse_uploaded_material_with_metadata(
+            file, filepath, enable_ocr=False,
+        )
+        size_bytes = os.path.getsize(filepath)
 
         if not parsed_text.strip():
             if os.path.exists(filepath):
                 os.remove(filepath)
-            return jsonify({"error": "Syllabus content is empty after parsing"}), 400
+            is_scanned = bool(extraction_meta.get('image_pages'))
+            return jsonify({
+                "error": (
+                    "This is a scanned image-only PDF. Upload a PDF where you can select and copy the text."
+                    if is_scanned else
+                    "No selectable syllabus text was found. Upload a valid text-based PDF."
+                ),
+                "code": "scanned_pdf_unsupported" if is_scanned else "syllabus_text_empty",
+                "extraction": extraction_meta,
+            }), 400
+
+        if not subject:
+            subject = Subject(
+                user_id=user.id,
+                name=subject_name,
+                semester=semester,
+                code=subject_code,
+                credits=max(1, min(6, subject_credits or 3)),
+                is_current=int(user.semester or 1) == semester,
+                is_backlog=False,
+            )
+            db.session.add(subject)
+            db.session.flush()
 
         if existing:
             delete_document_embeddings(existing.id)
@@ -820,7 +906,7 @@ def upsert_personal_syllabus(user):
             existing.parsed_text = parsed_text
             existing.size_bytes = size_bytes
             existing.subject = subject_name
-            existing.subject_id = subject.id if subject else subject_id
+            existing.subject_id = subject.id
             existing.embedding_status = 'pending'
             existing.embedding_error = None
             existing.extraction_method = extraction_meta.get('extraction_method')
@@ -828,7 +914,10 @@ def upsert_personal_syllabus(user):
             existing.processing_warnings = extraction_meta.get('warnings') or []
             existing.page_count = extraction_meta.get('page_count')
             existing.character_count = extraction_meta.get('character_count')
-            existing.validation_status = 'approved'
+            existing.processing_status = 'validating'
+            existing.processing_error = None
+            existing.admission_status = 'screening'
+            existing.validation_status = 'pending'
             existing.validation_error = None
             existing.structured_syllabus = None
             existing.syllabus_version = int(existing.syllabus_version or 1) + 1
@@ -843,7 +932,7 @@ def upsert_personal_syllabus(user):
                 size_bytes=size_bytes,
                 user_id=user.id,
                 subject=subject_name,
-                subject_id=subject.id if subject else subject_id,
+                subject_id=subject.id,
                 doc_type='syllabus',
                 syllabus_kind='personal',
                 extraction_method=extraction_meta.get('extraction_method'),
@@ -851,18 +940,15 @@ def upsert_personal_syllabus(user):
                 processing_warnings=extraction_meta.get('warnings') or [],
                 page_count=extraction_meta.get('page_count'),
                 character_count=extraction_meta.get('character_count'),
-                validation_status='approved',
+                processing_status='validating',
+                admission_status='screening',
+                validation_status='pending',
             )
             db.session.add(upload)
 
-        if request.form.get('set_active', 'true').lower() == 'true':
-            _set_active_syllabus(user.id, upload)
-
         db.session.commit()
-        _start_embedding(upload.id, user.id, upload.filename, parsed_text)
-        if parsed_text.strip():
-            _start_structure_extraction(upload.id, parsed_text)
-        return jsonify(_serialize_personal_upload(upload, include_text=True)), 200 if existing else 201
+        _start_personal_syllabus_pipeline(upload.id)
+        return jsonify(_serialize_personal_upload(upload, include_text=True)), 202
     except ValueError as e:
         db.session.rollback()
         if filepath and os.path.exists(filepath):
@@ -918,6 +1004,12 @@ def set_active_workspace_syllabus(user, upload_id):
         return jsonify({"error": "Syllabus not found"}), 404
     if upload.syllabus_kind != 'official' and upload.user_id != user.id:
         return jsonify({"error": "Unauthorized"}), 403
+    if upload.syllabus_kind == 'personal' and (
+        upload.processing_status != 'ready'
+        or upload.validation_status not in {'approved', 'needs_review'}
+        or not upload.structured_syllabus
+    ):
+        return jsonify({"error": "This syllabus must finish validation and chapter extraction before it can be used."}), 409
 
     try:
         _set_active_syllabus(user.id, upload)
@@ -1002,6 +1094,16 @@ def extract_syllabus_structure(user, upload_id):
 
     if not upload.parsed_text:
         return jsonify({"error": "No parsed text available for this syllabus"}), 400
+
+    if upload.syllabus_kind == 'personal':
+        upload.processing_status = 'validating'
+        upload.processing_error = None
+        upload.validation_status = 'pending'
+        upload.validation_error = None
+        upload.admission_status = 'screening'
+        db.session.commit()
+        _start_personal_syllabus_pipeline(upload.id)
+        return jsonify({"status": "processing", "message": "Validation and chapter extraction restarted."}), 202
 
     force = request.args.get('force', 'false').lower() == 'true'
     if not force and upload.structured_syllabus is None:

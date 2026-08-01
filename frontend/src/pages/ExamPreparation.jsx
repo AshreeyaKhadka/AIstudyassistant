@@ -4,7 +4,6 @@ import {
   Calendar, ChevronLeft, Loader2, Download, X, Clock, AlertCircle,
   ArrowRight, Play, RotateCcw
 } from 'lucide-react';
-import { useOutletContext } from 'react-router-dom';
 import { getSubjectStyle } from '../utils/subjectColors';
 
 const INTENSITY_KEY = 'exam_prep_ai_intensity';
@@ -15,19 +14,18 @@ const INTENSITY_OPTIONS = [
 ];
 
 const TOOLS = [
-  { id: 'high-yield', icon: FileText, title: 'High Yield Qs', desc: 'AI-curated exam-weighted questions' },
+  { id: 'high-yield', icon: FileText, title: 'Exam Questions', desc: 'Pokhara University-style 5 and 8 mark practice' },
   { id: 'mock-battle', icon: Target, title: 'Mock Battles', desc: 'Timed exam simulation' },
   { id: 'blueprint', icon: CheckSquare, title: 'Blueprint Sheets', desc: 'One-page visual summary' },
   { id: 'rapid-revision', icon: Zap, title: 'Rapid Revision', desc: 'Fast key-term flip deck' },
 ];
 
 const ExamPreparation = () => {
-  const { user } = useOutletContext();
-  const userSemester = user?.semester || '';
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
+  const [selectedExamUploadId, setSelectedExamUploadId] = useState(null);
   const [activeTool, setActiveTool] = useState(null);
   const [toolLoading, setToolLoading] = useState(false);
   const [toolError, setToolError] = useState(null);
@@ -63,21 +61,27 @@ const ExamPreparation = () => {
     setShowIntensity(false);
   };
 
-  const openTool = (toolId, subject = null) => {
+  const openSubject = (subject) => {
+    setSelectedSubject(subject);
+    setSelectedExamUploadId(subject?.eligible_materials?.[0]?.id || null);
+  };
+
+  const openTool = (toolId, subject = null, uploadId = selectedExamUploadId) => {
+    const sourcedSubject = subject ? { ...subject, primary_upload_id: uploadId } : subject;
     setActiveTool(toolId);
     setSelectedSubject(subject);
     setToolResult(null);
     setToolError(null);
     if (toolId !== 'mock-battle') {
-      runTool(toolId, subject);
+      runTool(toolId, sourcedSubject);
     } else {
-      loadMockBattle(subject);
+      loadMockBattle(sourcedSubject);
     }
   };
 
   const runTool = async (toolId, subject) => {
-    if (!subject?.primary_upload_id && !subject?.has_materials) {
-      setToolError('Upload and index study material for this subject first.');
+    if (!subject?.primary_upload_id) {
+      setToolError('Choose one ready PDF before generating study material.');
       return;
     }
 
@@ -172,20 +176,20 @@ const ExamPreparation = () => {
   const downloadGuide = () => {
     if (!overview?.subjects?.length) return;
     const rows = overview.subjects.map((s) =>
-      `<tr><td>${s.name}</td><td>${s.syllabus_coverage}%</td><td>${s.weak_topics}</td><td>${s.days_until_exam ?? '—'}</td><td>${s.status_label}</td></tr>`
+      `<tr><td>${s.name}</td><td>${s.materials_count}</td><td>${s.weak_topics}</td><td>${s.days_until_exam ?? '—'}</td><td>${s.status_label}</td></tr>`
     ).join('');
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Exam Prep Guide</title>
       <style>body{font-family:Georgia,serif;padding:40px;color:#111}table{width:100%;border-collapse:collapse;margin-top:20px}
       th,td{border:1px solid #ccc;padding:8px;text-align:left}th{background:#102326;color:#fff}</style></head>
-      <body><h1>Exam Preparation Guide — Semester ${overview.semester}</h1>
+      <body><h1>Exam Preparation Guide</h1>
       <p>Generated ${new Date().toLocaleDateString()}. Subjects sorted by urgency.</p>
-      <table><thead><tr><th>Subject</th><th>Coverage</th><th>Weak Areas</th><th>Days Left</th><th>Status</th></tr></thead>
+      <table><thead><tr><th>Subject</th><th>Ready PDFs</th><th>Weak Areas</th><th>Days Left</th><th>Status</th></tr></thead>
       <tbody>${rows}</tbody></table></body></html>`;
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `exam-prep-guide-sem${overview.semester}.html`;
+    a.download = 'exam-prep-guide.html';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -220,9 +224,11 @@ const ExamPreparation = () => {
       <SubjectDetailView
         subject={selectedSubject}
         intensity={intensity}
-        onBack={() => setSelectedSubject(null)}
+        selectedUploadId={selectedExamUploadId}
+        onSelectUpload={setSelectedExamUploadId}
+        onBack={() => { setSelectedSubject(null); setSelectedExamUploadId(null); }}
         onSetExamDate={(s) => { setExamDateModal(s); setExamDateValue(s.exam?.exam_date || ''); }}
-        onOpenTool={(toolId) => openTool(toolId, selectedSubject)}
+        onOpenTool={(toolId) => openTool(toolId, selectedSubject, selectedExamUploadId)}
       />
     );
   }
@@ -240,7 +246,7 @@ const ExamPreparation = () => {
           </div>
           <h1 className="text-2xl font-bold text-[#111111] tracking-tight">Exam Preparation</h1>
           <p className="text-xs text-[#666666] mt-0.5">
-            Semester {userSemester || overview?.semester} · {subjects.length} subjects · sorted by urgency
+            {subjects.length} subject{subjects.length !== 1 ? 's' : ''} with ready PDFs · sorted by urgency
           </p>
           {nearest && (
             <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-[#FFFDFB] border border-[#C96A32] rounded-[4px]">
@@ -304,7 +310,7 @@ const ExamPreparation = () => {
             desc={tool.desc}
             onClick={() => {
               const topSubject = subjects[0];
-              if (topSubject) openTool(tool.id, topSubject);
+              if (topSubject) openSubject(topSubject);
               else setToolError('Add subjects and materials to use this tool.');
             }}
           />
@@ -325,7 +331,7 @@ const ExamPreparation = () => {
             <SubjectCard
               key={subject.id}
               subject={subject}
-              onClick={() => setSelectedSubject(subject)}
+              onClick={() => openSubject(subject)}
               onSetExamDate={(e) => {
                 e.stopPropagation();
                 setExamDateModal(subject);
@@ -336,7 +342,8 @@ const ExamPreparation = () => {
           {subjects.length === 0 && (
             <div className="col-span-full py-12 text-center bg-white rounded-[4px] border border-dashed border-[#D7D3CF] p-8">
               <Trophy size={32} className="text-[#666666] mx-auto mb-2" />
-              <p className="text-xs font-mono text-[#666666]">No subjects found for this semester. Complete profile setup or add subjects in Syllabus Explorer.</p>
+              <p className="text-sm font-semibold text-[#111111]">No exam-ready PDFs yet</p>
+              <p className="mx-auto mt-1 max-w-md text-xs text-[#666666]">Upload a subject PDF in Uploaded Materials and wait for validation and indexing. It will appear here automatically.</p>
             </div>
           )}
         </div>
@@ -373,7 +380,10 @@ const ExamPreparation = () => {
           intensity={intensity}
           onClose={() => { setActiveTool(null); setToolResult(null); setToolError(null); }}
           onDownloadBlueprint={downloadBlueprint}
-          onRetry={() => activeTool === 'mock-battle' ? loadMockBattle(selectedSubject) : runTool(activeTool, selectedSubject)}
+          onRetry={() => {
+            const sourcedSubject = { ...selectedSubject, primary_upload_id: selectedExamUploadId };
+            return activeTool === 'mock-battle' ? loadMockBattle(sourcedSubject) : runTool(activeTool, sourcedSubject);
+          }}
         />
       )}
     </div>
@@ -399,7 +409,7 @@ const SubjectCard = ({ subject, onClick, onSetExamDate }) => {
         </div>
       </div>
       <div className="flex items-center justify-between text-[10px] font-mono text-[#666666]">
-        <span>{subject.syllabus_coverage}% covered</span>
+        <span>{subject.materials_count} ready PDF{subject.materials_count !== 1 ? 's' : ''}</span>
         {subject.days_until_exam != null ? (
           <span className="text-[#C96A32] font-semibold">{subject.days_until_exam}d left</span>
         ) : (
@@ -411,14 +421,11 @@ const SubjectCard = ({ subject, onClick, onSetExamDate }) => {
           </button>
         )}
       </div>
-      <div className="w-full h-1 bg-[#ECEAE7] rounded-none overflow-hidden">
-        <div className="bg-[#102326] h-full transition-all" style={{ width: `${subject.syllabus_coverage}%` }} />
-      </div>
     </div>
   );
 };
 
-const SubjectDetailView = ({ subject, onBack, onSetExamDate, onOpenTool }) => {
+const SubjectDetailView = ({ subject, selectedUploadId, onSelectUpload, onBack, onSetExamDate, onOpenTool }) => {
   const style = getSubjectStyle(subject.name);
   return (
     <div className="flex flex-col gap-6 pb-12">
@@ -434,7 +441,7 @@ const SubjectDetailView = ({ subject, onBack, onSetExamDate, onOpenTool }) => {
             </span>
             <h2 className="text-xl font-bold text-[#111111] mt-2">{subject.status_label}</h2>
             <div className="flex gap-4 mt-2 text-xs font-mono text-[#666666]">
-              <span>{subject.syllabus_coverage}% syllabus covered</span>
+              <span>{subject.materials_count} ready PDF{subject.materials_count !== 1 ? 's' : ''}</span>
               <span>{subject.weak_topics} weak area{subject.weak_topics !== 1 ? 's' : ''}</span>
               {subject.last_practiced && <span>Last: {subject.last_practiced}</span>}
             </div>
@@ -447,9 +454,26 @@ const SubjectDetailView = ({ subject, onBack, onSetExamDate, onOpenTool }) => {
             {subject.days_until_exam != null ? `${subject.days_until_exam} days left · Edit` : 'Set exam date'}
           </button>
         </div>
-        <div className="w-full h-1.5 bg-[#ECEAE7] mt-4 overflow-hidden">
-          <div className="bg-[#102326] h-full" style={{ width: `${subject.syllabus_coverage}%` }} />
+      </div>
+
+      <div className="border border-[#D7D3CF] bg-white rounded-[4px] p-4">
+        <div className="mb-3">
+          <h3 className="text-sm font-bold text-[#111111]">Choose the source PDF</h3>
+          <p className="mt-1 text-xs text-[#666666]">Questions are generated from one selected PDF only.</p>
         </div>
+        {subject.eligible_materials?.length ? (
+          <div className="space-y-2">
+            {subject.eligible_materials.map((material) => (
+              <label key={material.id} className={`flex cursor-pointer items-center gap-3 rounded-[4px] border p-3 ${selectedUploadId === material.id ? 'border-[#102326] bg-[#F1F5F4]' : 'border-[#D7D3CF] hover:bg-[#FAF9F7]'}`}>
+                <input type="radio" name="exam-source" checked={selectedUploadId === material.id} onChange={() => onSelectUpload(material.id)} className="accent-[#102326]" />
+                <FileText size={16} className="shrink-0 text-[#102326]" />
+                <span className="min-w-0 flex-1"><span className="block truncate text-xs font-semibold">{material.filename}</span><span className="block text-[10px] font-mono text-[#666666]">{material.page_count ? `${material.page_count} pages` : 'Ready PDF'}</span></span>
+              </label>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[4px] border border-dashed border-[#D7D3CF] p-4 text-xs text-[#666666]">No approved, indexed PDF is available for this subject.</div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -459,7 +483,8 @@ const SubjectDetailView = ({ subject, onBack, onSetExamDate, onOpenTool }) => {
             icon={tool.icon}
             title={tool.title}
             desc={tool.desc}
-            onClick={() => onOpenTool(tool.id)}
+            onClick={() => selectedUploadId && onOpenTool(tool.id)}
+            disabled={!selectedUploadId}
             large
           />
         ))}
@@ -468,12 +493,13 @@ const SubjectDetailView = ({ subject, onBack, onSetExamDate, onOpenTool }) => {
   );
 };
 
-const PrepCard = ({ icon, title, desc, onClick, large }) => {
+const PrepCard = ({ icon, title, desc, onClick, large, disabled = false }) => {
   const ToolIcon = icon;
   return (
     <button
       onClick={onClick}
-      className={`bg-white p-5 rounded-[4px] border border-[#D7D3CF] space-y-2 text-left hover:border-[#102326] transition-colors w-full ${large ? '' : ''}`}
+      disabled={disabled}
+      className={`bg-white p-5 rounded-[4px] border border-[#D7D3CF] space-y-2 text-left hover:border-[#102326] transition-colors w-full disabled:cursor-not-allowed disabled:opacity-50 ${large ? '' : ''}`}
     >
       <div className="w-8 h-8 rounded-[4px] bg-[#ECEAE7] text-[#102326] flex items-center justify-center">
         <ToolIcon size={18} />
@@ -525,7 +551,7 @@ const ToolModal = ({ toolId, subject, loading, error, result, onClose, onDownloa
             </div>
           )}
           {!loading && !error && result && toolId === 'high-yield' && (
-            <HighYieldView questions={result.questions} source={result.source_doc} />
+            <HighYieldView questions={result.questions} source={result.source_doc} disclaimer={result.disclaimer} />
           )}
           {!loading && !error && result && toolId === 'blueprint' && (
             <BlueprintView
@@ -549,14 +575,18 @@ const ToolModal = ({ toolId, subject, loading, error, result, onClose, onDownloa
   );
 };
 
-const HighYieldView = ({ questions, source }) => (
+const HighYieldView = ({ questions, source, disclaimer }) => (
   <div className="space-y-4">
-    <p className="text-[10px] font-mono text-[#666666] uppercase">Source: {source}</p>
+    <div className="rounded-[4px] border border-[#D7A17E] bg-[#FFF8F3] p-3 text-xs leading-5 text-[#6B432B]">
+      <span className="font-semibold">AI-generated suggestion:</span> {disclaimer}
+    </div>
+    <p className="text-[10px] font-mono text-[#666666] uppercase">Only source: {source}</p>
     {questions?.map((q, i) => (
       <div key={i} className="border border-[#D7D3CF] rounded-[4px] p-4">
         <div className="flex gap-2 mb-2">
           <span className="text-[10px] font-mono bg-[#ECEAE7] px-2 py-0.5 rounded-[2px] uppercase">{q.type?.replace('_', ' ')}</span>
           <span className="text-[10px] font-mono text-[#666666]">{q.marks} marks</span>
+          <span className="text-[10px] font-mono text-[#666666]">Page {q.source_page}</span>
         </div>
         <p className="text-sm font-medium text-[#111111]">{q.question}</p>
         {q.key_points?.length > 0 && (
@@ -565,6 +595,11 @@ const HighYieldView = ({ questions, source }) => (
               <li key={j} className="text-xs text-[#666666] flex gap-1.5"><span className="text-[#C96A32]">•</span>{kp}</li>
             ))}
           </ul>
+        )}
+        {q.source_basis && (
+          <p className="mt-3 border-t border-[#D7D3CF] pt-2 text-[10px] leading-4 text-[#777777]">
+            Grounding from page {q.source_page}: &quot;{q.source_basis}&quot;
+          </p>
         )}
       </div>
     ))}

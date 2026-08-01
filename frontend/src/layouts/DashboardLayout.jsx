@@ -88,6 +88,7 @@ const DashboardLayout = () => {
           const dbLast = profile.last_name || '';
           const dbFull = [dbFirst, dbLast].filter(Boolean).join(' ') || profile.name || '';
           setUser({
+            id: profile.id,
             name: dbFull || fallbackUser.name,
             username: dbFirst || fallbackUser.username,
             email: profile.email || clerkEmail,
@@ -152,7 +153,7 @@ const DashboardLayout = () => {
   }
 
   return (
-    <FocusProvider>
+    <FocusProvider userId={user.id}>
     <div className="flex h-screen bg-[#F7F5F2] overflow-hidden font-sans text-[#111111]">
       <Sidebar
         user={user}
@@ -182,7 +183,7 @@ const DashboardLayout = () => {
               transition={{ duration: 0.15 }}
               className="max-w-[1400px] mx-auto min-h-full"
             >
-              <Outlet context={{ user }} />
+              <Outlet context={{ user, setUser }} />
             </Motion.div>
           </AnimatePresence>
         </div>

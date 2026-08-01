@@ -222,9 +222,14 @@ def sync_clerk_session():
     else:
         user.google_id = clerk_id or user.google_id or email
         user.email = email
-        user.name = name or user.name
-        user.first_name = first_name or user.first_name
-        user.last_name = last_name or user.last_name
+        # Clerk initializes identity, but the profile form is authoritative once
+        # the student has supplied their own name.
+        if not user.first_name:
+            user.first_name = first_name
+        if not user.last_name:
+            user.last_name = last_name
+        if not user.name:
+            user.name = name
         if avatar_url:
             user.avatar_url = avatar_url
         if requested_role == 'admin':

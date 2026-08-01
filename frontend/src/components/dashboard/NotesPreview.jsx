@@ -13,7 +13,7 @@ const NotesPreview = ({ notes = [] }) => {
           <p className="text-[10px] font-mono uppercase text-[#666666] tracking-wider mt-0.5">Study summaries</p>
         </div>
         <button 
-          onClick={() => navigate('/dashboard/notes')}
+          onClick={() => navigate('/dashboard/progress?section=summary')}
           className="border border-[#102326] bg-white text-[#102326] hover:bg-[#102326] hover:text-white transition-colors rounded-[4px] px-3 py-1.5 text-[10px] font-mono font-semibold tracking-wider uppercase"
         >
           VIEW ALL
@@ -29,7 +29,7 @@ const NotesPreview = ({ notes = [] }) => {
           notes.slice(0, 3).map((note) => (
             <div
               key={note.id}
-              onClick={() => navigate('/dashboard/notes')}
+              onClick={() => navigate(`/dashboard/progress?section=summary&upload_id=${note.upload_id || note.id}`)}
               className="p-3 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#FAF9F7] transition-colors cursor-pointer"
             >
               <div className="flex justify-between items-start mb-1">

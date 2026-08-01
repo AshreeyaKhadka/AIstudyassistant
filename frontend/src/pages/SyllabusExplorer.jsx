@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   BookOpen,
@@ -18,6 +18,8 @@ import {
   Save,
   Trash2,
   X
+  ,AlertCircle,
+  UploadCloud
 } from 'lucide-react';
 import syllabusData from '../data/syllabus.json';
 
@@ -72,6 +74,7 @@ const structuredToChapters = (structured) => {
 
 const SyllabusExplorer = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const fileRef = useRef(null);
   const [screen, setScreen] = useState('home');
   const [official, setOfficial] = useState(null);
@@ -82,7 +85,7 @@ const SyllabusExplorer = () => {
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
   const [editingPersonal, setEditingPersonal] = useState(false);
-  const [personalText, setPersonalText] = useState('');
+  const [personalUploadError, setPersonalUploadError] = useState('');
   const [personalFile, setPersonalFile] = useState(null);
   const [personalUploads, setPersonalUploads] = useState([]);
   const [personalForm, setPersonalForm] = useState({
@@ -151,6 +154,16 @@ const SyllabusExplorer = () => {
   }, []);
 
   useEffect(() => {
+    const requested = Number(searchParams.get('personal'));
+    if (!requested || personalUploads.length === 0) return;
+    const upload = personalUploads.find((item) => Number(item.id) === requested);
+    if (upload) {
+      setScreen('personal');
+      openPersonalUpload(upload);
+    }
+  }, [personalUploads, searchParams]);
+
+  useEffect(() => {
     if (screen === 'personal') {
       loadWorkspace(selectedSubject, selectedSem);
     }
@@ -170,13 +183,14 @@ const SyllabusExplorer = () => {
     if (screen !== 'personal' || !selectedSubject?.uploadId) return;
     const fresh = personalUploads.find((u) => u.id === selectedSubject.uploadId);
     if (!fresh) return;
+    if (Number(personal?.id) === Number(fresh.id)) setPersonal(fresh);
     const chapters = structuredToChapters(fresh.structured_syllabus);
     const sameChapters = JSON.stringify(chapters) === JSON.stringify(selectedSubject.chapters || []);
     const sameStatus = fresh.structure_status === (selectedSubject.upload?.structure_status || 'processing');
     if (!sameChapters || !sameStatus) {
-      setSelectedSubject((prev) => ({ ...prev, chapters, upload: { ...prev.upload, structure_status: fresh.structure_status, structured_syllabus: fresh.structured_syllabus } }));
+      setSelectedSubject((prev) => ({ ...prev, chapters, upload: fresh }));
     }
-  }, [personalUploads, screen, selectedSubject?.uploadId]);
+  }, [personalUploads, screen, selectedSubject?.uploadId, personal?.id]);
 
   useEffect(() => () => {
     if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
@@ -231,21 +245,18 @@ const SyllabusExplorer = () => {
     }
   };
 
-  const startEdit = async () => {
+  const startEdit = () => {
     if (personal?.id) {
-      const res = await fetch(`/api/syllabus/workspace/${personal.id}`, { credentials: 'include' });
-      if (res.ok) {
-        const data = await parseResponse(res);
-        setPersonalText(data.parsed_text || '');
-        setPersonalForm((current) => ({
-          ...current,
-          semester: personal.semester || selectedSem,
-          subject: personal.subject || selectedSubject?.name || '',
-          code: personal.code || '',
-          credits: personal.credits || 3
-        }));
-      }
+      setPersonalForm((current) => ({
+        ...current,
+        semester: personal.semester || selectedSem,
+        subject: personal.subject || selectedSubject?.name || '',
+        code: personal.code || '',
+        credits: personal.credits || 3
+      }));
     }
+    setPersonalFile(null);
+    setPersonalUploadError('');
     setEditingPersonal(true);
     setDirty(false);
   };
@@ -254,8 +265,9 @@ const SyllabusExplorer = () => {
     event.preventDefault();
     setError('');
     setStatus('');
-    if (!personalText.trim() && !personalFile) {
-      setError('Paste syllabus text or choose a file first.');
+    setPersonalUploadError('');
+    if (!personalFile) {
+      setPersonalUploadError('Choose a text-based syllabus PDF.');
       return;
     }
     const subjectName = personalForm.subject.trim();
@@ -263,37 +275,29 @@ const SyllabusExplorer = () => {
       setError('Write the subject name first.');
       return;
     }
+    if (!/\.pdf$/i.test(personalFile.name)) {
+      setPersonalUploadError('Personal syllabi must be uploaded as PDF files.');
+      return;
+    }
+    if (personalFile.size > 10 * 1024 * 1024) {
+      setPersonalUploadError('The syllabus PDF must be 10 MB or smaller.');
+      return;
+    }
 
     setSaving(true);
     try {
-      let subjectId = personal?.subject_id || null;
-      let sem = Number(personalForm.semester || selectedSem || 1);
-      if (!subjectId) {
-        const subjectRes = await fetch('/api/syllabus/subjects', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: subjectName,
-            semester: sem,
-            code: personalForm.code.trim() || undefined,
-            credits: Number(personalForm.credits || 3)
-          })
-        });
-        const subjectData = await parseResponse(subjectRes);
-        if (!subjectRes.ok) throw new Error(subjectData.error || 'Could not add subject.');
-        subjectId = subjectData.id;
-        sem = subjectData.semester;
-      }
+      const subjectId = personal?.subject_id || null;
+      const sem = Number(personalForm.semester || selectedSem || 1);
 
       const body = new FormData();
-      if (personalText.trim()) body.append('text', personalText.trim());
-      if (personalFile) body.append('file', personalFile);
+      body.append('file', personalFile);
       if (personal?.id) body.append('replace_id', personal.id);
-      body.append('set_active', 'true');
+      body.append('set_active', 'false');
       body.append('semester', String(sem));
       body.append('subject', subjectName);
-      body.append('subject_id', String(subjectId));
+      if (subjectId) body.append('subject_id', String(subjectId));
+      body.append('code', personalForm.code.trim());
+      body.append('credits', String(Number(personalForm.credits || 3)));
 
       const res = await fetch('/api/syllabus/workspace/personal', {
         method: 'POST',
@@ -301,7 +305,10 @@ const SyllabusExplorer = () => {
         body
       });
       const data = await parseResponse(res);
-      if (!res.ok) throw new Error(data.error || 'Could not save syllabus.');
+      if (!res.ok) {
+        setPersonalUploadError(data.error || 'Could not save this syllabus PDF.');
+        return;
+      }
       const savedUpload = {
         ...normalizePersonalUpload(data, sem),
         semester: data.semester || sem,
@@ -310,7 +317,6 @@ const SyllabusExplorer = () => {
         credits: data.credits || Number(personalForm.credits || 3)
       };
       setPersonal(savedUpload);
-      setActiveUploadId(savedUpload.id);
       setPersonalUploads((current) => {
         const withoutSaved = current.filter((item) => Number(item.id) !== Number(savedUpload.id));
         return [savedUpload, ...withoutSaved];
@@ -331,12 +337,27 @@ const SyllabusExplorer = () => {
         upload: savedUpload
       });
       if (fileRef.current) fileRef.current.value = '';
-      setStatus('Your syllabus was saved.');
+      setStatus('Syllabus uploaded. Validation and chapter extraction are running.');
       await loadWorkspace({ name: subjectName }, sem);
     } catch (err) {
-      setError(err.message || 'Could not save syllabus.');
+      setPersonalUploadError(err.message || 'Could not save this syllabus PDF.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const retryPersonal = async (upload) => {
+    setError('');
+    setStatus('Restarting syllabus validation...');
+    try {
+      const response = await fetch(`/api/syllabus/workspace/${upload.id}/extract-structure`, {
+        method: 'POST', credentials: 'include'
+      });
+      const data = await parseResponse(response);
+      if (!response.ok) throw new Error(data.error || 'Could not retry this syllabus.');
+      await loadWorkspace(selectedSubject, selectedSem);
+    } catch (retryError) {
+      setError(retryError.message || 'Could not retry this syllabus.');
     }
   };
 
@@ -353,7 +374,6 @@ const SyllabusExplorer = () => {
       });
       const data = await parseResponse(res);
       if (!res.ok) throw new Error(data.error || 'Could not delete syllabus.');
-      setPersonalText('');
       setDirty(false);
       setStatus('Your syllabus was deleted.');
       await loadWorkspace();
@@ -427,8 +447,8 @@ const SyllabusExplorer = () => {
 
   const startAddPersonal = (sem = selectedSem) => {
     setPersonal(null);
-    setPersonalText('');
     setPersonalFile(null);
+    setPersonalUploadError('');
     setPersonalForm({ semester: Number(sem || 1), subject: '', code: '', credits: 3 });
     setEditingPersonal(true);
     setDirty(false);
@@ -521,16 +541,15 @@ const SyllabusExplorer = () => {
           setSelectedSubject={setSelectedSubject}
           editing={editingPersonal}
           setEditing={setEditingPersonal}
-          text={personalText}
-          setText={(value) => { setPersonalText(value); setDirty(true); }}
           form={personalForm}
           setForm={(updater) => {
             setPersonalForm((current) => typeof updater === 'function' ? updater(current) : updater);
             setDirty(true);
           }}
           fileRef={fileRef}
-          setFile={(file) => { setPersonalFile(file); setDirty(true); }}
+          setFile={(file) => { setPersonalFile(file); setPersonalUploadError(''); setDirty(true); }}
           selectedFile={personalFile}
+          uploadError={personalUploadError}
           saving={saving}
           onBack={backHome}
           onSave={savePersonal}
@@ -543,6 +562,7 @@ const SyllabusExplorer = () => {
           onOpenPdf={openPdf}
           onAdd={startAddPersonal}
           onOpenUpload={openPersonalUpload}
+          onRetry={retryPersonal}
         />
       )}
 
@@ -624,7 +644,7 @@ const SyllabusHome = ({ stats, officialActive, personalActive, hasOfficial, hasP
         active={personalActive}
         ready={hasPersonal}
         empty="You have not added your syllabus yet."
-        stats={hasPersonal ? 'Saved and ready' : 'Paste text or upload a PDF'}
+          stats={hasPersonal ? 'Saved and ready' : 'Upload a text-based PDF'}
         buttonLabel={hasPersonal ? 'Open My Syllabus' : 'Add My Syllabus'}
         onGo={onPersonal}
       />
@@ -721,13 +741,12 @@ const PersonalDetail = ({
   setSelectedSubject,
   editing,
   setEditing,
-  text,
-  setText,
   form,
   setForm,
   fileRef,
   setFile,
   selectedFile,
+  uploadError,
   saving,
   onBack,
   onSave,
@@ -740,6 +759,7 @@ const PersonalDetail = ({
   onOpenPdf,
   onAdd,
   onOpenUpload
+  ,onRetry
 }) => {
   const semesterNumbers = Array.from({ length: 8 }, (_, index) => index + 1);
   const personalSemesters = semesterNumbers.map((semester) => {
@@ -790,6 +810,7 @@ const PersonalDetail = ({
 
       {visiblePersonal ? (
         <>
+          <ProcessingBanner upload={personal} onRetry={() => onRetry(personal)} />
           <SubjectContent subject={personalSubject} onAiMode={onAiMode} onOpenPdf={onOpenPdf} />
           {active && <span className="mb-3 inline-flex text-[10px] uppercase text-[#185C28] bg-[#DDEFE2] border border-[#3E8B4E] px-2 py-1 rounded-[3px]">Selected for study help</span>}
           <DocumentSummary upload={personal} />
@@ -798,7 +819,7 @@ const PersonalDetail = ({
             <ActionButton onClick={() => onDownload(personal)} icon={Download} label="Download" />
             <ActionButton onClick={onEdit} icon={Edit3} label="Edit" />
             <ActionButton onClick={onDelete} icon={Trash2} label="Delete" danger />
-            <ActionButton onClick={() => onSetActive(personal)} icon={CheckCircle2} label="Use This" disabled={active} primary />
+            <ActionButton onClick={() => onSetActive(personal)} icon={CheckCircle2} label="Use This" disabled={active || personal.processing_status !== 'ready' || !personal.structured_syllabus} primary />
           </div>
         </>
       ) : (
@@ -816,11 +837,10 @@ const PersonalDetail = ({
         <PersonalSyllabusModal
           form={form}
           updateForm={updateForm}
-          text={text}
-          setText={setText}
           fileRef={fileRef}
           setFile={setFile}
           selectedFile={selectedFile}
+          uploadError={uploadError}
           saving={saving}
           onSave={onSave}
           onClose={() => setEditing(false)}
@@ -834,23 +854,22 @@ const PersonalDetail = ({
 const PersonalSyllabusModal = ({
   form,
   updateForm,
-  text,
-  setText,
   fileRef,
   setFile,
   selectedFile,
+  uploadError,
   saving,
   onSave,
   onClose,
   semesterNumbers
 }) => (
   <div className="fixed inset-0 z-50 bg-black/40 p-4 flex items-center justify-center">
-    <form onSubmit={onSave} className="bg-white border border-[#D7D3CF] rounded-[10px] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+    <form onSubmit={onSave} className="bg-white border border-[#D7D3CF] rounded-[6px] shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
       <div className="p-5 border-b border-[#D7D3CF] flex items-start justify-between gap-4">
         <div>
           <p className="text-[10px] uppercase tracking-wider text-[#666666] font-semibold">My syllabus</p>
-          <h3 className="text-xl font-bold text-[#111111] mt-1">Add subject</h3>
-          <p className="text-sm text-[#666666] mt-1">Choose the semester, write the subject, then add the syllabus file or text.</p>
+          <h3 className="text-lg font-bold text-[#111111] mt-1">Upload your syllabus</h3>
+          <p className="text-sm text-[#666666] mt-1">Select the correct subject so AI can verify and organize its units.</p>
         </div>
         <button type="button" onClick={onClose} className="p-2 border border-[#D7D3CF] rounded-[4px] hover:bg-[#ECEAE7]" aria-label="Close add syllabus">
           <X size={16} />
@@ -880,22 +899,30 @@ const PersonalSyllabusModal = ({
           <input value={form.code} onChange={(event) => updateForm('code', event.target.value)} className={inputClass} placeholder="Optional" />
         </div>
 
-        <div>
-          <label className="block text-[10px] uppercase text-[#666666] font-semibold mb-1">Paste syllabus text</label>
-          <textarea value={text} onChange={(event) => setText(event.target.value)} rows={7} className={`${inputClass} resize-y`} placeholder="Paste your syllabus here..." />
-        </div>
+        <label className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-[4px] border border-dashed border-[#AAA6A1] bg-[#FAF9F7] p-5 text-center hover:border-[#102326]">
+          <UploadCloud size={24} className="text-[#102326]" />
+          <span className="mt-2 text-sm font-semibold text-[#111111]">{selectedFile ? selectedFile.name : 'Choose a syllabus PDF'}</span>
+          <span className="mt-1 text-xs text-[#666666]">Maximum 10 MB. You must be able to select and copy text from the PDF.</span>
+          <input ref={fileRef} type="file" accept="application/pdf,.pdf" onChange={(event) => setFile(event.target.files?.[0] || null)} className="sr-only" />
+        </label>
 
-        <div>
-          <label className="block text-[10px] uppercase text-[#666666] font-semibold mb-1">Or choose a file</label>
-          <input ref={fileRef} type="file" accept=".pdf,.txt" onChange={(event) => setFile(event.target.files?.[0] || null)} className={inputClass} />
-          {selectedFile && <p className="text-xs text-[#666666] mt-1">{selectedFile.name}</p>}
+        {uploadError && (
+          <div className="flex gap-2 rounded-[4px] border border-[#C96A32] bg-[#FFF8F3] p-3 text-xs leading-5 text-[#8A4420]" role="alert">
+            <AlertCircle size={15} className="mt-0.5 shrink-0" />
+            <span>{uploadError}</span>
+          </div>
+        )}
+
+        <div className="flex gap-2 rounded-[4px] border border-[#D7D3CF] bg-[#F7F5F2] p-3 text-xs leading-5 text-[#555]">
+          <AlertCircle size={15} className="mt-0.5 shrink-0 text-[#102326]" />
+          <span>AI checks that this is a syllabus for the selected subject, extracts its chapter structure, and only then makes it available for study chat.</span>
         </div>
       </div>
 
       <div className="p-5 border-t border-[#D7D3CF] flex justify-end gap-2">
         <button type="button" onClick={onClose} disabled={saving} className="px-4 py-2 border border-[#D7D3CF] rounded-[4px] text-xs font-semibold">Cancel</button>
-        <button type="submit" disabled={saving || !form.subject.trim() || (!text.trim() && !selectedFile)} className="px-4 py-2 bg-[#102326] text-white rounded-[4px] text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50">
-          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save
+        <button type="submit" disabled={saving || !form.subject.trim() || !selectedFile} className="px-4 py-2 bg-[#102326] text-white rounded-[4px] text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50">
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Upload and verify
         </button>
       </div>
     </form>
@@ -1222,6 +1249,21 @@ const DocumentSummary = ({ upload }) => (
     </div>
   </div>
 );
+
+const ProcessingBanner = ({ upload, onRetry }) => {
+  const ready = upload.processing_status === 'ready' && upload.structured_syllabus;
+  const failed = upload.processing_status === 'failed' || upload.validation_status === 'rejected';
+  const label = ready ? 'Ready for AI study' : failed ? 'Syllabus needs attention' : ({ validating: 'Checking subject and syllabus relevance', structuring: 'Organizing chapters and topics', indexing: 'Preparing AI study context' }[upload.processing_status] || 'Preparing syllabus');
+  return (
+    <div className={`mb-4 flex items-start justify-between gap-3 rounded-[4px] border p-3 ${failed ? 'border-[#D7A17E] bg-[#FFF8F3]' : ready ? 'border-[#8AB596] bg-[#F2F8F3]' : 'border-[#D7D3CF] bg-[#F7F5F2]'}`}>
+      <div className="flex min-w-0 gap-2">
+        {failed ? <AlertCircle size={16} className="mt-0.5 shrink-0 text-[#C96A32]" /> : ready ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-[#2F7D42]" /> : <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin" />}
+        <div><p className="text-xs font-semibold">{label}</p><p className="mt-0.5 text-xs text-[#666666]">{upload.processing_error || upload.validation_error || (ready ? 'Chapters are available below.' : 'You can leave this page while processing continues.')}</p></div>
+      </div>
+      {failed && <button type="button" onClick={onRetry} className="shrink-0 rounded-[4px] border border-[#D7D3CF] bg-white px-3 py-1.5 text-xs font-semibold">Retry</button>}
+    </div>
+  );
+};
 
 const ActionButton = ({ icon: Icon, label, onClick, disabled = false, primary = false, danger = false }) => (
   <button

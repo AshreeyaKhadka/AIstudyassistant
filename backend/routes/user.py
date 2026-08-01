@@ -187,6 +187,7 @@ def get_dashboard_data(user):
             snippet = u.parsed_text[:120].strip() + "..."
             generated_notes.append({
                 'id': u.id,
+                'upload_id': u.id,
                 'title': f"Summary: {u.filename}",
                 'snippet': snippet,
                 'subject': u.subject or 'General',

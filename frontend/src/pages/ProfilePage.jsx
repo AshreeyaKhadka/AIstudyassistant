@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '@clerk/react';
+import { useOutletContext } from 'react-router-dom';
 import { User, Mail, GraduationCap, Calendar, Save, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const semesterOptions = [
@@ -15,6 +16,7 @@ const semesterOptions = [
 
 const ProfilePage = () => {
   const { user: clerkUser, isLoaded } = useUser();
+  const { setUser: setDashboardUser } = useOutletContext() || {};
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -128,6 +130,26 @@ const ProfilePage = () => {
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error || 'Failed to update profile');
 
+      const savedUser = payload.user || {};
+      setDashboardUser?.((current) => ({
+        ...current,
+        id: savedUser.id || current?.id,
+        name: [savedUser.first_name, savedUser.last_name].filter(Boolean).join(' ') || savedUser.name,
+        username: savedUser.first_name || current?.username,
+        first_name: savedUser.first_name,
+        last_name: savedUser.last_name,
+        college: savedUser.college,
+        semester: savedUser.semester,
+      }));
+      try {
+        await clerkUser?.update?.({
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+        });
+        await clerkUser?.reload?.();
+      } catch {
+        // The app profile is already saved even if the identity provider is temporarily unavailable.
+      }
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (err) {
       setMessage({ type: 'error', text: err.message || 'Something went wrong.' });
