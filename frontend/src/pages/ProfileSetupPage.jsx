@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Library, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useUser } from '@clerk/react';
+import { syncClerkSession } from '../utils/syncClerkSession';
 
 const UNIVERSITY = 'Pokhara University';
 const COURSE = 'Computer Engineering';
@@ -56,6 +57,15 @@ const ProfileSetupPage = () => {
       return;
     }
 
+    const clerkRole = clerkUser?.publicMetadata?.role || clerkUser?.unsafeMetadata?.role;
+
+    if (clerkRole === 'admin') {
+      syncClerkSession(clerkUser)
+        .then(() => navigate('/admin', { replace: true }))
+        .catch(() => navigate('/admin', { replace: true }));
+      return;
+    }
+
     const clerkFirstName = clerkUser?.firstName || '';
     const clerkLastName = clerkUser?.lastName || '';
     const clerkEmail = clerkUser?.primaryEmailAddress?.emailAddress || '';
@@ -69,7 +79,9 @@ const ProfileSetupPage = () => {
       avatarUrl: clerkUser?.imageUrl || '',
     }));
 
-    fetch('/api/auth/me', { credentials: 'include' })
+    const controller = new AbortController();
+
+    fetch('/api/auth/me', { credentials: 'include', signal: controller.signal })
       .then((response) => {
         if (!response.ok) {
           throw new Error('No backend session');
@@ -77,6 +89,17 @@ const ProfileSetupPage = () => {
         return response.json();
       })
       .then((profile) => {
+        // If profile is already complete, skip this page entirely
+        if (profile.profile_complete) {
+          sessionStorage.setItem('onboarded_session', 'true');
+          if (profile.role === 'admin' || clerkRole === 'admin') {
+            navigate('/admin', { replace: true });
+          } else {
+            navigate('/dashboard', { replace: true });
+          }
+          return;
+        }
+
         const derivedNames = splitName(profile.display_name || profile.name || '');
         setFormData((current) => ({
           ...current,
@@ -93,7 +116,9 @@ const ProfileSetupPage = () => {
       .finally(() => {
         setLoading(false);
       });
-  }, [clerkUser, isLoaded, navigate]);
+
+    return () => controller.abort();
+  }, [clerkUser?.id, clerkUser?.publicMetadata?.role, clerkUser?.unsafeMetadata?.role, isLoaded, navigate]);
 
   const handleChange = (field) => (event) => {
     setFormData((current) => ({ ...current, [field]: event.target.value }));
@@ -124,7 +149,10 @@ const ProfileSetupPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          role: clerkUser?.unsafeMetadata?.role || clerkUser?.publicMetadata?.role || '',
+        }),
       });
 
       const payload = await response.json();
@@ -134,7 +162,15 @@ const ProfileSetupPage = () => {
       }
 
       sessionStorage.setItem('onboarded_session', 'true');
-      navigate('/dashboard', { replace: true });
+
+      // Use the role from the onboard response instead of calling /auth/me
+      // (avoids cookie race condition where the new JWT cookie isn't committed yet)
+      const userRole = payload?.user?.role;
+      if (userRole === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (submitError) {
       setError(submitError.message || 'Failed to save profile');
     } finally {

@@ -17,6 +17,34 @@ from config import Config
 logger = logging.getLogger(__name__)
 
 
+def _log_ai_usage(user_id, action_type, usage_metadata, model_used=None, subject=None):
+    """Log AI token usage to the database. Non-blocking — failures are silently logged."""
+    if not usage_metadata:
+        return
+    try:
+        from models.ai_usage import AiUsageLog
+        from config import db
+
+        log = AiUsageLog(
+            user_id=user_id,
+            action_type=action_type,
+            prompt_tokens=usage_metadata.get('promptTokenCount', 0) or usage_metadata.get('prompt_token_count', 0),
+            completion_tokens=usage_metadata.get('candidatesTokenCount', 0) or usage_metadata.get('completion_token_count', 0),
+            total_tokens=usage_metadata.get('totalTokenCount', 0) or usage_metadata.get('total_token_count', 0),
+            model_used=model_used,
+            subject=subject,
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as e:
+        logger.warning(f"Failed to log AI usage: {e}")
+        try:
+            from config import db
+            db.session.rollback()
+        except Exception:
+            pass
+
+
 def _call_gemini(prompt: str, temperature: float = 0.4, max_tokens: int = 32768) -> str:
     """
     Send a prompt to Gemini and return the text response.
@@ -67,7 +95,21 @@ def _call_gemini(prompt: str, temperature: float = 0.4, max_tokens: int = 32768)
     if not result:
         raise RuntimeError("AI returned empty response")
 
+    # Store usage metadata on the function for callers to access
+    _call_gemini.last_usage = data.get('usageMetadata', {})
+
     return result
+
+
+def _log_usage(action_type, subject=None):
+    """Convenience: log the last Gemini call's token usage for the current user."""
+    try:
+        from flask import g
+        user_id = getattr(g, 'user_id', None)
+        if user_id and _call_gemini.last_usage:
+            _log_ai_usage(user_id, action_type, _call_gemini.last_usage, model_used=Config.GEMINI_MODEL, subject=subject)
+    except Exception:
+        pass
 
 
 def _parse_json_response(raw: str) -> any:
@@ -199,6 +241,7 @@ def generate_flashcards(context: str, count: int = 10) -> list[dict]:
     """Generate flashcards from retrieved context."""
     prompt = FLASHCARD_PROMPT.format(context=context, count=count)
     raw = _call_gemini(prompt, temperature=0.3)
+    _log_usage('flashcard_generate')
     parsed = _parse_json_response(raw)
 
     flashcards = parsed.get("flashcards", [])
@@ -223,6 +266,8 @@ def generate_flashcards(context: str, count: int = 10) -> list[dict]:
 
 MCQ_PROMPT = """You are an expert exam question designer for university-level computer engineering courses. Based STRICTLY on the following study material context, generate exactly {count} multiple-choice questions.
 
+The context is labeled with [Page N] markers indicating which page each section came from. Use these page references when citing sources.
+
 STUDY MATERIAL CONTEXT:
 {context}
 
@@ -231,6 +276,7 @@ REQUIREMENTS:
 - Exactly one option must be correct.
 - Include a brief explanation (1-2 sentences) of why the correct answer is right, citing the relevant concept from the text.
 - Include a difficulty rating of "easy", "medium", or "hard" based on how much inference vs. direct recall the question requires.
+- IMPORTANT: Include a "page_number" field with the page number where the answer can be found in the source material. Use the [Page N] markers from the context to determine this. If the page is not identifiable, use 0.
 - Questions should test conceptual understanding, application, and analysis—not just recall.
 - Distractors (wrong answers) should be plausible but clearly incorrect based on the material.
 - Do NOT include information not present in the provided context.
@@ -243,7 +289,8 @@ OUTPUT FORMAT (strict JSON):
       "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}},
       "correct": "B",
       "difficulty": "medium",
-      "explanation": "B is correct because..."
+      "explanation": "B is correct because...",
+      "page_number": 3
     }},
     ...
   ]
@@ -260,6 +307,7 @@ def generate_mcqs(context: str, count: int = 10) -> list[dict]:
     for _ in range(2):
         try:
             raw = _call_gemini(prompt, temperature=0.4)
+            _log_usage('mcq_generate')
             parsed = _parse_json_response(raw)
             break
         except Exception as exc:
@@ -293,6 +341,7 @@ def generate_mcqs(context: str, count: int = 10) -> list[dict]:
             if str(mcq.get("difficulty", "medium")).strip().lower() in {"easy", "medium", "hard"}
             else "medium",
             "explanation": str(mcq.get("explanation", "")).strip(),
+            "page_number": int(mcq.get("page_number", 0)) if str(mcq.get("page_number", "0")).isdigit() else 0,
         })
 
     return validated
@@ -342,6 +391,7 @@ def generate_exam_questions(context: str, count: int = 8) -> list[dict]:
     """Generate probable exam questions from retrieved context."""
     prompt = EXAM_PROMPT.format(context=context, count=count)
     raw = _call_gemini(prompt, temperature=0.5)
+    _log_usage('exam_generate')
     parsed = _parse_json_response(raw)
 
     questions = parsed.get("exam_questions", [])
@@ -417,6 +467,7 @@ Generate exactly {count} cards. Return ONLY valid JSON."""
 def generate_blueprint_sheet(context: str, subject: str = 'Subject') -> dict:
     prompt = BLUEPRINT_PROMPT.format(context=context, subject=subject)
     raw = _call_gemini(prompt, temperature=0.4)
+    _log_usage('blueprint_generate', subject=subject)
     parsed = _parse_json_response(raw)
     sections = parsed.get('sections', [])
     if not isinstance(sections, list) or not sections:
@@ -431,6 +482,7 @@ def generate_blueprint_sheet(context: str, subject: str = 'Subject') -> dict:
 def generate_rapid_revision(context: str, count: int = 15) -> list[dict]:
     prompt = RAPID_REVISION_PROMPT.format(context=context, count=count)
     raw = _call_gemini(prompt, temperature=0.5)
+    _log_usage('rapid_revision_generate')
     parsed = _parse_json_response(raw)
     cards = parsed.get('cards', [])
     if not isinstance(cards, list):
@@ -491,6 +543,7 @@ Return ONLY valid JSON."""
 def generate_mock_test(context: str, subject: str = 'Subject') -> dict:
     prompt = MOCK_TEST_PROMPT.format(context=context, subject=subject)
     raw = _call_gemini(prompt, temperature=0.35)
+    _log_usage('mock_test_generate', subject=subject)
     parsed = _parse_json_response(raw)
     sections = parsed.get('sections', [])
     if not isinstance(sections, list) or not sections:
@@ -545,6 +598,7 @@ def generate_learning_path(subject: str, topics: list[dict]) -> dict:
     ) or "- No weak/uncovered topics yet; create a balanced revision path."
     prompt = LEARNING_PATH_PROMPT.format(subject=subject, topics=topic_text)
     raw = _call_gemini(prompt, temperature=0.35)
+    _log_usage('learning_path_generate', subject=subject)
     parsed = _parse_json_response(raw)
     return {
         'subject': parsed.get('subject', subject),
@@ -552,3 +606,90 @@ def generate_learning_path(subject: str, topics: list[dict]) -> dict:
         'steps': parsed.get('steps', []),
         'daily_plan': parsed.get('daily_plan', []),
     }
+
+
+# ---------------------------------------------------------------------------
+# SYLLABUS HIERARCHY EXTRACTION
+# ---------------------------------------------------------------------------
+
+SYLLABUS_HIERARCHY_PROMPT = """You are an expert academic syllabus parser. Given the raw text of a university course syllabus, extract its structured hierarchy.
+
+The syllabus may use different naming conventions: "Chapters", "Units", "Modules", "Topics", "Sections", etc. Normalize them all into this hierarchy:
+- **Chapters** are the top-level divisions (e.g., "Unit I", "Module 1", "Chapter 1")
+- **Units** are sub-divisions within a chapter (if present). If the syllabus has no sub-divisions, treat the chapter itself as a single unit.
+- **Subtopics** are the individual topics listed under each unit/chapter.
+
+RULES:
+1. Preserve the original ordering of chapters and topics from the document.
+2. If the syllabus does not explicitly have units/sub-divisions, create one unit per chapter with the same name as the chapter, and list the topics as subtopics.
+3. Each subtopic should be a concise string (the topic name/title only).
+4. Do NOT fabricate topics that are not in the original text.
+5. If you cannot determine a chapter name, use "Chapter N" where N is the sequence number.
+6. The `syllabus_title` should be the document title or the course name if found, otherwise "Untitled Syllabus".
+
+SYLLABUS TEXT:
+{syllabus_text}
+
+OUTPUT FORMAT (strict JSON):
+{{
+  "syllabus_title": "string",
+  "chapters": [
+    {
+      "chapter_name": "string",
+      "units": [
+        {
+          "unit_name": "string",
+          "subtopics": ["string"]
+        }
+      ]
+    }
+  ]
+}}
+
+Return ONLY valid JSON. Do NOT wrap in markdown code fences."""
+
+
+def parse_syllabus_hierarchy(syllabus_text: str) -> dict:
+    """
+    Parse raw syllabus text into a structured hierarchy of chapters, units, and subtopics.
+    Uses Gemini LLM to extract the structure.
+    """
+    if not syllabus_text or not syllabus_text.strip():
+        raise ValueError("Empty syllabus text")
+
+    truncated = syllabus_text[:15000]
+    prompt = SYLLABUS_HIERARCHY_PROMPT.format(syllabus_text=truncated)
+    raw = _call_gemini(prompt, temperature=0.1)
+    _log_usage('syllabus_parse')
+    parsed = _parse_json_response(raw)
+
+    syllabus_title = str(parsed.get("syllabus_title", "Untitled Syllabus")).strip()
+    raw_chapters = parsed.get("chapters", [])
+
+    if not isinstance(raw_chapters, list) or not raw_chapters:
+        raise RuntimeError("AI returned no chapters from syllabus")
+
+    chapters = []
+    for ch in raw_chapters:
+        if not isinstance(ch, dict):
+            continue
+        chapter_name = str(ch.get("chapter_name", "Untitled Chapter")).strip()
+        raw_units = ch.get("units", [])
+        if not isinstance(raw_units, list) or not raw_units:
+            raw_units = [{"unit_name": chapter_name, "subtopics": []}]
+
+        units = []
+        for unit in raw_units:
+            if not isinstance(unit, dict):
+                continue
+            unit_name = str(unit.get("unit_name", chapter_name)).strip()
+            subtopics = [
+                str(s).strip()
+                for s in unit.get("subtopics", [])
+                if isinstance(s, str) and s.strip()
+            ]
+            units.append({"unit_name": unit_name, "subtopics": subtopics})
+
+        chapters.append({"chapter_name": chapter_name, "units": units})
+
+    return {"syllabus_title": syllabus_title, "chapters": chapters}

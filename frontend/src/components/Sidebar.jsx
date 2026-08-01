@@ -58,7 +58,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
           className="h-16 flex items-center justify-between px-5 border-b border-[#D7D3CF] bg-[#ECEAE7] cursor-pointer"
           onClick={(e) => {
             if (e.detail === 3 && user?.role === 'admin') {
-              navigate('/system-core-admin');
+              navigate('/admin');
             }
           }}
           title={user?.role === 'admin' ? "Secret: Triple click for Admin" : ""}

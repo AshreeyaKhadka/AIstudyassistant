@@ -10,7 +10,9 @@ from services.rag_service import (
     delete_document_embeddings,
     get_syllabus_coverage,
     is_document_embedded,
+    embed_structured_syllabus,
 )
+from services.generation_service import parse_syllabus_hierarchy
 from werkzeug.utils import secure_filename
 import os
 import json
@@ -64,6 +66,16 @@ def _serialize_upload(upload, include_text=False):
         "syllabus_match_coverage": upload.syllabus_match_coverage,
         "created_at": upload.created_at.isoformat() if upload.created_at else None,
     }
+    if upload.structured_syllabus:
+        try:
+            data["structured_syllabus"] = json.loads(upload.structured_syllabus)
+            data["structure_status"] = "ready"
+        except (json.JSONDecodeError, TypeError):
+            data["structured_syllabus"] = None
+            data["structure_status"] = "failed"
+    else:
+        data["structured_syllabus"] = None
+        data["structure_status"] = "processing" if upload.parsed_text else "pending"
     if include_text:
         data["parsed_text"] = upload.parsed_text or ""
     else:
@@ -89,6 +101,36 @@ def _start_embedding(upload_id, user_id, filename, text):
     t = threading.Thread(
         target=_bg_embed,
         args=(app, upload_id, user_id, filename, text),
+        daemon=True,
+    )
+    t.start()
+
+
+def _start_structure_extraction(upload_id, parsed_text):
+    def _bg_extract(app, uid, ptext):
+        with app.app_context():
+            try:
+                structured = parse_syllabus_hierarchy(ptext)
+                upload = StudentUpload.query.get(uid)
+                if upload:
+                    upload.structured_syllabus = json.dumps(structured)
+                    db.session.commit()
+                    logger.info(f"Structure extraction completed for upload {uid}")
+
+                embed_structured_syllabus(
+                    upload_id=uid,
+                    user_id=upload.user_id if upload else 0,
+                    filename=upload.filename if upload else '',
+                    structured=structured,
+                )
+            except Exception as e:
+                logger.error(f"Background structure extraction failed for upload {uid}: {e}")
+
+    from flask import current_app
+    app = current_app._get_current_object()
+    t = threading.Thread(
+        target=_bg_extract,
+        args=(app, upload_id, parsed_text),
         daemon=True,
     )
     t.start()
@@ -334,12 +376,21 @@ def upload_syllabus(user):
     try:
         text, extraction_meta = parse_uploaded_material_with_metadata(file, filepath)
         size_bytes = os.path.getsize(filepath)
-    except Exception as e:
+    except ValueError as e:
         logger.error(f"Failed to parse syllabus file: {e}")
-        # cleanup file
         if os.path.exists(filepath):
             os.remove(filepath)
-        return jsonify({"error": f"Failed to parse syllabus: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        logger.error(f"Failed to parse syllabus file: {e}")
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        return jsonify({"error": "Failed to parse this PDF. Please try a different file."}), 500
+
+    if not text or not text.strip():
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        return jsonify({"error": "No readable text could be extracted from this syllabus."}), 400
 
     upload = StudentUpload(
         filename=filename,
@@ -381,6 +432,9 @@ def upload_syllabus(user):
         daemon=True,
     )
     t.start()
+
+    if text and text.strip():
+        _start_structure_extraction(upload.id, text)
 
     return jsonify({
         "message": "Syllabus uploaded and parsed successfully",
@@ -648,6 +702,7 @@ def upsert_personal_syllabus(user):
             existing.extraction_quality = extraction_meta.get('extraction_quality')
             existing.validation_status = 'approved'
             existing.validation_error = None
+            existing.structured_syllabus = None
             upload = existing
         else:
             upload = StudentUpload(
@@ -671,14 +726,26 @@ def upsert_personal_syllabus(user):
 
         db.session.commit()
         _start_embedding(upload.id, user.id, upload.filename, parsed_text)
+        if parsed_text.strip():
+            _start_structure_extraction(upload.id, parsed_text)
         return jsonify(_serialize_personal_upload(upload, include_text=True)), 200 if existing else 201
     except ValueError as e:
         db.session.rollback()
+        if filepath and os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception:
+                pass
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         db.session.rollback()
+        if filepath and os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception:
+                pass
         logger.error(f"Failed to save personal syllabus: {e}")
-        return jsonify({"error": "Failed to save personal syllabus"}), 500
+        return jsonify({"error": "Failed to save personal syllabus. Please try a different file."}), 500
 
 
 @syllabus_bp.route('/workspace/personal', methods=['GET'])
@@ -776,3 +843,36 @@ def delete_personal_syllabus(user, upload_id):
         db.session.rollback()
         logger.error(f"Failed to delete personal syllabus: {e}")
         return jsonify({"error": "Failed to delete personal syllabus"}), 500
+
+
+@syllabus_bp.route('/workspace/<int:upload_id>/extract-structure', methods=['POST'])
+@login_required
+def extract_syllabus_structure(user, upload_id):
+    upload = StudentUpload.query.get(upload_id)
+    if not upload or upload.doc_type != 'syllabus':
+        return jsonify({"error": "Syllabus not found"}), 404
+    if upload.syllabus_kind != 'official' and upload.user_id != user.id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    if upload.structured_syllabus:
+        try:
+            return jsonify(json.loads(upload.structured_syllabus)), 200
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    if not upload.parsed_text:
+        return jsonify({"error": "No parsed text available for this syllabus"}), 400
+
+    force = request.args.get('force', 'false').lower() == 'true'
+    if not force and upload.structured_syllabus is None:
+        _start_structure_extraction(upload.id, upload.parsed_text)
+        return jsonify({"status": "processing", "message": "Structure extraction started in background"}), 202
+
+    try:
+        structured = parse_syllabus_hierarchy(upload.parsed_text)
+        upload.structured_syllabus = json.dumps(structured)
+        db.session.commit()
+        return jsonify(structured), 200
+    except Exception as e:
+        logger.error(f"Structure extraction failed for upload {upload_id}: {e}")
+        return jsonify({"error": f"Failed to extract syllabus structure: {str(e)}"}), 500

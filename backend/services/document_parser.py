@@ -83,7 +83,16 @@ def _extraction_metadata(method: str, text: str) -> dict:
 def _parse_pdf(filepath: str) -> str:
     parts = []
     ocr_pages = []
-    doc = fitz.open(filepath)
+    try:
+        doc = fitz.open(filepath)
+    except Exception as e:
+        msg = str(e).lower()
+        if 'password' in msg or 'encrypted' in msg:
+            raise ValueError("This PDF is password-protected. Please upload an unprotected version.")
+        if 'cannot open' in msg or 'broken' in msg or 'truncat' in msg:
+            raise ValueError("This PDF appears to be corrupted or incomplete. Please try a different file.")
+        raise ValueError(f"Could not open this PDF: {e}")
+
     try:
         for index, page in enumerate(doc):
             text = (page.get_text() or '').strip()

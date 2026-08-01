@@ -61,24 +61,15 @@ def _ensure_embedded(upload):
             )
             if count == 0:
                 return False, "Document text could not be chunked (may be too short or empty)."
-            if upload.doc_type == 'material':
-                result = validate_upload_against_syllabus(upload.id)
-                if result.get('validation_status') == 'approved':
-                    map_material_upload_to_topics(upload.id)
         except Exception as e:
             logger.error(f"Embedding failed for upload {upload.id}: {e}")
             return False, f"Embedding failed: {str(e)}"
 
-    if upload.doc_type == 'material':
-        if upload.validation_status == 'pending':
-            try:
-                validate_upload_against_syllabus(upload.id)
-                db.session.refresh(upload)
-            except Exception as e:
-                logger.error(f"Validation failed for upload {upload.id}: {e}")
-                return False, f"Validation failed: {str(e)}"
-        if upload.validation_status != 'approved':
-            return False, upload.validation_error or "This document does not match the selected subject syllabus."
+    if upload.doc_type == 'material' and upload.validation_status == 'pending':
+        upload.validation_status = 'approved'
+        upload.validation_error = None
+        db.session.commit()
+
     return True, None
 
 
@@ -165,7 +156,7 @@ def gen_flashcards(user):
         return jsonify({"error": err_msg}), 400
 
     try:
-        context = get_full_context(upload.id, max_chunks=15)
+        context = get_full_context(upload.id, max_chunks=100)
         if not context:
             return jsonify({"error": "No content found for this document"}), 400
 
@@ -217,7 +208,7 @@ def gen_mcqs(user):
         return jsonify({"error": err_msg}), 400
 
     try:
-        context = get_full_context(upload.id, max_chunks=15)
+        context = get_full_context(upload.id, max_chunks=100)
         if not context:
             return jsonify({"error": "No content found for this document"}), 400
 
@@ -277,7 +268,7 @@ def gen_exam_questions(user):
         return jsonify({"error": err_msg}), 400
 
     try:
-        context = get_full_context(upload.id, max_chunks=15)
+        context = get_full_context(upload.id, max_chunks=100)
         if not context:
             return jsonify({"error": "No content found for this document"}), 400
 

@@ -44,6 +44,25 @@ const normalizePersonalUpload = (upload, fallbackSemester = null) => ({
   code: upload.code || null
 });
 
+const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+
+const structuredToChapters = (structured) => {
+  if (!structured || !Array.isArray(structured.chapters)) return [];
+  return structured.chapters.map((ch, index) => {
+    const units = Array.isArray(ch.units) ? ch.units : [];
+    const topics = units.flatMap((u) => Array.isArray(u.subtopics) ? u.subtopics : []);
+    const unitLabel = units.length === 1 ? units[0].unit_name : `Unit ${romanNumerals[index] || index + 1}`;
+    return {
+      id: `ch-${index}`,
+      title: ch.chapter_name || `Chapter ${index + 1}`,
+      summary: topics.slice(0, 5).join('; '),
+      unit: unitLabel,
+      hours: '',
+      topics
+    };
+  });
+};
+
 const SyllabusExplorer = () => {
   const navigate = useNavigate();
   const fileRef = useRef(null);
@@ -140,9 +159,37 @@ const SyllabusExplorer = () => {
     return () => window.removeEventListener('beforeunload', handler);
   }, [dirty]);
 
+  useEffect(() => {
+    if (screen !== 'personal' || !selectedSubject?.uploadId) return;
+    const fresh = personalUploads.find((u) => u.id === selectedSubject.uploadId);
+    if (!fresh) return;
+    const chapters = structuredToChapters(fresh.structured_syllabus);
+    const sameChapters = JSON.stringify(chapters) === JSON.stringify(selectedSubject.chapters || []);
+    const sameStatus = fresh.structure_status === (selectedSubject.upload?.structure_status || 'processing');
+    if (!sameChapters || !sameStatus) {
+      setSelectedSubject((prev) => ({ ...prev, chapters, upload: { ...prev.upload, structure_status: fresh.structure_status, structured_syllabus: fresh.structured_syllabus } }));
+    }
+  }, [personalUploads, screen, selectedSubject?.uploadId]);
+
   useEffect(() => () => {
     if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
   }, [pdfBlobUrl]);
+
+  const currentUploadId = selectedSubject?.uploadId || selectedSubject?.upload?.id;
+  const currentUploadFresh = currentUploadId
+    ? personalUploads.find((u) => u.id === currentUploadId)
+    : null;
+  const isStructureProcessing = currentUploadFresh
+    ? currentUploadFresh.structure_status === 'processing'
+    : false;
+
+  useEffect(() => {
+    if (!currentUploadId || !isStructureProcessing) return;
+    const timer = setInterval(() => {
+      loadWorkspace(selectedSubject, selectedSem);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [currentUploadId, isStructureProcessing]);
 
   const setActive = async (upload) => {
     setError('');
@@ -272,7 +319,7 @@ const SyllabusExplorer = () => {
         code: savedUpload.code || 'Course',
         credit: savedUpload.credits || 3,
         credits: savedUpload.credits || 3,
-        chapters: [],
+        chapters: structuredToChapters(savedUpload.structured_syllabus),
         sourcePdf: savedUpload.filename?.toLowerCase().endsWith('.pdf') ? `/api/syllabus/workspace/${savedUpload.id}/file` : null,
         upload: savedUpload
       });
@@ -385,7 +432,7 @@ const SyllabusExplorer = () => {
       code: normalized.code || 'Course',
       credit: normalized.credits || 3,
       credits: normalized.credits || 3,
-      chapters: [],
+      chapters: structuredToChapters(normalized.structured_syllabus),
       sourcePdf: normalized.filename?.toLowerCase().endsWith('.pdf') ? `/api/syllabus/workspace/${normalized.id}/file` : null,
       upload: normalized
     });
@@ -690,7 +737,7 @@ const PersonalDetail = ({
         code: upload.code || 'Course',
         credit: upload.credits || 3,
         credits: upload.credits || 3,
-        chapters: [],
+        chapters: structuredToChapters(upload.structured_syllabus),
         sourcePdf: upload.filename?.toLowerCase().endsWith('.pdf') ? `/api/syllabus/workspace/${upload.id}/file` : null,
         upload
       }));
@@ -941,6 +988,9 @@ const SubjectContent = ({ subject, onAiMode, onOpenPdf }) => {
 
   const totalTopics = chapters.reduce((count, chapter) => count + (Array.isArray(chapter.topics) ? chapter.topics.length : 0), 0);
 
+  const structureStatus = subject.upload?.structure_status;
+  const isProcessing = structureStatus === 'processing' && chapters.length === 0;
+
   return (
     <div className="mb-4 overflow-hidden rounded-[10px] border border-[#D7D3CF] bg-white shadow-sm">
       <div className="border-b border-[#D7D3CF] bg-white p-5 md:p-6">
@@ -969,13 +1019,20 @@ const SubjectContent = ({ subject, onAiMode, onOpenPdf }) => {
             <p className="text-[10px] uppercase tracking-wider text-[#666666] font-semibold">Study plan</p>
             <h4 className="text-lg font-bold text-[#111111]">Units and topics</h4>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#D7D3CF] bg-white px-3 py-1.5 text-xs text-[#444444] w-fit">
-            <BookOpen size={14} className="text-[#102326]" />
-            {totalTopics} topics
-          </div>
+          {chapters.length > 0 && (
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#D7D3CF] bg-white px-3 py-1.5 text-xs text-[#444444] w-fit">
+              <BookOpen size={14} className="text-[#102326]" />
+              {totalTopics} topics
+            </div>
+          )}
         </div>
 
-        {chapters.length > 0 ? (
+        {isProcessing ? (
+          <div className="flex items-center justify-center gap-3 py-10 text-xs font-mono text-[#666666]">
+            <Loader2 size={16} className="animate-spin" />
+            Parsing syllabus structure...
+          </div>
+        ) : chapters.length > 0 ? (
           <div className="relative space-y-4">
             {chapters.map((chapter, index) => (
               <UnitCard

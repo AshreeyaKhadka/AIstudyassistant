@@ -9,6 +9,7 @@ Handles the full pipeline:
 """
 
 import os
+import time
 import logging
 import requests
 import chromadb
@@ -67,16 +68,69 @@ def chunk_text(text: str) -> list[str]:
     return [c for c in chunks if len(c.strip()) > 30]
 
 
+import re
+
+_PAGE_MARKER_RE = re.compile(r'\[(?:Page|OCR Page|Slide)\s+(\d+)\]\n')
+
+
+def chunk_text_by_page(text: str) -> list[tuple[str, int]]:
+    """
+    Split parsed text into page sections using [Page N] markers,
+    then chunk each page section individually.
+
+    Returns list of (chunk_text, page_number) tuples.
+    """
+    if not text or not text.strip():
+        return []
+
+    # Split on [Page N] markers, keeping the page number
+    parts = _PAGE_MARKER_RE.split(text)
+    # parts alternates: [pre-marker text, page_num, text, page_num, text, ...]
+
+    page_sections = []
+    if len(parts) >= 3:
+        # First part is any text before the first marker (usually empty)
+        for i in range(1, len(parts), 2):
+            page_num = int(parts[i])
+            page_text = parts[i + 1] if i + 1 < len(parts) else ''
+            if page_text.strip():
+                page_sections.append((page_text.strip(), page_num))
+    elif len(parts) == 1:
+        # No page markers found — treat as page 1
+        page_sections.append((text.strip(), 1))
+
+    # Chunk within each page section
+    results = []
+    for page_text, page_num in page_sections:
+        page_chunks = _splitter.split_text(page_text)
+        for chunk in page_chunks:
+            if len(chunk.strip()) > 30:
+                results.append((chunk.strip(), page_num))
+
+    # Fallback: if page-aware chunking produced nothing, use flat chunking
+    if not results:
+        flat = chunk_text(text)
+        for chunk in flat:
+            results.append((chunk, 0))
+
+    return results
+
+
 # ---------------------------------------------------------------------------
 # 2. Embedding via Gemini
 # ---------------------------------------------------------------------------
 EMBEDDING_MODEL = 'gemini-embedding-2'
 EMBEDDING_DIMENSIONS = 768
-_BATCH_SIZE = 50  # Gemini allows batching
+_BATCH_SIZE = 25  # Conservative batch size to avoid 429s
+_BATCH_DELAY = 1  # seconds between batches
+
+
+_EMBED_MAX_RETRIES = 4
+_EMBED_BACKOFF_BASE = 3  # seconds
 
 
 def _embed_texts(texts: list[str]) -> list[list[float]]:
-    """Call Gemini embedding endpoint for a batch of texts."""
+    """Call Gemini embedding endpoint for a batch of texts, with retry on 429."""
     api_key = Config.GEMINI_API_KEY
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY is not configured")
@@ -87,7 +141,6 @@ def _embed_texts(texts: list[str]) -> list[list[float]]:
     # Build batch request body
     requests_body = []
     for text in texts:
-        # Truncate very long chunks to avoid token limits
         truncated = text[:2048]
         requests_body.append({
             "model": f"models/{EMBEDDING_MODEL}",
@@ -97,17 +150,34 @@ def _embed_texts(texts: list[str]) -> list[list[float]]:
 
     payload = {"requests": requests_body}
 
-    try:
-        response = requests.post(
-            url,
-            headers={"x-goog-api-key": api_key},
-            json=payload,
-            timeout=60,
-        )
-        response.raise_for_status()
-    except requests.RequestException as exc:
-        logger.error(f"Gemini embedding request failed: {exc}")
-        raise RuntimeError(f"Embedding API error: {exc}")
+    last_exc = None
+    for attempt in range(_EMBED_MAX_RETRIES):
+        try:
+            response = requests.post(
+                url,
+                headers={"x-goog-api-key": api_key},
+                json=payload,
+                timeout=60,
+            )
+            if response.status_code == 429:
+                wait = _EMBED_BACKOFF_BASE * (2 ** attempt)
+                logger.warning(f"Embedding rate-limited (429), retrying in {wait}s (attempt {attempt + 1}/{_EMBED_MAX_RETRIES})")
+                time.sleep(wait)
+                continue
+            response.raise_for_status()
+            break
+        except requests.RequestException as exc:
+            last_exc = exc
+            if '429' in str(exc):
+                wait = _EMBED_BACKOFF_BASE * (2 ** attempt)
+                logger.warning(f"Embedding rate-limited, retrying in {wait}s (attempt {attempt + 1}/{_EMBED_MAX_RETRIES})")
+                time.sleep(wait)
+                continue
+            logger.error(f"Gemini embedding request failed: {exc}")
+            raise RuntimeError(f"Embedding API error: {exc}")
+    else:
+        logger.error(f"Embedding failed after {_EMBED_MAX_RETRIES} retries")
+        raise RuntimeError(f"Embedding API rate limit exceeded after {_EMBED_MAX_RETRIES} retries. Try again later.")
 
     data = response.json()
     embeddings = []
@@ -126,8 +196,13 @@ def _embed_texts(texts: list[str]) -> list[list[float]]:
 def embed_texts_batched(texts: list[str]) -> list[list[float]]:
     """Embed texts in batches to respect API limits."""
     all_embeddings = []
+    total_batches = (len(texts) + _BATCH_SIZE - 1) // _BATCH_SIZE
     for i in range(0, len(texts), _BATCH_SIZE):
         batch = texts[i : i + _BATCH_SIZE]
+        batch_num = (i // _BATCH_SIZE) + 1
+        if batch_num > 1:
+            time.sleep(_BATCH_DELAY)
+        logger.info(f"Embedding batch {batch_num}/{total_batches} ({len(batch)} chunks)")
         batch_embeddings = _embed_texts(batch)
         all_embeddings.extend(batch_embeddings)
     return all_embeddings
@@ -149,14 +224,17 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
         db.session.commit()
 
     try:
-        chunks = chunk_text(parsed_text)
-        if not chunks:
+        page_chunks = chunk_text_by_page(parsed_text)
+        if not page_chunks:
             logger.warning(f"No valid chunks for upload {upload_id}")
             if upload:
                 upload.embedding_status = 'failed'
                 upload.embedding_error = 'No valid text chunks found in document'
                 db.session.commit()
             return 0
+
+        chunks = [c[0] for c in page_chunks]
+        page_numbers = [c[1] for c in page_chunks]
 
         logger.info(f"Embedding {len(chunks)} chunks for upload {upload_id} ({filename})")
 
@@ -177,6 +255,7 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
                 "user_id": user_id,
                 "filename": filename,
                 "chunk_index": i,
+                "page_number": page_numbers[i],
                 "subject_id": subject_id,
                 "doc_type": doc_type,
                 "validation_status": validation_status if doc_type == 'material' else 'approved',
@@ -676,8 +755,12 @@ def get_full_context(upload_id: int, max_chunks: int = 15) -> str:
 
     context_parts = []
     for doc, meta in paired:
-        idx = meta.get("chunk_index", "?")
-        context_parts.append(f"[Section {idx}]\n{doc}")
+        page_num = meta.get("page_number", 0)
+        if page_num and page_num > 0:
+            context_parts.append(f"[Page {page_num}]\n{doc}")
+        else:
+            idx = meta.get("chunk_index", "?")
+            context_parts.append(f"[Section {idx}]\n{doc}")
 
     return "\n\n---\n\n".join(context_parts)
 
@@ -719,3 +802,91 @@ def get_embedding_stats(upload_id: int) -> dict:
         "chunk_count": count,
         "is_embedded": count > 0,
     }
+
+
+# ---------------------------------------------------------------------------
+# 6. Structured syllabus embedding
+# ---------------------------------------------------------------------------
+def _structured_to_chunks(structured: dict) -> list[str]:
+    """
+    Convert a structured syllabus hierarchy into semantic text chunks
+    suitable for embedding. Each chapter becomes one chunk containing
+    its units and subtopics.
+    """
+    if not structured or not isinstance(structured.get("chapters"), list):
+        return []
+
+    title = structured.get("syllabus_title", "Syllabus")
+    chunks = []
+    for ch in structured["chapters"]:
+        if not isinstance(ch, dict):
+            continue
+        chapter_name = ch.get("chapter_name", "")
+        units = ch.get("units", [])
+        if not isinstance(units, list) or not units:
+            chunks.append(f"Syllabus: {title}\nChapter: {chapter_name}")
+            continue
+
+        parts = [f"Syllabus: {title}", f"Chapter: {chapter_name}"]
+        for unit in units:
+            if not isinstance(unit, dict):
+                continue
+            unit_name = unit.get("unit_name", "")
+            subtopics = unit.get("subtopics", [])
+            if isinstance(subtopics, list) and subtopics:
+                topic_list = "; ".join(str(s) for s in subtopics if s)
+                parts.append(f"Unit: {unit_name}\nTopics: {topic_list}")
+            else:
+                parts.append(f"Unit: {unit_name}")
+        chunks.append("\n".join(parts))
+
+    return [c for c in chunks if len(c.strip()) > 30]
+
+
+def embed_structured_syllabus(upload_id: int, user_id: int, filename: str, structured: dict):
+    """
+    Embed the structured syllabus hierarchy into ChromaDB.
+    Each chapter becomes a chunk with chapter/unit/topic metadata.
+    Uses the same Gemini embedding pipeline as document embedding.
+    """
+    chunks = _structured_to_chunks(structured)
+    if not chunks:
+        logger.warning(f"No structured chunks for upload {upload_id}")
+        return 0
+
+    upload = StudentUpload.query.get(upload_id)
+    subject_id = upload.subject_id if upload else None
+
+    logger.info(f"Embedding {len(chunks)} structured syllabus chunks for upload {upload_id}")
+
+    embeddings = embed_texts_batched(chunks)
+    collection = _get_collection()
+
+    ids = [f"upload_{upload_id}_struct_{i}" for i in range(len(chunks))]
+    chapters_list = structured.get("chapters", []) if isinstance(structured, dict) else []
+    metadatas = [
+        {
+            "upload_id": upload_id,
+            "user_id": user_id,
+            "filename": filename,
+            "chunk_index": i,
+            "subject_id": subject_id,
+            "doc_type": "syllabus_structure",
+            "validation_status": "approved",
+            "chapter_name": chapters_list[i].get("chapter_name", "") if i < len(chapters_list) else "",
+        }
+        for i in range(len(chunks))
+    ]
+
+    batch_size = 100
+    for i in range(0, len(ids), batch_size):
+        end = i + batch_size
+        collection.upsert(
+            ids=ids[i:end],
+            embeddings=embeddings[i:end],
+            documents=chunks[i:end],
+            metadatas=metadatas[i:end],
+        )
+
+    logger.info(f"Successfully embedded {len(chunks)} structured syllabus chunks for upload {upload_id}")
+    return len(chunks)

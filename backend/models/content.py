@@ -56,6 +56,7 @@ class StudentUpload(db.Model):
     syllabus_match_score = db.Column(db.Float, nullable=True)
     syllabus_match_coverage = db.Column(db.Float, nullable=True)
     mcq_generation_count = db.Column(db.Integer, default=0)
+    structured_syllabus = db.Column(db.Text, nullable=True)  # JSON: {syllabus_title, chapters[{chapter_name, units[{unit_name, subtopics[]}]}]}
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     __table_args__ = (

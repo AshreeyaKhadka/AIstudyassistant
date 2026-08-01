@@ -33,15 +33,18 @@ const ProfilePage = () => {
     const clerkLastName = clerkUser.lastName || '';
     const clerkEmail = clerkUser.primaryEmailAddress?.emailAddress || '';
 
+    const controller = new AbortController();
+
     const loadProfile = async () => {
       try {
-        let res = await fetch('/api/auth/me', { credentials: 'include' });
+        let res = await fetch('/api/auth/me', { credentials: 'include', signal: controller.signal });
 
         if (!res.ok) {
           res = await fetch('/api/auth/onboard', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
+            signal: controller.signal,
             body: JSON.stringify({
               firstName: clerkFirstName,
               lastName: clerkLastName,
@@ -52,7 +55,7 @@ const ProfilePage = () => {
               semester: 1,
             }),
           });
-          if (res.ok) res = await fetch('/api/auth/me', { credentials: 'include' });
+          if (res.ok) res = await fetch('/api/auth/me', { credentials: 'include', signal: controller.signal });
         }
 
         if (res.ok) {
@@ -87,7 +90,9 @@ const ProfilePage = () => {
     };
 
     loadProfile();
-  }, [isLoaded, clerkUser]);
+
+    return () => controller.abort();
+  }, [isLoaded, clerkUser?.id]);
 
   const handleChange = (field) => (e) => {
     setFormData((prev) => ({ ...prev, [field]: e.target.value }));

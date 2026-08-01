@@ -81,6 +81,8 @@ def _ensure_mcq_count_schema():
     with db.engine.begin() as connection:
         if 'mcq_generation_count' not in columns:
             connection.execute(text("ALTER TABLE student_uploads ADD COLUMN mcq_generation_count INTEGER DEFAULT 0"))
+        if 'structured_syllabus' not in columns:
+            connection.execute(text("ALTER TABLE student_uploads ADD COLUMN structured_syllabus TEXT"))
 
 
 def _ensure_quiz_set_upload_schema():
@@ -182,6 +184,31 @@ def _ensure_calendar_schema():
                 connection.execute(text("ALTER TABLE exams ADD COLUMN reminder BOOLEAN DEFAULT 0 NOT NULL"))
 
 
+def _ensure_user_token_quota_schema():
+    inspector = inspect(db.engine)
+    if 'users' not in inspector.get_table_names():
+        return
+    columns = {column['name'] for column in inspector.get_columns('users')}
+    with db.engine.begin() as connection:
+        if 'token_quota' not in columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN token_quota INTEGER DEFAULT 100000"))
+        if 'token_quota_enabled' not in columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN token_quota_enabled BOOLEAN DEFAULT 0"))
+
+
+def _ensure_ai_usage_logs_schema():
+    inspector = inspect(db.engine)
+    if 'ai_usage_logs' not in inspector.get_table_names():
+        return
+    # Table exists, check for missing columns
+    columns = {column['name'] for column in inspector.get_columns('ai_usage_logs')}
+    with db.engine.begin() as connection:
+        if 'model_used' not in columns:
+            connection.execute(text('ALTER TABLE ai_usage_logs ADD COLUMN model_used VARCHAR(100)'))
+        if 'subject' not in columns:
+            connection.execute(text('ALTER TABLE ai_usage_logs ADD COLUMN subject VARCHAR(255)'))
+
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -200,6 +227,20 @@ def create_app():
     def health_check():
         return jsonify({"status": "ok", "message": "CE Study Assistant API is running"}), 200
 
+    @app.errorhandler(413)
+    def request_entity_too_large(error):
+        return jsonify({"error": "File too large. Maximum size is 10MB."}), 413
+
+    @app.errorhandler(500)
+    def internal_server_error(error):
+        return jsonify({"error": "An unexpected error occurred. Please try again."}), 500
+
+    @app.errorhandler(Exception)
+    def handle_exception(error):
+        import logging
+        logging.getLogger(__name__).exception(f"Unhandled exception: {error}")
+        return jsonify({"error": "An unexpected error occurred. Please try again."}), 500
+
     # Import and register blueprints
     from routes.auth import auth_bp, oauth
     from routes.chat import chat_bp
@@ -215,6 +256,7 @@ def create_app():
     from routes.focus import focus_bp
     from routes.career import career_bp
     from routes.execute import execute_bp
+    from routes.progress import progress_bp
     from routes.arcade import arcade_bp, register_arcade_socketio
     
     oauth.init_app(app)
@@ -231,6 +273,7 @@ def create_app():
     app.register_blueprint(exam_prep_bp, url_prefix='/exam-prep')
     app.register_blueprint(focus_bp, url_prefix='/focus')
     app.register_blueprint(career_bp, url_prefix='/career')
+    app.register_blueprint(progress_bp, url_prefix='/progress')
     app.register_blueprint(execute_bp)
     app.register_blueprint(arcade_bp, url_prefix='/arcade')
     register_arcade_socketio(socketio)
@@ -250,6 +293,7 @@ def create_app():
         from models.career import CareerProfile
         from models.arcade import Question, GameRoom, GameRoomPlayer, GameRound, ScoreboardEntry, ArcadePointEvent, ArcadeTopicMastery
         from models.progress import ActivityLog, TopicProgress
+        from models.ai_usage import AiUsageLog
 
         
         # We will set up pgvector later during DB migrations, 
@@ -263,6 +307,8 @@ def create_app():
         _ensure_chat_session_schema()
         _ensure_arcade_schema()
         _ensure_calendar_schema()
+        _ensure_user_token_quota_schema()
+        _ensure_ai_usage_logs_schema()
 
     return app
 

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth, useUser } from '@clerk/react';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import { syncClerkSession } from '../utils/syncClerkSession';
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -30,31 +31,57 @@ const DashboardLayout = () => {
 
     if (!clerkUser) return;
 
-    const clerkFirstName = clerkUser.firstName || '';
-    const clerkLastName = clerkUser.lastName || '';
-    const clerkEmail = clerkUser.primaryEmailAddress?.emailAddress || '';
-
-    const fallbackUser = {
-      name: clerkUser.fullName,
-      username: clerkFirstName || 'User',
-      email: clerkEmail,
-      avatar_url: clerkUser.imageUrl,
-      department: 'Computer Engineering',
-    };
+    const clerkRole = clerkUser.publicMetadata?.role || clerkUser.unsafeMetadata?.role;
+    const controller = new AbortController();
 
     const loadProfile = async () => {
       try {
-        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        await syncClerkSession(clerkUser);
+      } catch (syncError) {
+        console.error(syncError);
+      }
+
+      if (clerkRole === 'admin') {
+        if (location.pathname !== '/admin') {
+          navigate('/admin', { replace: true });
+        }
+        setLoading(false);
+        return;
+      }
+
+      const clerkFirstName = clerkUser.firstName || '';
+      const clerkLastName = clerkUser.lastName || '';
+      const clerkEmail = clerkUser.primaryEmailAddress?.emailAddress || '';
+
+      const fallbackUser = {
+        name: clerkUser.fullName,
+        username: clerkFirstName || 'User',
+        email: clerkEmail,
+        avatar_url: clerkUser.imageUrl,
+        department: 'Computer Engineering',
+      };
+
+      try {
+        const res = await fetch('/api/auth/me', {
+          credentials: 'include',
+          signal: controller.signal,
+        });
 
         if (res.ok) {
           const profile = await res.json();
 
-          const hasOnboardedThisSession = sessionStorage.getItem('onboarded_session');
+          // Admin users go to /admin, not /dashboard
+          if (profile.role === 'admin' && location.pathname === '/dashboard') {
+            navigate('/admin', { replace: true });
+            return;
+          }
 
-          if (!profile.profile_complete || !hasOnboardedThisSession) {
+          if (!profile.profile_complete) {
             navigate('/profile-setup', { replace: true });
             return;
           }
+
+          sessionStorage.setItem('onboarded_session', 'true');
 
           const dbFirst = profile.first_name || '';
           const dbLast = profile.last_name || '';
@@ -73,15 +100,19 @@ const DashboardLayout = () => {
         } else {
           navigate('/profile-setup', { replace: true });
         }
-      } catch {
-        setUser(fallbackUser);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          setUser(fallbackUser);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     loadProfile();
-  }, [isLoaded, isUserLoaded, isSignedIn, clerkUser, navigate]);
+
+    return () => controller.abort();
+  }, [isLoaded, isUserLoaded, isSignedIn, clerkUser?.id, clerkUser?.publicMetadata?.role, clerkUser?.unsafeMetadata?.role, location.pathname, navigate]);
 
   useEffect(() => {
     const handleScroll = (e) => {

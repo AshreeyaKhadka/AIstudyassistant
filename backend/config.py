@@ -1,14 +1,33 @@
 import os
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
+from urllib.parse import urlparse
 
 load_dotenv()
 
 db = SQLAlchemy()
 
+
+def _resolve_sqlite_database_url(database_url):
+    if not database_url or not database_url.startswith('sqlite:///'):
+        return database_url
+
+    # sqlite:////abs/path.db is already absolute; sqlite:///path.db is relative.
+    if database_url.startswith('sqlite:////'):
+        return database_url
+
+    parsed = urlparse(database_url)
+    database_path = parsed.path.lstrip('/')
+
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    resolved_path = os.path.join(backend_dir, database_path)
+    return f'sqlite:///{resolved_path}'
+
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-default-key')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///ce_study_assistant.db')
+    SQLALCHEMY_DATABASE_URI = _resolve_sqlite_database_url(
+        os.environ.get('DATABASE_URL', 'sqlite:///app.db')
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Google OAuth

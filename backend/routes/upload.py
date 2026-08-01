@@ -50,11 +50,16 @@ def upload_pdf(user):
         try:
             text, extraction_meta = parse_uploaded_material_with_metadata(file, filepath)
             size_bytes = os.path.getsize(filepath)
+        except ValueError as e:
+            logger.error(f"Failed to parse upload: {e}")
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            return jsonify({"error": str(e)}), 400
         except Exception as e:
             logger.error(f"Failed to parse upload: {e}")
             if os.path.exists(filepath):
                 os.remove(filepath)
-            return jsonify({"error": f"Failed to parse document: {str(e)}"}), 500
+            return jsonify({"error": "Failed to parse this file. It may be corrupted or in an unsupported format."}), 500
 
         if not text.strip():
             if os.path.exists(filepath):
@@ -98,6 +103,8 @@ def upload_pdf(user):
             db.session.commit()
         except Exception as e:
             db.session.rollback()
+            if os.path.exists(filepath):
+                os.remove(filepath)
             logger.error(f"Database error during upload: {e}")
             return jsonify({"error": "Failed to save record to database"}), 500
         
@@ -106,13 +113,9 @@ def upload_pdf(user):
         def _bg_embed(app, uid, u_id, fname, ptext):
             with app.app_context():
                 try:
-                    chunk_count = embed_document(uid, u_id, fname, ptext)
-                    if chunk_count:
-                        result = validate_upload_against_syllabus(uid)
-                        if result.get('validation_status') == 'approved':
-                            map_material_upload_to_topics(uid)
+                    embed_document(uid, u_id, fname, ptext)
                 except Exception as e:
-                    logger.error(f"Background embedding or validation failed for upload {uid}: {e}")
+                    logger.error(f"Background embedding failed for upload {uid}: {e}")
 
         from flask import current_app
         app = current_app._get_current_object()
@@ -189,13 +192,9 @@ def retry_embedding(user):
     def _bg_embed(app, uid, u_id, fname, ptext):
         with app.app_context():
             try:
-                chunk_count = embed_document(uid, u_id, fname, ptext)
-                if chunk_count:
-                    result = validate_upload_against_syllabus(uid)
-                    if result.get('validation_status') == 'approved':
-                        map_material_upload_to_topics(uid)
+                embed_document(uid, u_id, fname, ptext)
             except Exception as e:
-                logger.error(f"Background embedding or validation failed for upload {uid}: {e}")
+                logger.error(f"Background embedding failed for upload {uid}: {e}")
 
     from flask import current_app
     app = current_app._get_current_object()

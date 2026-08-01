@@ -3,6 +3,7 @@ from config import Config, db
 from models.content import StudentUpload
 from models.chat import ChatSession, ChatMessage
 from services.auth_service import login_required
+from services.generation_service import _log_ai_usage
 from services.rag_service import (
     CHAT_MATERIAL_RELEVANCE_THRESHOLD,
     CHAT_SYLLABUS_RELEVANCE_THRESHOLD,
@@ -528,6 +529,10 @@ def send_message(user):
             parts = content.get('parts', []) or []
             text_parts = [part.get('text', '') for part in parts if isinstance(part, dict)]
             assistant_message = '\n'.join(part for part in text_parts if part).strip()
+
+            usage_metadata = response_data.get('usageMetadata', {})
+            if usage_metadata:
+                _log_ai_usage(user.id, 'chat', usage_metadata, model_used=Config.GEMINI_MODEL, subject=subject)
 
     if not assistant_message:
         fallback = _build_retrieval_fallback(

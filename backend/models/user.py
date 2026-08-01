@@ -16,6 +16,8 @@ class User(db.Model):
     role = db.Column(db.String(20), default='student') # student, admin
     is_banned = db.Column(db.Boolean, default=False)
     ban_reason = db.Column(db.Text, nullable=True)
+    token_quota = db.Column(db.Integer, default=100000)  # daily token limit
+    token_quota_enabled = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_active = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -39,7 +41,13 @@ class User(db.Model):
             'college': self.college,
             'semester': self.semester,
             'role': self.role,
+            'is_banned': self.is_banned,
+            'ban_reason': self.ban_reason,
+            'token_quota': self.token_quota,
+            'token_quota_enabled': self.token_quota_enabled,
             'university': 'Pokhara University',
             'course': 'Computer Engineering',
-            'profile_complete': bool(self.first_name and self.last_name and self.college and self.semester)
+            'profile_complete': bool(self.first_name and self.last_name and self.college and self.semester),
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_active': self.last_active.isoformat() if self.last_active else None,
         }
