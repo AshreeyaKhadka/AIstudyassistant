@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-const STORAGE_KEY = 'aistudy-focus-session-v2';
+const STORAGE_PREFIX = 'aistudy-focus-session-v3';
 const FocusContext = createContext(null);
 
 const initialState = {
@@ -18,28 +18,42 @@ const initialState = {
   error: '',
 };
 
-const loadState = () => {
+const storageKey = (userId) => `${STORAGE_PREFIX}:${userId}`;
+
+const loadState = (userId) => {
+  if (!userId) return { ...initialState };
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    if (!saved || typeof saved !== 'object') return initialState;
+    const saved = JSON.parse(localStorage.getItem(storageKey(userId)) || 'null');
+    if (!saved || typeof saved !== 'object') return { ...initialState };
     if (saved.running && saved.endAt) {
       saved.remainingSeconds = Math.max(0, Math.ceil((saved.endAt - Date.now()) / 1000));
     }
     return { ...initialState, ...saved };
   } catch {
-    return initialState;
+    return { ...initialState };
   }
 };
 
-export const FocusProvider = ({ children }) => {
-  const [state, setState] = useState(loadState);
+export const FocusProvider = ({ children, userId }) => {
+  const [state, setState] = useState(() => loadState(userId));
   const stateRef = useRef(state);
   const completingRef = useRef(false);
+  const skipPersistRef = useRef(true);
+
+  useEffect(() => {
+    completingRef.current = false;
+    skipPersistRef.current = true;
+    setState(loadState(userId));
+  }, [userId]);
 
   useEffect(() => {
     stateRef.current = state;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    if (skipPersistRef.current) {
+      skipPersistRef.current = false;
+      return;
+    }
+    if (userId) localStorage.setItem(storageKey(userId), JSON.stringify(state));
+  }, [state, userId]);
 
   const requestRecall = useCallback(async (sessionId) => {
     try {

@@ -368,43 +368,20 @@ const MCQPractice = () => {
 
   // 3. MAIN MCQ PRACTICE DASHBOARD
   return (
-    <div className="flex flex-col gap-6 pb-12">
-      {/* Header Card */}
-      <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-2xs">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 pb-12">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-[#D7D3CF] pb-4">
         <div>
-          <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-1 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#102326]"></span>
-            TARGETED AI-GENERATED QUIZ DRILLS
-          </div>
-          <h1 className="text-2xl font-bold text-[#111111] tracking-tight">MCQ Strategist</h1>
-          <p className="text-xs text-[#666666] mt-0.5 max-w-xl">
-            Test your understanding with automated multiple-choice questions extracted directly from your course syllabus PDFs.
-          </p>
+          <h1 className="text-xl font-bold text-[#111111]">MCQ Practice</h1>
+          <p className="mt-1 text-xs text-[#666666]">Generate and practise questions grounded in your uploaded materials.</p>
         </div>
 
         <button
           onClick={() => navigate('/dashboard/upload')}
-          className="px-4 py-2 bg-white border border-[#102326] text-[#102326] hover:bg-[#102326] hover:text-white rounded-[4px] font-mono text-xs font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-2 shrink-0"
+          className="px-3 py-2 bg-white border border-[#D7D3CF] text-[#102326] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-semibold inline-flex items-center gap-2 shrink-0"
         >
           <BookOpen size={15} />
-          <span>STUDY VAULT</span>
+          <span>Materials</span>
         </button>
-      </div>
-
-      {/* Metrics Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 border border-[#D7D3CF] bg-white rounded-[4px] divide-y sm:divide-y-0 sm:divide-x divide-[#D7D3CF] overflow-hidden shadow-2xs">
-        <div className="p-4 flex flex-col justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">AVAILABLE SOURCE PDFS</span>
-          <span className="text-xl font-bold font-mono text-[#111111] mt-1">{uploads.length} Materials</span>
-        </div>
-        <div className="p-4 flex flex-col justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">TOTAL MCQ SETS CREATED</span>
-          <span className="text-xl font-bold font-mono text-[#111111] mt-1">{totalGenerationsCount} Quiz Sets</span>
-        </div>
-        <div className="p-4 flex flex-col justify-between bg-[#FFFDFB]">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#C96A32] font-semibold">PRACTICE LIMIT PER PDF</span>
-          <span className="text-xl font-bold font-mono text-[#C96A32] mt-1">2 Sets / PDF</span>
-        </div>
       </div>
 
       {limitError && (
@@ -415,7 +392,7 @@ const MCQPractice = () => {
       )}
 
       {/* Toolbar & Filters */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 border border-[#D7D3CF] rounded-[4px]">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-2 border border-[#D7D3CF] rounded-[4px]">
         {/* Tabs */}
         <div className="flex bg-[#ECEAE7] p-1 rounded-[4px] border border-[#D7D3CF]">
           <button
@@ -424,7 +401,7 @@ const MCQPractice = () => {
               activeTab === 'generate' ? 'bg-[#102326] text-white' : 'text-[#666666] hover:text-[#111111]'
             }`}
           >
-            GENERATE NEW
+            Generate
           </button>
           <button
             onClick={() => setActiveTab('saved')}
@@ -432,7 +409,7 @@ const MCQPractice = () => {
               activeTab === 'saved' ? 'bg-[#102326] text-white' : 'text-[#666666] hover:text-[#111111]'
             }`}
           >
-            SAVED MCQ DRILLS
+            Saved ({totalGenerationsCount})
           </button>
         </div>
 
@@ -488,38 +465,30 @@ const MCQPractice = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="overflow-hidden rounded-[4px] border border-[#D7D3CF] bg-white divide-y divide-[#D7D3CF]">
               {filteredUploads.map((upload) => {
                 const genCount = upload.mcq_generation_count || 0;
                 const limitReached = genCount >= 2;
                 return (
                   <div
                     key={upload.id}
-                    className="bg-white rounded-[4px] p-5 border border-[#D7D3CF] flex flex-col justify-between hover:bg-[#FAF9F7] transition-colors shadow-2xs"
+                    className="flex flex-col gap-3 p-4 hover:bg-[#FAF9F7] sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div>
                         <div className="w-8 h-8 bg-[#ECEAE7] text-[#102326] rounded-[4px] flex items-center justify-center shrink-0">
                           <Library size={18} />
                         </div>
-                        <span className="text-[9px] font-mono font-semibold text-[#666666] bg-[#F7F5F2] border border-[#D7D3CF] px-2 py-0.5 rounded-[2px] uppercase">
-                          {upload.subject || 'GENERAL'}
-                        </span>
                       </div>
-
-                      <h4 className="text-xs font-bold text-[#111111] truncate" title={upload.filename}>
+                      <div className="min-w-0"><h4 className="text-sm font-semibold text-[#111111] truncate" title={upload.filename}>
                         {upload.filename}
-                      </h4>
-                      <div className="flex items-center justify-between mt-2 font-mono text-[10px] text-[#666666]">
-                        <span>Quota Used:</span>
-                        <span className="font-bold text-[#102326]">{genCount}/2 Sets</span>
-                      </div>
+                      </h4><p className="mt-1 text-xs text-[#666666]">{upload.subject || 'General'} · {genCount}/2 sets generated</p></div>
                     </div>
 
                     <button
                       onClick={() => handleGenerate(upload.id)}
                       disabled={generating || limitReached}
-                      className={`mt-4 w-full flex items-center justify-center gap-2 py-2 rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors ${
+                      className={`flex min-w-36 shrink-0 items-center justify-center gap-2 rounded-[4px] px-4 py-2 text-xs font-semibold transition-colors ${
                         limitReached
                           ? 'bg-[#ECEAE7] text-[#666666] cursor-not-allowed border border-[#D7D3CF]'
                           : generating && selectedUpload === upload.id
@@ -528,11 +497,11 @@ const MCQPractice = () => {
                       }`}
                     >
                       {limitReached ? (
-                        'LIMIT REACHED (2/2)'
+                        'Limit reached'
                       ) : generating && selectedUpload === upload.id ? (
-                        <><Loader2 className="animate-spin" size={14} /> GENERATING MCQS...</>
+                        <><Loader2 className="animate-spin" size={14} /> Generating...</>
                       ) : (
-                        <><Target size={14} /> INITIATE MCQ TEST</>
+                        <><Target size={14} /> Generate quiz</>
                       )}
                     </button>
                   </div>
@@ -547,7 +516,7 @@ const MCQPractice = () => {
             <h4 className="text-xs font-mono uppercase tracking-wider text-[#666666] font-semibold">Saved MCQ Sets</h4>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-2">
             {filteredUploads.map((upload) => (
               <SavedMCQCard
                 key={upload.id}
@@ -576,26 +545,14 @@ const SavedMCQCard = ({ upload, fetchSavedMCQs, savedMCQs, loadingSaved, onStart
   };
 
   return (
-    <div className="bg-white rounded-[4px] p-5 border border-[#D7D3CF] space-y-3 shadow-2xs">
-      <div className="flex items-start justify-between">
-        <div className="w-8 h-8 bg-[#ECEAE7] text-[#102326] rounded-[4px] flex items-center justify-center">
+    <div className="bg-white rounded-[4px] p-4 border border-[#D7D3CF] space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 shrink-0 bg-[#ECEAE7] text-[#102326] rounded-[4px] flex items-center justify-center">
           <Bookmark size={18} />
         </div>
-        <span className="text-[9px] font-mono text-[#666666] bg-[#F7F5F2] border border-[#D7D3CF] px-2 py-0.5 rounded-[2px] uppercase">
-          {upload.subject || 'GENERAL'}
-        </span>
+        <div className="min-w-0 flex-1"><h4 className="text-sm font-semibold text-[#111111] truncate" title={upload.filename}>{upload.filename}</h4><p className="text-xs text-[#666666]">{upload.subject || 'General'} · {genCount} saved sets</p></div>
+        <button onClick={toggleExpanded} className="shrink-0 py-1.5 px-3 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-semibold">{expanded ? 'Hide' : 'View sets'}</button>
       </div>
-
-      <h4 className="text-xs font-bold text-[#111111] truncate" title={upload.filename}>
-        {upload.filename}
-      </h4>
-
-      <button
-        onClick={toggleExpanded}
-        className="w-full py-1.5 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase transition-colors"
-      >
-        {expanded ? 'HIDE SAVED SETS' : `VIEW SETS (${genCount})`}
-      </button>
 
       {expanded && (
         <div className="space-y-2 pt-2 border-t border-[#D7D3CF]">

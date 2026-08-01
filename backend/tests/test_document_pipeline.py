@@ -48,6 +48,45 @@ class DocumentExtractionTests(unittest.TestCase):
         self.assertEqual(metadata['extraction_quality'], 'low')
         self.assertTrue(any('No readable text' in warning for warning in metadata['warnings']))
 
+    def test_image_only_pdf_forces_full_page_ocr_when_detection_misses_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            filepath = os.path.join(directory, 'scan.pdf')
+            document = fitz.open()
+            document.new_page()
+            document.save(filepath)
+            document.close()
+
+            with patch('services.document_parser.Config.GEMINI_API_KEY', 'configured'), patch(
+                'services.document_parser._ocr_image_bytes',
+                return_value='Course Content Unit One Introduction to computer systems',
+            ):
+                text, metadata = extract_material_from_path(filepath, 'scan.pdf')
+
+        self.assertIn('[Page 1]', text)
+        self.assertEqual(metadata['extraction_method'], 'pdf_forced_ocr')
+        self.assertEqual(metadata['ocr_pages'], 1)
+
+    def test_pdf_ocr_can_be_disabled_for_personal_syllabus_uploads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            filepath = os.path.join(directory, 'scan.pdf')
+            document = fitz.open()
+            document.new_page()
+            document.save(filepath)
+            document.close()
+
+            with patch('services.document_parser.Config.GEMINI_API_KEY', 'configured'), patch(
+                'services.document_parser._ocr_image_bytes',
+            ) as ocr:
+                text, metadata = extract_material_from_path(
+                    filepath, 'scan.pdf', enable_ocr=False,
+                )
+
+        self.assertEqual(text, '')
+        self.assertEqual(metadata['extraction_method'], 'pdf_text')
+        self.assertEqual(metadata['ocr_pages'], 0)
+        self.assertTrue(any('selectable text' in warning for warning in metadata['warnings']))
+        ocr.assert_not_called()
+
     def test_content_hash_is_stable(self):
         with tempfile.TemporaryDirectory() as directory:
             first = os.path.join(directory, 'first.txt')

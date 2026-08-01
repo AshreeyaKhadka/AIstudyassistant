@@ -62,6 +62,21 @@ def _upload_allowed_for_generation(upload):
     return upload.embedding_status == 'embedded' and is_upload_usable(upload)
 
 
+def _resolve_exact_exam_pdf(user, upload_id, subject_name):
+    if not upload_id:
+        return None
+    upload = StudentUpload.query.filter_by(id=upload_id, user_id=user.id).first()
+    if not upload or upload.doc_type != 'material' or not upload.filename.lower().endswith('.pdf'):
+        return None
+    if not _upload_allowed_for_generation(upload) or upload.processing_status != 'ready':
+        return None
+    if subject_name and (upload.subject or '').casefold() != subject_name.casefold():
+        subject = Subject.query.filter_by(id=upload.subject_id, user_id=user.id).first()
+        if not subject or subject.name.casefold() != subject_name.casefold():
+            return None
+    return upload
+
+
 @exam_prep_bp.route('/overview', methods=['GET'])
 @login_required
 def overview(user):
@@ -100,24 +115,35 @@ def high_yield_questions(user):
     data = request.get_json(silent=True) or {}
     subject = (data.get('subject') or '').strip()
     upload_id = data.get('upload_id')
-    count = min(int(data.get('count', 8)), 12)
     intensity = (data.get('intensity') or 'medium').strip()
 
-    upload = _resolve_upload(user, subject, upload_id)
+    upload = _resolve_exact_exam_pdf(user, upload_id, subject)
     if not upload:
-        return jsonify({"error": "No embedded study material found for this subject. Upload and index a PDF first."}), 400
+        return jsonify({"error": "Choose one ready, approved PDF for this subject. Exam questions never fall back to another source."}), 400
 
     try:
-        context = get_full_context(upload.id, max_chunks=15 if intensity == 'low' else 20 if intensity == 'medium' else 25)
+        context = get_full_context(upload.id, max_chunks=100)
         if not context:
             return jsonify({"error": "No content found for this document"}), 400
 
-        questions = generate_exam_questions(context, count=count)
+        questions = generate_exam_questions(context, subject=subject or upload.subject)
+        disclaimer = (
+            'These are AI-generated exam suggestions based only on the selected PDF. '
+            'They may not match the actual Pokhara University examination. '
+            'Use them for practice, not as guaranteed questions.'
+        )
         return jsonify({
             "subject": subject or upload.subject,
             "upload_id": upload.id,
             "source_doc": upload.filename,
             "questions": questions,
+            "question_count": len(questions),
+            "marks_distribution": {
+                "5": sum(1 for question in questions if question['marks'] == 5),
+                "8": sum(1 for question in questions if question['marks'] == 8),
+            },
+            "ai_generated": True,
+            "disclaimer": disclaimer,
             "intensity": intensity,
         }), 200
     except Exception as e:

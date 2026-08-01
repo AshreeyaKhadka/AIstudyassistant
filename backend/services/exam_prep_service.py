@@ -1,8 +1,10 @@
+import os
 from datetime import datetime, timedelta
 from models.content import Subject, StudentUpload
 from models.exam import Exam
 from models.quiz import QuizSet
 from config import db
+from services.document_admission import is_upload_usable
 
 
 def _is_mcq_item(item):
@@ -34,20 +36,15 @@ def _subject_quizzes(user_id, subject, uploads):
     return matched
 
 
-def _coverage_pct(uploads):
-    if not uploads:
-        return 0
-    has_syllabus = any(u.doc_type == 'syllabus' for u in uploads)
-    material_count = sum(1 for u in uploads if u.doc_type != 'syllabus')
-    if has_syllabus and material_count >= 2:
-        return 100
-    if has_syllabus:
-        return 65
-    if material_count >= 2:
-        return 45
-    if material_count == 1:
-        return 25
-    return 10
+def _eligible_exam_materials(uploads):
+    return [
+        upload for upload in uploads
+        if upload.doc_type == 'material'
+        and upload.filename.lower().endswith('.pdf')
+        and upload.embedding_status == 'embedded'
+        and upload.processing_status == 'ready'
+        and is_upload_usable(upload)
+    ]
 
 
 def _weak_topic_count(quizzes):
@@ -91,7 +88,7 @@ def _nearest_exam(user_id, subject_name):
     return None
 
 
-def _priority_score(coverage, weak_topics, days_left):
+def _priority_score(weak_topics, days_left):
     urgency = 0
     if days_left is not None:
         if days_left <= 7:
@@ -102,40 +99,74 @@ def _priority_score(coverage, weak_topics, days_left):
             urgency = 40
         else:
             urgency = max(10, 60 - days_left)
-    return round((100 - coverage) * 1.5 + weak_topics * 12 + urgency)
+    return round(weak_topics * 12 + urgency)
 
 
 def get_exam_prep_overview(user):
     user_sem = user.semester if user.semester else 1
-    subjects = Subject.query.filter_by(user_id=user.id, semester=user_sem).order_by(Subject.name.asc()).all()
+    all_uploads = (
+        StudentUpload.query.filter_by(user_id=user.id)
+        .order_by(StudentUpload.created_at.desc(), StudentUpload.id.desc())
+        .all()
+    )
+    eligible_uploads = _eligible_exam_materials(all_uploads)
+    subject_ids = {upload.subject_id for upload in eligible_uploads if upload.subject_id}
+    subjects_by_id = {
+        subject.id: subject
+        for subject in Subject.query.filter(
+            Subject.user_id == user.id,
+            Subject.id.in_(subject_ids),
+        ).all()
+    } if subject_ids else {}
+
+    grouped_uploads = {}
+    for upload in eligible_uploads:
+        subject = subjects_by_id.get(upload.subject_id)
+        subject_name = (subject.name if subject else upload.subject or '').strip()
+        if not subject_name:
+            subject_name = os.path.splitext(upload.filename)[0].replace('_', ' ').strip()
+        key = ('subject', subject.id) if subject else ('name', subject_name.casefold())
+        group = grouped_uploads.setdefault(key, {
+            'subject': subject,
+            'name': subject_name,
+            'uploads': [],
+        })
+        group['uploads'].append(upload)
 
     subject_rows = []
-    for subject in subjects:
-        uploads = _subject_uploads(user.id, subject)
-        quizzes = _subject_quizzes(user.id, subject, uploads)
-        coverage = _coverage_pct(uploads)
+    for group in grouped_uploads.values():
+        subject = group['subject']
+        subject_name = group['name']
+        eligible_materials = group['uploads']
+        uploads = _subject_uploads(user.id, subject) if subject else eligible_materials
+        quizzes = _subject_quizzes(user.id, subject, uploads) if subject else []
         weak_topics = _weak_topic_count(quizzes)
         last_practiced = _last_practiced(quizzes)
-        exam_info = _nearest_exam(user.id, subject.name)
+        exam_info = _nearest_exam(user.id, subject_name)
         days_left = exam_info['days_left'] if exam_info else None
-        primary_upload = next((u for u in uploads if u.embedding_status == 'embedded'), None)
-        if not primary_upload and uploads:
-            primary_upload = uploads[0]
+        primary_upload = eligible_materials[0] if eligible_materials else None
 
         subject_rows.append({
-            'id': subject.id,
-            'name': subject.name,
-            'semester': subject.semester,
-            'syllabus_coverage': coverage,
+            'id': subject.id if subject else f'upload-{primary_upload.id}',
+            'name': subject_name,
+            'semester': subject.semester if subject else None,
             'weak_topics': weak_topics,
             'last_practiced': last_practiced,
-            'materials_count': len(uploads),
-            'has_materials': len(uploads) > 0,
+            'materials_count': len(eligible_materials),
+            'has_materials': bool(eligible_materials),
             'primary_upload_id': primary_upload.id if primary_upload else None,
+            'eligible_materials': [{
+                'id': upload.id,
+                'filename': upload.filename,
+                'page_count': upload.page_count,
+                'size_bytes': upload.size_bytes,
+            } for upload in eligible_materials],
             'exam': exam_info,
             'days_until_exam': days_left,
-            'priority_score': _priority_score(coverage, weak_topics, days_left),
-            'status_label': _status_label(coverage, weak_topics, last_practiced, days_left),
+            'priority_score': _priority_score(weak_topics, days_left),
+            'status_label': _status_label(
+                weak_topics, last_practiced, days_left, len(eligible_materials),
+            ),
         })
 
     subject_rows.sort(key=lambda row: (-row['priority_score'], row['name']))
@@ -158,18 +189,14 @@ def get_exam_prep_overview(user):
     }
 
 
-def _status_label(coverage, weak_topics, last_practiced, days_left):
-    if days_left is not None and days_left <= 7:
+def _status_label(weak_topics, last_practiced, days_left, material_count):
+    if days_left is not None:
         return f'Exam in {days_left} day{"s" if days_left != 1 else ""}'
     if weak_topics >= 2:
         return f'{weak_topics} weak areas detected'
-    if coverage >= 80:
-        return f'{coverage}% syllabus covered'
     if last_practiced:
         return f'Last practiced {last_practiced}'
-    if coverage > 0:
-        return f'{coverage}% syllabus covered'
-    return 'Upload materials to begin prep'
+    return f'{material_count} ready PDF{"s" if material_count != 1 else ""}'
 
 
 def upsert_subject_exam_date(user, subject_name, exam_date, exam_type='final'):

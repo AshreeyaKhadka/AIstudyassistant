@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, Loader2, MessageSquare, SendHorizontal, UserRound, ArrowLeft, Plus, Trash2, History, X, AlertTriangle, ExternalLink, FileText, BookOpenCheck, PanelLeft, Files } from 'lucide-react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Bot, Loader2, MessageSquare, SendHorizontal, UserRound, ArrowLeft, Plus, Trash2, History, X, AlertTriangle, ExternalLink, FileText, BookOpenCheck, PanelLeft, PanelRight, Files } from 'lucide-react';
+import { useSearchParams, useNavigate, useOutletContext } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -30,6 +30,7 @@ const canChatWithDocument = (document) => (
 const AIChat = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useOutletContext() || {};
   const subject = searchParams.get('subject') || '';
   const unit = searchParams.get('unit') || '';
   const unitLabel = searchParams.get('unitLabel') || '';
@@ -108,6 +109,29 @@ const AIChat = () => {
   const [documents, setDocuments] = useState([]);
   const [documentsLoading, setDocumentsLoading] = useState(true);
   const [showDocuments, setShowDocuments] = useState(false);
+  const [documentsPanelOpen, setDocumentsPanelOpen] = useState(true);
+  const skipPanelPersistRef = useRef(true);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    skipPanelPersistRef.current = true;
+    try {
+      const saved = JSON.parse(localStorage.getItem(`aistudy-chat-panels:${user.id}`) || '{}');
+      setDocumentsPanelOpen(saved.documents !== false);
+      setShowSessions(saved.history === true);
+    } catch {
+      setDocumentsPanelOpen(true);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    if (skipPanelPersistRef.current) {
+      skipPanelPersistRef.current = false;
+      return;
+    }
+    localStorage.setItem(`aistudy-chat-panels:${user.id}`, JSON.stringify({ documents: documentsPanelOpen, history: showSessions }));
+  }, [documentsPanelOpen, showSessions, user?.id]);
 
   // Dynamic Suggestion Chips
   const [dynamicSuggestions, setDynamicSuggestions] = useState([]);
@@ -368,6 +392,7 @@ const AIChat = () => {
         onSelect={openDocumentChat}
         onGeneral={openGeneralChat}
         mobileOpen={showDocuments}
+        desktopOpen={documentsPanelOpen}
         onClose={() => setShowDocuments(false)}
       />
       <div className="flex min-w-0 flex-1 flex-col bg-white border border-[#D7D3CF] rounded-[4px] overflow-hidden">
@@ -408,8 +433,8 @@ const AIChat = () => {
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
-            onClick={() => setShowDocuments(true)}
-            className="p-1.5 rounded-[4px] bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] md:hidden"
+            onClick={() => window.matchMedia('(min-width: 768px)').matches ? setDocumentsPanelOpen((value) => !value) : setShowDocuments(true)}
+            className="p-1.5 rounded-[4px] bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7]"
             aria-label="Open documents"
             title="Documents"
           >
@@ -438,12 +463,11 @@ const AIChat = () => {
 
         <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={() => { fetchSessions(); setShowSessions(!showSessions); }}
-            className="px-3 py-1.5 bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] transition-colors text-xs font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5"
+            onClick={() => { if (!showSessions) fetchSessions(); setShowSessions(!showSessions); }}
+            className="p-1.5 bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] transition-colors"
             title="Chat History"
           >
-            <History size={14} />
-            <span className="hidden sm:inline">HISTORY</span>
+            <PanelRight size={15} />
           </button>
           <button
             onClick={startNewChat}
@@ -455,56 +479,6 @@ const AIChat = () => {
           </button>
         </div>
       </div>
-
-      {/* History Drawer */}
-      {showSessions && (
-        <div className="border-b border-[#D7D3CF] bg-[#F7F5F2] p-4 max-h-60 overflow-y-auto shrink-0">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-xs font-mono uppercase tracking-wider text-[#666666] font-semibold">Previous Conversations</h4>
-            <button onClick={() => setShowSessions(false)} className="text-[#666666] hover:text-[#111111]" aria-label="Close chat history">
-              <X size={16} />
-            </button>
-          </div>
-          {loadingSessions ? (
-            <div className="flex justify-center py-4">
-              <Loader2 className="animate-spin text-[#102326]" size={18} />
-            </div>
-          ) : sessions.length === 0 ? (
-            <p className="text-xs font-mono text-[#666666] text-center py-3">No previous chat sessions found.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {sessions.map((sess) => (
-                <div
-                  key={sess.id}
-                  className={`flex items-center justify-between p-2.5 rounded-[4px] border cursor-pointer transition-colors ${
-                    sessionId === sess.id
-                      ? 'bg-[#102326] text-white border-[#102326]'
-                      : 'bg-white text-[#111111] border-[#D7D3CF] hover:bg-[#ECEAE7]'
-                  }`}
-                >
-                  <button
-                    onClick={() => loadSession(sess.id)}
-                    className="flex-1 text-left min-w-0 pr-2"
-                  >
-                    <p className="text-xs font-bold truncate">{sess.title}</p>
-                    <p className={`text-[10px] font-mono mt-0.5 ${sessionId === sess.id ? 'text-[#A0B0B3]' : 'text-[#666666]'}`}>
-                      {sess.message_count} msgs • {new Date(sess.created_at).toLocaleDateString()}
-                    </p>
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setSessionToDelete(sess); }}
-                    className="p-1 hover:text-[#C96A32] transition-colors"
-                    title="Delete Chat"
-                    aria-label={`Delete ${sess.title}`}
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Messages Scroll Area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-[#F7F5F2]">
@@ -622,11 +596,20 @@ const AIChat = () => {
         </div>
       </div>
       </div>
+      <HistorySidebar
+        open={showSessions}
+        sessions={sessions}
+        loading={loadingSessions}
+        activeId={sessionId}
+        onSelect={(id) => { loadSession(id); if (!window.matchMedia('(min-width: 768px)').matches) setShowSessions(false); }}
+        onDelete={setSessionToDelete}
+        onClose={() => setShowSessions(false)}
+      />
     </div>
   );
 };
 
-const DocumentSidebar = ({ documents, loading, activeUploadId, onSelect, onGeneral, mobileOpen, onClose }) => {
+const DocumentSidebar = ({ documents, loading, activeUploadId, onSelect, onGeneral, mobileOpen, desktopOpen, onClose }) => {
   const content = (
     <div className="flex h-full min-h-0 flex-col bg-white">
       <div className="flex h-[61px] items-center justify-between border-b border-[#D7D3CF] px-3">
@@ -685,12 +668,43 @@ const DocumentSidebar = ({ documents, loading, activeUploadId, onSelect, onGener
 
   return (
     <>
-      <aside className="hidden h-full w-60 shrink-0 overflow-hidden rounded-[4px] border border-[#D7D3CF] md:block">{content}</aside>
+      {desktopOpen && <aside className="hidden h-full w-60 shrink-0 overflow-hidden rounded-[4px] border border-[#D7D3CF] md:block">{content}</aside>}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-black/35 md:hidden" onClick={onClose}>
           <aside className="h-full w-[min(82vw,300px)] border-r border-[#D7D3CF]" onClick={(event) => event.stopPropagation()}>{content}</aside>
         </div>
       )}
+    </>
+  );
+};
+
+const HistorySidebar = ({ open, sessions, loading, activeId, onSelect, onDelete, onClose }) => {
+  if (!open) return null;
+  const content = (
+    <div className="flex h-full min-h-0 flex-col bg-white">
+      <div className="flex h-[61px] items-center justify-between border-b border-[#D7D3CF] px-3">
+        <div className="flex items-center gap-2"><History size={15} /><span className="font-mono text-[10px] font-semibold uppercase">Chat history</span></div>
+        <button onClick={onClose} className="rounded-[4px] p-1 text-[#666666] hover:bg-[#ECEAE7]" aria-label="Close chat history"><X size={15} /></button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        {loading ? <div className="flex justify-center py-8"><Loader2 size={17} className="animate-spin" /></div> : sessions.length === 0 ? (
+          <p className="px-3 py-8 text-center text-xs text-[#666666]">No saved conversations yet.</p>
+        ) : <div className="space-y-1.5">{sessions.map((session) => (
+          <div key={session.id} className={`flex items-center rounded-[4px] border ${activeId === session.id ? 'border-[#102326] bg-[#E9EFEE]' : 'border-[#D7D3CF] hover:bg-[#F7F5F2]'}`}>
+            <button onClick={() => onSelect(session.id)} className="min-w-0 flex-1 px-3 py-2 text-left">
+              <span className="block truncate text-[11px] font-semibold">{session.title || 'Study conversation'}</span>
+              <span className="block font-mono text-[9px] text-[#666666]">{session.message_count} messages · {new Date(session.created_at).toLocaleDateString()}</span>
+            </button>
+            <button onClick={() => onDelete(session)} className="mr-1 rounded-[4px] p-1.5 text-[#777] hover:bg-white hover:text-[#C96A32]" title="Delete conversation"><Trash2 size={13} /></button>
+          </div>
+        ))}</div>}
+      </div>
+    </div>
+  );
+  return (
+    <>
+      <aside className="hidden h-full w-64 shrink-0 overflow-hidden rounded-[4px] border border-[#D7D3CF] md:block">{content}</aside>
+      <div className="fixed inset-0 z-40 bg-black/35 md:hidden" onClick={onClose}><aside className="ml-auto h-full w-[min(84vw,320px)] border-l border-[#D7D3CF]" onClick={(event) => event.stopPropagation()}>{content}</aside></div>
     </>
   );
 };

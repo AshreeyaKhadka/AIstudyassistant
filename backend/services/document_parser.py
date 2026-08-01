@@ -32,16 +32,16 @@ def parse_uploaded_material(file, filepath: str) -> str:
     return text
 
 
-def parse_uploaded_material_with_metadata(file, filepath: str) -> tuple[str, dict]:
+def parse_uploaded_material_with_metadata(file, filepath: str, enable_ocr: bool = True) -> tuple[str, dict]:
     """Compatibility wrapper that saves an upload before extracting it."""
     filename = file.filename or ''
     if not is_supported_material(filename):
         raise ValueError(supported_material_message())
     file.save(filepath)
-    return extract_material_from_path(filepath, filename)
+    return extract_material_from_path(filepath, filename, enable_ocr=enable_ocr)
 
 
-def extract_material_from_path(filepath: str, filename: str = '') -> tuple[str, dict]:
+def extract_material_from_path(filepath: str, filename: str = '', enable_ocr: bool = True) -> tuple[str, dict]:
     """Extract structured study text and diagnostics from a file already on disk."""
     _, ext = os.path.splitext(filename or filepath)
     ext = ext.lower()
@@ -58,7 +58,7 @@ def extract_material_from_path(filepath: str, filename: str = '') -> tuple[str, 
         return text, _extraction_metadata('typed_text', text, 1, warnings)
 
     if ext == '.pdf':
-        return _parse_pdf(filepath)
+        return _parse_pdf(filepath, enable_ocr=enable_ocr)
 
     if ext == '.pptx':
         return _parse_pptx(filepath)
@@ -73,7 +73,7 @@ def extract_material_from_path(filepath: str, filename: str = '') -> tuple[str, 
 
 def _extraction_metadata(
     method: str, text: str, page_count: int, warnings: list[str], empty_pages: int = 0,
-    native_text_pages: int = 0, ocr_pages: int = 0,
+    native_text_pages: int = 0, ocr_pages: int = 0, image_pages: int = 0,
 ) -> dict:
     character_count = len((text or '').strip())
     content_characters = max(0, character_count - max(1, page_count) * 10)
@@ -95,6 +95,7 @@ def _extraction_metadata(
         'empty_pages': empty_pages,
         'native_text_pages': native_text_pages,
         'ocr_pages': ocr_pages,
+        'image_pages': image_pages,
         'warnings': list(dict.fromkeys(warnings)),
     }
 
@@ -141,7 +142,7 @@ def _open_pdf(filepath: str):
         raise ValueError(f'Could not open this PDF: {exc}') from exc
 
 
-def _parse_pdf(filepath: str) -> tuple[str, dict]:
+def _parse_pdf(filepath: str, enable_ocr: bool = True) -> tuple[str, dict]:
     document = _open_pdf(filepath)
     sections = []
     warnings = []
@@ -149,6 +150,8 @@ def _parse_pdf(filepath: str) -> tuple[str, dict]:
     ocr_attempts = 0
     ocr_successes = 0
     native_text_pages = 0
+    image_pages = 0
+    forced_ocr = False
 
     try:
         page_count = len(document)
@@ -156,8 +159,10 @@ def _parse_pdf(filepath: str) -> tuple[str, dict]:
             page_number = index + 1
             extracted = (page.get_text('text', sort=True) or '').strip()
             selected_text = extracted
+            if _page_image_coverage(page) >= OCR_MIN_IMAGE_COVERAGE:
+                image_pages += 1
 
-            if _should_ocr_pdf_page(page, extracted):
+            if enable_ocr and _should_ocr_pdf_page(page, extracted):
                 if ocr_attempts >= MAX_OCR_PAGES:
                     warnings.append(f'OCR limit reached; page {page_number} was not OCR processed.')
                 elif not Config.GEMINI_API_KEY:
@@ -181,15 +186,44 @@ def _parse_pdf(filepath: str) -> tuple[str, dict]:
             else:
                 empty_pages += 1
                 warnings.append(f'No readable text was found on page {page_number}.')
+
+        # Some scanned PDFs contain full-page vector or mask content that image
+        # coverage detection cannot identify. Only force OCR when the complete
+        # native/selective pass produced no usable text.
+        if enable_ocr and not sections and page_count and Config.GEMINI_API_KEY:
+            forced_ocr = True
+            warnings.append('No selectable text was found; full-page OCR was attempted.')
+            for index, page in enumerate(document):
+                if ocr_attempts >= MAX_OCR_PAGES:
+                    warnings.append(f'OCR limit reached; pages after {MAX_OCR_PAGES} were not processed.')
+                    break
+                ocr_attempts += 1
+                try:
+                    pixmap = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), alpha=False)
+                    ocr_text = _ocr_image_bytes(pixmap.tobytes('png'), 'image/png').strip()
+                    if ocr_text:
+                        sections.append(f'[Page {index + 1}]\n{ocr_text}')
+                        ocr_successes += 1
+                except Exception as exc:
+                    logger.warning('Forced OCR failed for PDF page %s: %s', index + 1, exc)
+                    warnings.append(f'OCR failed for page {index + 1}.')
+        elif enable_ocr and not sections and page_count and not Config.GEMINI_API_KEY:
+            warnings.append('This PDF appears scanned, but OCR is not configured on the server.')
+        elif not enable_ocr and not sections and page_count:
+            if image_pages:
+                warnings.append('This PDF contains scanned page images and no selectable text.')
+            else:
+                warnings.append('No selectable text was found in this PDF.')
     finally:
         document.close()
 
-    method = 'pdf_text_ocr' if ocr_successes else 'pdf_text'
+    method = 'pdf_forced_ocr' if forced_ocr and ocr_successes else 'pdf_text_ocr' if ocr_successes else 'pdf_text'
     text = '\n\n'.join(sections)
     return text, _extraction_metadata(
         method, text, page_count, warnings, empty_pages,
         native_text_pages=native_text_pages,
         ocr_pages=ocr_successes,
+        image_pages=image_pages,
     )
 
 

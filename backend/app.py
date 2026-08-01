@@ -94,6 +94,25 @@ def _ensure_student_upload_schema():
             pass
 
 
+def _reconcile_personal_syllabus_statuses():
+    """Turn legacy never-finished personal syllabi into an explicit retry state."""
+    from models.content import StudentUpload
+
+    incomplete = StudentUpload.query.filter_by(
+        doc_type='syllabus', syllabus_kind='personal', structured_syllabus=None,
+    ).filter(StudentUpload.parsed_text.isnot(None)).all()
+    changed = False
+    for upload in incomplete:
+        if upload.processing_status in {'validating', 'structuring', 'indexing', 'failed'}:
+            continue
+        upload.processing_status = 'failed'
+        upload.processing_error = 'Chapter extraction was not completed. Retry this syllabus to validate and organize it.'
+        upload.is_active_syllabus = False
+        changed = True
+    if changed:
+        db.session.commit()
+
+
 def _ensure_user_profile_schema():
     inspector = inspect(db.engine)
     if 'users' not in inspector.get_table_names():
@@ -460,6 +479,7 @@ def create_app():
     from routes.execute import execute_bp
     from routes.progress import progress_bp
     from routes.arcade import arcade_bp, register_arcade_socketio
+    from routes.search import search_bp
     
     oauth.init_app(app)
     app.register_blueprint(auth_bp, url_prefix='/auth')
@@ -478,6 +498,7 @@ def create_app():
     app.register_blueprint(progress_bp, url_prefix='/progress')
     app.register_blueprint(execute_bp)
     app.register_blueprint(arcade_bp, url_prefix='/arcade')
+    app.register_blueprint(search_bp, url_prefix='/search')
     register_arcade_socketio(socketio)
 
 
@@ -506,6 +527,7 @@ def create_app():
         _ensure_subject_schema()
         _ensure_student_upload_schema()
         _ensure_mcq_count_schema()
+        _reconcile_personal_syllabus_statuses()
         _ensure_quiz_set_upload_schema()
         _ensure_chat_session_schema()
         _ensure_arcade_schema()

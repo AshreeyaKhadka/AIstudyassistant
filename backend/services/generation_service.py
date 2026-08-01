@@ -318,18 +318,22 @@ def generate_mcqs(context: str, count: int = 10) -> list[dict]:
 # PROBABLE EXAM QUESTION GENERATION
 # ---------------------------------------------------------------------------
 
-EXAM_PROMPT = """You are a seasoned university professor designing an end-of-semester examination for computer engineering students. Based STRICTLY on the following study material, generate exactly {count} high-yield exam questions that are most likely to appear in a real examination.
+EXAM_PROMPT = """You are designing practice questions in the style commonly used for Pokhara University engineering examinations. These are AI suggestions, not predictions. Based STRICTLY on the selected PDF context, generate exactly {count} questions for {subject}.
 
 STUDY MATERIAL CONTEXT:
 {context}
 
 REQUIREMENTS:
-- Mix question types: short-answer (5 marks), long-answer/essay (10 marks), and problem-solving/numerical (where applicable).
+- Generate exactly {long_count} long-answer questions worth 8 marks each.
+- Generate exactly {short_count} short-note questions worth 5 marks each.
+- Use long answers for broad explanations, derivations, comparisons, designs, or numerical work.
+- Use short notes for focused concepts that can reasonably be answered for 5 marks.
 - For each question, provide:
   - The question text
-  - The question type ("short_answer", "long_answer", or "problem_solving")
-  - An estimated marks value
+  - The exact type ("short_note" or "long_answer") and required marks (5 or 8)
   - A checklist of key points required for a perfect-score answer (3-6 bullet points)
+  - A source_page that exists in the context
+  - A source_basis phrase copied exactly from that page (6-20 words)
 - Focus on topics that professors commonly emphasize: core theory, derivations, comparisons, applications, and design questions.
 - Do NOT include information not present in the provided context.
 
@@ -339,7 +343,9 @@ OUTPUT FORMAT (strict JSON):
     {{
       "question": "Explain the concept of...",
       "type": "long_answer",
-      "marks": 10,
+      "marks": 8,
+      "source_page": 2,
+      "source_basis": "an exact phrase copied from the selected PDF",
       "key_points": [
         "Define the core concept clearly",
         "Discuss the relationship with...",
@@ -354,35 +360,76 @@ OUTPUT FORMAT (strict JSON):
 Generate exactly {count} exam questions. Return ONLY valid JSON."""
 
 
-def generate_exam_questions(context: str, count: int = 8) -> list[dict]:
-    """Generate probable exam questions from retrieved context."""
-    prompt = EXAM_PROMPT.format(context=context, count=count)
-    raw = _call_llm(prompt, temperature=0.5)
-    _log_usage('exam_generate')
-    parsed = _parse_json_response(raw)
+def _exam_question_count(context: str) -> int:
+    headings = set()
+    for raw_line in context.splitlines():
+        line = re.sub(r'\s+', ' ', raw_line).strip()
+        if re.match(r'^(?:unit|chapter|module|topic|section)\s+[\divxlc]+\b', line, re.I):
+            headings.add(line.casefold())
+        elif re.match(r'^\d+(?:\.\d+)*[.):\s-]+[A-Za-z]', line):
+            headings.add(line.casefold())
+    pages = set(re.findall(r'\[Page\s+(\d+)\]', context, flags=re.I))
+    coverage_units = len(headings) or max(1, (len(pages) + 2) // 3)
+    return max(4, min(12, coverage_units))
 
-    questions = parsed.get("exam_questions", [])
-    if not isinstance(questions, list):
-        raise RuntimeError("Invalid exam questions format")
 
-    # Validate each question
-    validated = []
-    for q in questions:
-        if not isinstance(q, dict) or "question" not in q:
-            continue
+def _normalized_evidence(value: str) -> str:
+    return re.sub(r'[^a-z0-9]+', ' ', value.casefold()).strip()
 
-        validated.append({
-            "question": str(q["question"]).strip(),
-            "type": str(q.get("type", "short_answer")).strip(),
-            "marks": int(q.get("marks", 5)),
-            "key_points": [
-                str(kp).strip()
-                for kp in q.get("key_points", [])
-                if isinstance(kp, str) and kp.strip()
-            ],
-        })
 
-    return validated
+def generate_exam_questions(context: str, count: int = None, subject: str = '') -> list[dict]:
+    """Generate and verify PDF-grounded Pokhara University-style practice questions."""
+    target_count = max(4, min(12, int(count))) if count is not None else _exam_question_count(context)
+    long_count = target_count // 2
+    short_count = target_count - long_count
+    available_pages = {int(page) for page in re.findall(r'\[Page\s+(\d+)\]', context, flags=re.I)}
+    normalized_context = _normalized_evidence(context)
+    prompt = EXAM_PROMPT.format(
+        context=context,
+        count=target_count,
+        subject=subject or 'the selected subject',
+        long_count=long_count,
+        short_count=short_count,
+    )
+
+    last_error = 'invalid output'
+    for _attempt in range(2):
+        raw = _call_llm(prompt, temperature=0.25)
+        _log_usage('exam_generate', subject=subject)
+        parsed = _parse_json_response(raw)
+        questions = parsed.get('exam_questions', [])
+        validated = []
+        for question in questions if isinstance(questions, list) else []:
+            if not isinstance(question, dict) or not str(question.get('question') or '').strip():
+                continue
+            try:
+                marks = int(question.get('marks'))
+                page = int(question.get('source_page'))
+            except (TypeError, ValueError):
+                continue
+            question_type = str(question.get('type') or '').strip().lower()
+            evidence = re.sub(r'\s+', ' ', str(question.get('source_basis') or '')).strip()
+            evidence_normalized = _normalized_evidence(evidence)
+            expected_type = 'long_answer' if marks == 8 else 'short_note' if marks == 5 else None
+            if (
+                not expected_type or question_type != expected_type or page not in available_pages
+                or len(evidence_normalized) < 12 or evidence_normalized not in normalized_context
+            ):
+                continue
+            validated.append({
+                'question': str(question['question']).strip(),
+                'type': question_type,
+                'marks': marks,
+                'key_points': [str(point).strip() for point in question.get('key_points', []) if str(point).strip()],
+                'source_page': page,
+                'source_basis': evidence,
+            })
+        distribution = {5: sum(item['marks'] == 5 for item in validated), 8: sum(item['marks'] == 8 for item in validated)}
+        if len(validated) == target_count and distribution == {5: short_count, 8: long_count}:
+            return validated
+        last_error = f'expected {target_count} grounded questions with distribution 5x{short_count}, 8x{long_count}'
+
+    raise RuntimeError(f'AI returned an invalid exam question set: {last_error}')
 
 
 BLUEPRINT_PROMPT = """You are creating a one-page exam revision blueprint for university students. Based STRICTLY on the study material below for {subject}, produce a concise visual-ready summary.
