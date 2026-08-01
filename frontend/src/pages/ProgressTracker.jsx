@@ -35,6 +35,8 @@ const ProgressTracker = () => {
   const [recommendations, setRecommendations] = useState(null);
   const [weeklyPlan, setWeeklyPlan] = useState(null);
   const [activeSection, setActiveSection] = useState('overview');
+  const [coachSubject, setCoachSubject] = useState('');
+  const [mistakeSubject, setMistakeSubject] = useState('');
   const [error, setError] = useState('');
 
   const fetchOverview = useCallback(async () => {
@@ -69,18 +71,20 @@ const ProgressTracker = () => {
     }
   }, []);
 
-  const fetchMistakes = useCallback(async () => {
+  const fetchMistakes = useCallback(async (subject) => {
     try {
-      const res = await fetch('/api/progress/mistakes', { credentials: 'include' });
+      const params = subject ? `?subject=${encodeURIComponent(subject)}` : '';
+      const res = await fetch(`/api/progress/mistakes${params}`, { credentials: 'include' });
       if (res.ok) setMistakes(await res.json());
     } catch (err) {
       console.error('Failed to fetch mistakes:', err);
     }
   }, []);
 
-  const fetchRecommendations = useCallback(async () => {
+  const fetchRecommendations = useCallback(async (subject) => {
     try {
-      const res = await fetch('/api/progress/recommendations', { credentials: 'include' });
+      const params = subject ? `?subject=${encodeURIComponent(subject)}` : '';
+      const res = await fetch(`/api/progress/recommendations${params}`, { credentials: 'include' });
       if (res.ok) setRecommendations(await res.json());
     } catch (err) {
       console.error('Failed to fetch recommendations:', err);
@@ -104,11 +108,20 @@ const ProgressTracker = () => {
   }, []);
 
   useEffect(() => {
+    fetchRecommendations(coachSubject);
+  }, [coachSubject]);
+
+  useEffect(() => {
+    fetchMistakes(mistakeSubject);
+  }, [mistakeSubject]);
+
+  useEffect(() => {
     if (selectedUploadId) fetchSummary(selectedUploadId);
   }, [selectedUploadId]);
 
   const selectedUpload = overview?.uploads?.find(u => u.id === selectedUploadId);
   const stats = overview?.stats;
+  const uploadSubjects = [...new Set(overview?.uploads?.filter(u => u.subject).map(u => u.subject))];
 
   if (loading) {
     return (
@@ -140,7 +153,7 @@ const ProgressTracker = () => {
           <p className="text-xs text-[#666666] mt-0.5">Your personalized study command center. Track, plan, and conquer.</p>
         </div>
         <button
-          onClick={() => { fetchOverview(); fetchMistakes(); fetchRecommendations(); fetchWeeklyPlan(); }}
+          onClick={() => { fetchOverview(); fetchMistakes(mistakeSubject); fetchRecommendations(coachSubject); fetchWeeklyPlan(); }}
           className="px-4 py-2 bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] font-mono text-xs font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-2 shrink-0"
         >
           <RefreshCw size={14} />
@@ -336,6 +349,22 @@ const ProgressTracker = () => {
               AI Study Coach
             </h4>
           </div>
+
+          {uploadSubjects.length > 0 && (
+            <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-4">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-2 block">SELECT SUBJECT</span>
+              <select
+                value={coachSubject}
+                onChange={(e) => { setCoachSubject(e.target.value); setRecommendations(null); }}
+                className="w-full bg-[#F7F5F2] border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+              >
+                <option value="">All Subjects</option>
+                {uploadSubjects.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {!recommendations ? (
             <div className="py-12 text-center bg-white rounded-[4px] border border-[#D7D3CF]">
@@ -694,6 +723,22 @@ const ProgressTracker = () => {
               MCQ Mistake Ledger & Analysis
             </h4>
           </div>
+
+          {uploadSubjects.length > 0 && (
+            <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-4">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-2 block">SELECT SUBJECT</span>
+              <select
+                value={mistakeSubject}
+                onChange={(e) => { setMistakeSubject(e.target.value); setMistakes(null); }}
+                className="w-full bg-[#F7F5F2] border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none"
+              >
+                <option value="">All Subjects</option>
+                {uploadSubjects.map(name => (
+                  <option key={name} value={name}>{name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {!mistakes ? (
             <div className="py-8 text-center bg-white rounded-[4px] border border-[#D7D3CF]">

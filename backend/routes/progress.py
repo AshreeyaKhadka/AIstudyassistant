@@ -216,9 +216,13 @@ Return ONLY valid JSON."""
 def get_mistake_ledger(user):
     """Return MCQ mistake ledger with analysis of incorrect answers."""
     try:
+        subject_filter = request.args.get('subject', '').strip()
         quiz_sets = QuizSet.query.filter_by(user_id=user.id).filter(
             QuizSet.score.isnot(None)
         ).order_by(QuizSet.created_at.desc()).all()
+
+        if subject_filter:
+            quiz_sets = [qs for qs in quiz_sets if (qs.topic or '').lower() == subject_filter.lower()]
 
         mistakes = []
         topic_errors = {}
@@ -286,6 +290,8 @@ def get_mistake_ledger(user):
 def get_study_recommendations(user):
     """Return AI-powered study coaching based on current progress."""
     try:
+        subject_filter = request.args.get('subject', '').strip()
+
         topic_progress = TopicProgress.query.filter_by(user_id=user.id).all()
         uploads = StudentUpload.query.filter_by(
             user_id=user.id, doc_type='material'
@@ -293,6 +299,11 @@ def get_study_recommendations(user):
         quiz_sets = QuizSet.query.filter_by(user_id=user.id).filter(
             QuizSet.score.isnot(None)
         ).order_by(QuizSet.created_at.desc()).all()
+
+        if subject_filter:
+            topic_progress = [t for t in topic_progress if (t.subject or '').lower() == subject_filter.lower()]
+            uploads = [u for u in uploads if (u.subject or '').lower() == subject_filter.lower()]
+            quiz_sets = [qs for qs in quiz_sets if (qs.topic or '').lower() == subject_filter.lower()]
 
         weak_topics = [t for t in topic_progress if t.weak]
         covered = [t for t in topic_progress if t.covered]
