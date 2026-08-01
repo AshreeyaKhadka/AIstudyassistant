@@ -11,8 +11,11 @@ from services.rag_service import (
     get_syllabus_coverage,
     is_document_embedded,
     embed_structured_syllabus,
+    normalize_syllabus_structure,
+    update_document_metadata,
 )
 from services.generation_service import parse_syllabus_hierarchy
+from services.syllabus_catalog import get_catalog, find_subject
 from werkzeug.utils import secure_filename
 import os
 import json
@@ -62,8 +65,11 @@ def _serialize_upload(upload, include_text=False):
         "extraction_quality": upload.extraction_quality,
         "validation_status": upload.validation_status or 'pending',
         "validation_error": upload.validation_error,
+        "validation_details": upload.validation_details or {},
         "syllabus_match_score": upload.syllabus_match_score,
         "syllabus_match_coverage": upload.syllabus_match_coverage,
+        "syllabus_version": upload.syllabus_version or 1,
+        "syllabus_structure_hash": upload.syllabus_structure_hash,
         "created_at": upload.created_at.isoformat() if upload.created_at else None,
     }
     if upload.structured_syllabus:
@@ -110,10 +116,11 @@ def _start_structure_extraction(upload_id, parsed_text):
     def _bg_extract(app, uid, ptext):
         with app.app_context():
             try:
-                structured = parse_syllabus_hierarchy(ptext)
+                structured = normalize_syllabus_structure(parse_syllabus_hierarchy(ptext))
                 upload = StudentUpload.query.get(uid)
                 if upload:
                     upload.structured_syllabus = json.dumps(structured)
+                    upload.syllabus_structure_hash = structured.get('structure_hash')
                     db.session.commit()
                     logger.info(f"Structure extraction completed for upload {uid}")
 
@@ -139,6 +146,19 @@ def _start_structure_extraction(upload_id, parsed_text):
 def _set_active_syllabus(user_id, upload):
     StudentUpload.query.filter_by(user_id=user_id, doc_type='syllabus').update({"is_active_syllabus": False})
     upload.is_active_syllabus = True
+
+
+def _invalidate_material_validation(subject_id, reason='The syllabus changed. Validate this material again.'):
+    if not subject_id:
+        return
+    materials = StudentUpload.query.filter_by(subject_id=subject_id, doc_type='material').all()
+    for material in materials:
+        material.validation_status = 'pending'
+        material.validation_error = reason
+        material.validation_details = {}
+        material.syllabus_match_score = None
+        material.syllabus_match_coverage = None
+        update_document_metadata(material.id, {'validation_status': 'pending'})
 
 
 def _semester_from_path(path):
@@ -205,6 +225,7 @@ def _seed_default_subjects_if_empty(user):
             subject = Subject(
                 user_id=user.id,
                 name=clean_name,
+                catalog_key=(find_subject(name=clean_name, semester=sem) or {}).get('id'),
                 semester=sem,
                 code=None,
                 credits=3,
@@ -226,10 +247,25 @@ def _seed_default_subjects_if_empty(user):
 @login_required
 def get_subjects(user):
     _seed_default_subjects_if_empty(user)
-    subjects = Subject.query.filter_by(user_id=user.id).order_by(Subject.semester.asc(), Subject.name.asc()).all()
+    current_semester = int(user.semester or 1)
+    all_subjects = Subject.query.filter_by(user_id=user.id).all()
+    changed = False
+    for subject in all_subjects:
+        should_be_current = int(subject.semester) == current_semester
+        if subject.is_current != should_be_current:
+            subject.is_current = should_be_current
+            changed = True
+    if changed:
+        db.session.commit()
+    scope = (request.args.get('scope') or 'active').strip().lower()
+    query = Subject.query.filter_by(user_id=user.id)
+    if scope == 'active':
+        query = query.filter(db.or_(Subject.is_current.is_(True), Subject.is_backlog.is_(True)))
+    subjects = query.order_by(Subject.semester.asc(), Subject.name.asc()).all()
     return jsonify([{
         "id": s.id,
         "name": s.name,
+        "catalog_key": s.catalog_key,
         "semester": s.semester,
         "code": s.code,
         "credits": s.credits,
@@ -237,6 +273,74 @@ def get_subjects(user):
         "is_backlog": s.is_backlog,
         "created_at": s.created_at.isoformat() if s.created_at else None
     } for s in subjects]), 200
+
+
+@syllabus_bp.route('/subjects/additional', methods=['POST'])
+@login_required
+def add_additional_subject(user):
+    data = request.get_json(silent=True) or {}
+    catalog_key = str(data.get('catalog_key') or '').strip()
+    if not catalog_key:
+        return jsonify({'error': 'Choose a subject to add'}), 400
+
+    catalog_subject = find_subject(subject_key=catalog_key)
+    if not catalog_subject:
+        return jsonify({'error': 'Catalog subject not found'}), 404
+    if int(catalog_subject['semester']) == int(user.semester or 1):
+        return jsonify({'error': 'Current-semester subjects are already available'}), 400
+
+    subject = Subject.query.filter_by(user_id=user.id, catalog_key=catalog_key).first()
+    if subject and subject.is_backlog:
+        return jsonify({'error': 'Subject is already added'}), 409
+    if Subject.query.filter_by(user_id=user.id, is_backlog=True).count() >= 4:
+        return jsonify({'error': 'Additional subject limit reached (4/4)'}), 400
+
+    if not subject:
+        subject = Subject(
+            user_id=user.id,
+            name=catalog_subject['name'],
+            catalog_key=catalog_key,
+            semester=int(catalog_subject['semester']),
+            code=catalog_subject.get('code'),
+            credits=catalog_subject.get('credits') or 3,
+            is_current=False,
+        )
+        db.session.add(subject)
+    subject.is_backlog = True
+    db.session.commit()
+    return jsonify({
+        'id': subject.id, 'name': subject.name, 'catalog_key': subject.catalog_key,
+        'semester': subject.semester, 'code': subject.code, 'credits': subject.credits,
+        'is_current': subject.is_current, 'is_backlog': subject.is_backlog,
+    }), 201
+
+
+@syllabus_bp.route('/subjects/<int:subject_id>/additional', methods=['DELETE'])
+@login_required
+def remove_additional_subject(user, subject_id):
+    subject = Subject.query.filter_by(id=subject_id, user_id=user.id).first()
+    if not subject:
+        return jsonify({'error': 'Subject not found'}), 404
+    if subject.is_current:
+        return jsonify({'error': 'Current-semester subjects cannot be removed'}), 400
+    subject.is_backlog = False
+    db.session.commit()
+    return jsonify({'message': 'Additional subject removed', 'id': subject.id}), 200
+
+
+@syllabus_bp.route('/catalog', methods=['GET'])
+@login_required
+def get_official_catalog(user):
+    """Return the normalized official syllabus hierarchy with stable IDs."""
+    catalog = get_catalog()
+    semester = request.args.get('semester', type=int)
+    subject_key = (request.args.get('subject_key') or '').strip()
+    subjects = catalog['subjects']
+    if semester:
+        subjects = [item for item in subjects if item['semester'] == semester]
+    if subject_key:
+        subjects = [item for item in subjects if item['id'] == subject_key]
+    return jsonify({**catalog, 'subjects': subjects}), 200
 
 
 @syllabus_bp.route('/subjects', methods=['POST'])
@@ -339,6 +443,7 @@ def upload_syllabus(user):
 
     # Enforce exactly one syllabus file per subject
     existing_syllabus = StudentUpload.query.filter_by(subject_id=subject_id, doc_type='syllabus').first()
+    replacing_upload = None
     if existing_syllabus:
         if not replace:
             return jsonify({
@@ -347,20 +452,7 @@ def upload_syllabus(user):
                 "existing_id": existing_syllabus.id
             }), 409
 
-        # User wants to replace
-        try:
-            delete_document_embeddings(existing_syllabus.id)
-            if existing_syllabus.file_url and os.path.exists(existing_syllabus.file_url):
-                try:
-                    os.remove(existing_syllabus.file_url)
-                except Exception:
-                    pass
-            db.session.delete(existing_syllabus)
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Failed to delete existing syllabus for replace: {e}")
-            return jsonify({"error": "Failed to replace existing syllabus"}), 500
+        replacing_upload = existing_syllabus
 
     # Handle file upload
     if 'file' not in request.files:
@@ -392,22 +484,52 @@ def upload_syllabus(user):
             os.remove(filepath)
         return jsonify({"error": "No readable text could be extracted from this syllabus."}), 400
 
-    upload = StudentUpload(
-        filename=filename,
-        file_url=filepath,
-        parsed_text=text,
-        size_bytes=size_bytes,
-        user_id=user.id,
-        subject=subject.name,
-        subject_id=subject_id,
-        doc_type='syllabus',
-        extraction_method=extraction_meta.get('extraction_method'),
-        extraction_quality=extraction_meta.get('extraction_quality'),
-        validation_status='approved',
-    )
+    if replacing_upload:
+        delete_document_embeddings(replacing_upload.id)
+        old_file_url = replacing_upload.file_url
+        upload = replacing_upload
+        upload.filename = filename
+        upload.file_url = filepath
+        upload.parsed_text = text
+        upload.size_bytes = size_bytes
+        upload.user_id = user.id
+        upload.subject = subject.name
+        upload.subject_id = subject_id
+        upload.embedding_status = 'pending'
+        upload.embedding_error = None
+        upload.structured_syllabus = None
+        upload.syllabus_version = int(upload.syllabus_version or 1) + 1
+        upload.syllabus_structure_hash = None
+        _invalidate_material_validation(subject_id)
+        if old_file_url and old_file_url != filepath and os.path.exists(old_file_url):
+            try:
+                os.remove(old_file_url)
+            except OSError:
+                logger.warning('Could not remove replaced syllabus file %s', old_file_url)
+    else:
+        upload = StudentUpload(
+            filename=filename,
+            file_url=filepath,
+            parsed_text=text,
+            size_bytes=size_bytes,
+            user_id=user.id,
+            subject=subject.name,
+            subject_id=subject_id,
+            doc_type='syllabus',
+            validation_status='approved',
+        )
+
+    upload.extraction_method = extraction_meta.get('extraction_method')
+    upload.extraction_quality = extraction_meta.get('extraction_quality')
+    upload.processing_warnings = extraction_meta.get('warnings') or []
+    upload.page_count = extraction_meta.get('page_count')
+    upload.character_count = extraction_meta.get('character_count')
+    upload.validation_status = 'approved'
+    upload.validation_error = None
 
     try:
-        db.session.add(upload)
+        if not replacing_upload:
+            db.session.add(upload)
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -659,6 +781,9 @@ def upsert_personal_syllabus(user):
     extraction_meta = {
         'extraction_method': 'typed_text',
         'extraction_quality': 'good' if len(parsed_text.strip()) >= 500 else 'partial' if len(parsed_text.strip()) >= 120 else 'low',
+        'warnings': [],
+        'page_count': 1,
+        'character_count': len(parsed_text.strip()),
     }
 
     try:
@@ -700,9 +825,15 @@ def upsert_personal_syllabus(user):
             existing.embedding_error = None
             existing.extraction_method = extraction_meta.get('extraction_method')
             existing.extraction_quality = extraction_meta.get('extraction_quality')
+            existing.processing_warnings = extraction_meta.get('warnings') or []
+            existing.page_count = extraction_meta.get('page_count')
+            existing.character_count = extraction_meta.get('character_count')
             existing.validation_status = 'approved'
             existing.validation_error = None
             existing.structured_syllabus = None
+            existing.syllabus_version = int(existing.syllabus_version or 1) + 1
+            existing.syllabus_structure_hash = None
+            _invalidate_material_validation(existing.subject_id)
             upload = existing
         else:
             upload = StudentUpload(
@@ -717,6 +848,9 @@ def upsert_personal_syllabus(user):
                 syllabus_kind='personal',
                 extraction_method=extraction_meta.get('extraction_method'),
                 extraction_quality=extraction_meta.get('extraction_quality'),
+                processing_warnings=extraction_meta.get('warnings') or [],
+                page_count=extraction_meta.get('page_count'),
+                character_count=extraction_meta.get('character_count'),
                 validation_status='approved',
             )
             db.session.add(upload)
@@ -856,7 +990,13 @@ def extract_syllabus_structure(user, upload_id):
 
     if upload.structured_syllabus:
         try:
-            return jsonify(json.loads(upload.structured_syllabus)), 200
+            structured = normalize_syllabus_structure(json.loads(upload.structured_syllabus))
+            if structured.get('structure_hash') != upload.syllabus_structure_hash:
+                upload.structured_syllabus = json.dumps(structured)
+                upload.syllabus_structure_hash = structured.get('structure_hash')
+                db.session.commit()
+                embed_structured_syllabus(upload.id, upload.user_id, upload.filename, structured)
+            return jsonify(structured), 200
         except (json.JSONDecodeError, TypeError):
             pass
 
@@ -869,9 +1009,11 @@ def extract_syllabus_structure(user, upload_id):
         return jsonify({"status": "processing", "message": "Structure extraction started in background"}), 202
 
     try:
-        structured = parse_syllabus_hierarchy(upload.parsed_text)
+        structured = normalize_syllabus_structure(parse_syllabus_hierarchy(upload.parsed_text))
         upload.structured_syllabus = json.dumps(structured)
+        upload.syllabus_structure_hash = structured.get('structure_hash')
         db.session.commit()
+        embed_structured_syllabus(upload.id, upload.user_id, upload.filename, structured)
         return jsonify(structured), 200
     except Exception as e:
         logger.error(f"Structure extraction failed for upload {upload_id}: {e}")

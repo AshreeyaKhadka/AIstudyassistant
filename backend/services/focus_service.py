@@ -8,13 +8,20 @@ from config import Config, db
 from datetime import datetime, timedelta
 import logging
 import requests
+from services.generation_service import _call_gemini, _parse_json_response
+from services.rag_service import retrieve_context
 
 logger = logging.getLogger(__name__)
 
 def log_session(user_id, data):
+    subject_id = data.get('subject_id')
+    subject = Subject.query.filter_by(id=subject_id, user_id=user_id).first() if subject_id else None
+    if not subject:
+        raise ValueError('Choose a valid subject before starting focus mode.')
     session = StudySession(
         user_id=user_id,
-        subject=data.get('subject', 'General'),
+        subject_id=subject.id,
+        subject=subject.name,
         topic=data.get('topic'),
         duration_minutes=data.get('duration_minutes', 0),
         break_duration_minutes=data.get('break_duration_minutes', 0),
@@ -33,12 +40,140 @@ def get_history(user_id):
     sessions = StudySession.query.filter_by(user_id=user_id).order_by(StudySession.created_at.desc()).all()
     return [{
         "id": s.id,
+        "subject_id": s.subject_id,
         "subject": s.subject,
         "topic": s.topic,
         "duration_minutes": s.duration_minutes,
         "completed": s.completed,
         "created_at": s.created_at.isoformat()
     } for s in sessions]
+
+
+def _recall_context(user_id, subject_id, topic):
+    uploads = StudentUpload.query.filter_by(user_id=user_id, subject_id=subject_id).all()
+    eligible = [
+        upload for upload in uploads
+        if upload.embedding_status == 'embedded'
+        and (upload.doc_type == 'syllabus' or (
+            upload.doc_type == 'material'
+            and upload.admission_status == 'admitted'
+            and upload.validation_status in {'approved', 'needs_review'}
+        ))
+    ]
+    query = (topic or '').strip() or 'important concepts and key ideas'
+    matches = []
+    for upload in eligible[:8]:
+        try:
+            matches.extend(retrieve_context(upload_id=upload.id, query=query, top_k=2))
+        except Exception as exc:
+            logger.warning('Recall retrieval failed for upload %s: %s', upload.id, exc)
+    matches.sort(key=lambda item: float(item.get('score', 0) or 0), reverse=True)
+    selected = matches[:5]
+    context = '\n\n'.join((item.get('text') or '').strip() for item in selected if item.get('text'))
+    citations = []
+    for item in selected[:3]:
+        metadata = item.get('metadata') or {}
+        citations.append({
+            'upload_id': metadata.get('upload_id'),
+            'filename': metadata.get('filename'),
+            'page_number': metadata.get('page_number'),
+            'heading': metadata.get('heading'),
+        })
+    return context[:9000], citations
+
+
+def create_recall_question(user_id, session_id):
+    session = StudySession.query.filter_by(id=session_id, user_id=user_id, completed=True).first()
+    if not session:
+        raise ValueError('Completed focus session not found.')
+    if session.recall_question:
+        return {
+            'session_id': session.id,
+            'question': session.recall_question,
+            'citations': (session.recall_metadata or {}).get('citations', []),
+            'grounded': bool((session.recall_metadata or {}).get('grounded')),
+        }
+
+    context, citations = _recall_context(user_id, session.subject_id, session.topic)
+    grounded = bool(context)
+    fallback = (
+        f"Without looking at your notes, explain the most important idea you studied in "
+        f"{session.subject}{f' about {session.topic}' if session.topic else ''}."
+    )
+    question = fallback
+    if grounded:
+        prompt = f"""Create one short active-recall question for a university student.
+Subject: {session.subject}
+Topic: {session.topic or 'general review'}
+Use only the source context below. Ask for an explanation, comparison, or process; do not ask trivia.
+Return JSON only: {{"question": "..."}}
+
+SOURCE CONTEXT:
+{context}"""
+        try:
+            generated = _parse_json_response(_call_gemini(prompt, temperature=0.25, max_tokens=180))
+            if isinstance(generated, dict) and str(generated.get('question') or '').strip():
+                question = str(generated['question']).strip()
+        except Exception as exc:
+            logger.warning('Recall question generation fell back to a general prompt: %s', exc)
+
+    session.recall_question = question
+    session.recall_metadata = {'grounded': grounded, 'citations': citations, 'context': context}
+    db.session.commit()
+    return {'session_id': session.id, 'question': question, 'citations': citations, 'grounded': grounded}
+
+
+def evaluate_recall_answer(user_id, session_id, answer):
+    session = StudySession.query.filter_by(id=session_id, user_id=user_id, completed=True).first()
+    if not session or not session.recall_question:
+        raise ValueError('Recall question not found.')
+    clean_answer = str(answer or '').strip()
+    if len(clean_answer) < 3:
+        raise ValueError('Write a short answer before checking your recall.')
+
+    metadata = session.recall_metadata or {}
+    context = metadata.get('context') or ''
+    result = None
+    if context:
+        prompt = f"""Evaluate a student's active-recall answer using only the source context.
+Question: {session.recall_question}
+Student answer: {clean_answer}
+Source context: {context}
+
+Return JSON only with:
+{{"score": 0-100, "feedback": "two concise sentences", "next_step": "one concrete revision action"}}"""
+        try:
+            parsed = _parse_json_response(_call_gemini(prompt, temperature=0.2, max_tokens=260))
+            if isinstance(parsed, dict):
+                result = parsed
+        except Exception as exc:
+            logger.warning('Recall evaluation unavailable: %s', exc)
+
+    if not result:
+        result = {
+            'score': None,
+            'feedback': 'Your answer has been saved. Compare it with your notes and identify one point you missed.',
+            'next_step': 'Review the relevant section once, then explain it again without looking.',
+        }
+    score = result.get('score')
+    try:
+        score = max(0, min(100, float(score))) if score is not None else None
+    except (TypeError, ValueError):
+        score = None
+    feedback = str(result.get('feedback') or '').strip()
+    next_step = str(result.get('next_step') or '').strip()
+    session.recall_answer = clean_answer
+    session.recall_feedback = feedback
+    session.recall_score = score
+    session.recall_metadata = {**metadata, 'context': None, 'next_step': next_step}
+    db.session.commit()
+    return {
+        'session_id': session.id,
+        'score': score,
+        'feedback': feedback,
+        'next_step': next_step,
+        'citations': metadata.get('citations', []),
+    }
 
 def get_analytics(user_id):
     sessions = StudySession.query.filter_by(user_id=user_id).all()

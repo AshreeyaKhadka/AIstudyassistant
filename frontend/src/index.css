@@ -42,7 +42,37 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-sans);
   color: var(--text-primary);
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #C96A32;
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.academic-content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.academic-content pre,
+.academic-content table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.academic-content img {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Label styling */

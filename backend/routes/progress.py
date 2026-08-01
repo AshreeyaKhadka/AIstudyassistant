@@ -22,6 +22,7 @@ def get_overview(user):
         uploads = StudentUpload.query.filter_by(
             user_id=user.id, doc_type='material'
         ).order_by(StudentUpload.created_at.desc()).all()
+        uploads = [upload for upload in uploads if (upload.admission_status or 'admitted') == 'admitted']
 
         subjects = Subject.query.filter_by(user_id=user.id).all()
 
@@ -35,28 +36,40 @@ def get_overview(user):
 
         topic_progress = TopicProgress.query.filter_by(user_id=user.id).all()
 
-        total_quizzes = len(quiz_sets)
-        completed_quizzes = sum(1 for qs in quiz_sets if qs.score is not None)
-        avg_score = 0.0
-        if completed_quizzes:
-            avg_score = round(
-                sum(qs.score for qs in quiz_sets if qs.score is not None)
-                / completed_quizzes
-                * 100 / max(1, len(QuizSet.query.get(quiz_sets[0].id).questions_json) if quiz_sets and quiz_sets[0].questions_json else 10),
-                1
-            )
-
-        total_topics = len(topic_progress)
-        covered_topics = sum(1 for t in topic_progress if t.covered)
-        weak_topics = sum(1 for t in topic_progress if t.weak)
-        practiced_topics = sum(1 for t in topic_progress if t.practiced)
+        completed_assessments = [
+            quiz for quiz in quiz_sets
+            if quiz.score is not None and (quiz.assessment_type or 'mcq') == 'mcq'
+        ]
+        attempted_questions = sum(
+            len(quiz.questions_json) if isinstance(quiz.questions_json, list) else 0
+            for quiz in completed_assessments
+        )
+        correct_answers = sum(float(quiz.score or 0) for quiz in completed_assessments)
+        completed_quizzes = len(completed_assessments)
+        avg_score = round(correct_answers * 100 / attempted_questions, 1) if attempted_questions else 0.0
 
         upload_data = []
+        tracked_topic_keys = set()
         for u in uploads:
-            subject_topics = [t for t in topic_progress if t.subject_id == u.subject_id] if u.subject_id else []
-            upload_weak = sum(1 for t in subject_topics if t.weak)
-            upload_covered = sum(1 for t in subject_topics if t.covered)
-            upload_total = len(subject_topics)
+            matched_topics = (u.validation_details or {}).get('matched_topics') or []
+            matched_topics = [item for item in matched_topics if isinstance(item, dict) and item.get('topic_id')]
+            seen_topic_ids = set()
+            unique_matched_topics = []
+            for item in matched_topics:
+                if item['topic_id'] in seen_topic_ids:
+                    continue
+                seen_topic_ids.add(item['topic_id'])
+                unique_matched_topics.append(item)
+            matched_topics = unique_matched_topics
+            tracked_topic_keys.update((u.subject_id, item['topic_id']) for item in matched_topics)
+            progress_by_topic = {
+                topic.topic_id: topic for topic in topic_progress
+                if topic.subject_id == u.subject_id
+            }
+            upload_progress = [progress_by_topic[item['topic_id']] for item in matched_topics if item['topic_id'] in progress_by_topic]
+            upload_weak = sum(1 for topic in upload_progress if topic.weak)
+            upload_covered = sum(1 for topic in upload_progress if topic.covered)
+            upload_total = len(matched_topics)
             upload_data.append({
                 'id': u.id,
                 'filename': u.filename,
@@ -70,18 +83,32 @@ def get_overview(user):
                 'weak_count': upload_weak,
                 'coverage_percent': round((upload_covered / upload_total) * 100) if upload_total else 0,
                 'mastery_score': round(
-                    sum(t.mastery_score for t in subject_topics) / upload_total, 1
-                ) if upload_total else 0,
+                    sum(topic.mastery_score for topic in upload_progress) / len(upload_progress), 1
+                ) if upload_progress else 0,
+                'topics': matched_topics,
+                'admission_status': u.admission_status,
+                'warning': u.validation_error if u.validation_status == 'needs_review' else None,
             })
+
+        tracked_progress = [
+            topic for topic in topic_progress
+            if (topic.subject_id, topic.topic_id) in tracked_topic_keys
+        ]
+        total_topics = len(tracked_topic_keys)
+        covered_topics = sum(1 for topic in tracked_progress if topic.covered)
+        weak_topics = sum(1 for topic in tracked_progress if topic.weak)
+        practiced_topics = sum(1 for topic in tracked_progress if topic.practiced)
 
         subject_data = []
         for s in subjects:
+            s_uploads = [u for u in uploads if u.subject_id == s.id]
+            if not s_uploads:
+                continue
             s_topics = [t for t in topic_progress if t.subject_id == s.id]
             s_total = len(s_topics)
             s_covered = sum(1 for t in s_topics if t.covered)
             s_weak = sum(1 for t in s_topics if t.weak)
             s_practiced = sum(1 for t in s_topics if t.practiced)
-            s_uploads = [u for u in uploads if u.subject_id == s.id]
             subject_data.append({
                 'id': s.id,
                 'name': s.name,
@@ -97,7 +124,7 @@ def get_overview(user):
             })
 
         recent_quizzes = []
-        for qs in quiz_sets[:10]:
+        for qs in completed_assessments[:10]:
             q_total = len(qs.questions_json) if isinstance(qs.questions_json, list) else 0
             recent_quizzes.append({
                 'id': qs.id,
@@ -131,7 +158,7 @@ def get_overview(user):
             'subjects': subject_data,
             'stats': {
                 'total_uploads': len(uploads),
-                'total_subjects': len(subjects),
+                'total_subjects': len(subject_data),
                 'total_quizzes_taken': completed_quizzes,
                 'average_score': avg_score,
                 'total_topics': total_topics,
@@ -217,12 +244,20 @@ def get_mistake_ledger(user):
     """Return MCQ mistake ledger with analysis of incorrect answers."""
     try:
         subject_filter = request.args.get('subject', '').strip()
-        quiz_sets = QuizSet.query.filter_by(user_id=user.id).filter(
+        quiz_sets = QuizSet.query.filter_by(user_id=user.id, assessment_type='mcq').filter(
             QuizSet.score.isnot(None)
         ).order_by(QuizSet.created_at.desc()).all()
 
+        subjects = {subject.id: subject for subject in Subject.query.filter_by(user_id=user.id).all()}
+
         if subject_filter:
-            quiz_sets = [qs for qs in quiz_sets if (qs.topic or '').lower() == subject_filter.lower()]
+            quiz_sets = [
+                quiz for quiz in quiz_sets
+                if (
+                    (subjects.get(quiz.subject_id).name if subjects.get(quiz.subject_id) else quiz.topic or '')
+                    .casefold() == subject_filter.casefold()
+                )
+            ]
 
         mistakes = []
         topic_errors = {}
@@ -232,32 +267,36 @@ def get_mistake_ledger(user):
             if not questions or qs.score is None:
                 continue
 
-            total = len(questions)
-            correct_count = qs.score
-            incorrect_count = total - correct_count
+            results = (qs.attempt_json or {}).get('results') if isinstance(qs.attempt_json, dict) else []
+            for result in results or []:
+                if not isinstance(result, dict) or result.get('is_correct'):
+                    continue
+                index = result.get('index')
+                if not isinstance(index, int) or index < 0 or index >= len(questions):
+                    continue
+                question = questions[index]
+                if not isinstance(question, dict):
+                    continue
+                topic_title = result.get('topic_title') or question.get('topic_title') or qs.topic or 'General'
+                mistakes.append({
+                    'quiz_set_id': qs.id,
+                    'question_index': index,
+                    'topic': topic_title,
+                    'upload_id': qs.upload_id,
+                    'question': question.get('question', ''),
+                    'selected_answer': result.get('selected'),
+                    'correct_answer': result.get('correct') or question.get('correct', ''),
+                    'difficulty': question.get('difficulty', 'medium'),
+                    'explanation': question.get('explanation', ''),
+                    'page_number': question.get('page_number', 0),
+                    'created_at': qs.completed_at.isoformat() if qs.completed_at else (qs.created_at.isoformat() if qs.created_at else None),
+                })
 
-            if incorrect_count > 0:
-                for q in questions:
-                    if isinstance(q, dict):
-                        mistakes.append({
-                            'quiz_set_id': qs.id,
-                            'topic': qs.topic,
-                            'upload_id': qs.upload_id,
-                            'question': q.get('question', ''),
-                            'correct_answer': q.get('correct', ''),
-                            'difficulty': q.get('difficulty', 'medium'),
-                            'explanation': q.get('explanation', ''),
-                            'page_number': q.get('page_number', 0),
-                            'created_at': qs.completed_at.isoformat() if qs.completed_at else (qs.created_at.isoformat() if qs.created_at else None),
-                        })
-
-                        diff = q.get('difficulty', 'medium')
-                        topic_key = qs.topic or 'General'
-                        if topic_key not in topic_errors:
-                            topic_errors[topic_key] = {'total_errors': 0, 'easy': 0, 'medium': 0, 'hard': 0}
-                        topic_errors[topic_key]['total_errors'] += 1
-                        if diff in topic_errors[topic_key]:
-                            topic_errors[topic_key][diff] += 1
+                difficulty = question.get('difficulty', 'medium')
+                topic_errors.setdefault(topic_title, {'total_errors': 0, 'easy': 0, 'medium': 0, 'hard': 0})
+                topic_errors[topic_title]['total_errors'] += 1
+                if difficulty in topic_errors[topic_title]:
+                    topic_errors[topic_title][difficulty] += 1
 
         total_attempted = sum(
             len(qs.questions_json) if isinstance(qs.questions_json, list) else 0
@@ -296,14 +335,20 @@ def get_study_recommendations(user):
         uploads = StudentUpload.query.filter_by(
             user_id=user.id, doc_type='material'
         ).all()
-        quiz_sets = QuizSet.query.filter_by(user_id=user.id).filter(
+        quiz_sets = QuizSet.query.filter_by(user_id=user.id, assessment_type='mcq').filter(
             QuizSet.score.isnot(None)
         ).order_by(QuizSet.created_at.desc()).all()
 
+        subjects = {subject.id: subject for subject in Subject.query.filter_by(user_id=user.id).all()}
+
         if subject_filter:
-            topic_progress = [t for t in topic_progress if (t.subject or '').lower() == subject_filter.lower()]
+            subject_ids = {
+                subject.id for subject in subjects.values()
+                if subject.name.casefold() == subject_filter.casefold()
+            }
+            topic_progress = [topic for topic in topic_progress if topic.subject_id in subject_ids]
             uploads = [u for u in uploads if (u.subject or '').lower() == subject_filter.lower()]
-            quiz_sets = [qs for qs in quiz_sets if (qs.topic or '').lower() == subject_filter.lower()]
+            quiz_sets = [quiz for quiz in quiz_sets if quiz.subject_id in subject_ids]
 
         weak_topics = [t for t in topic_progress if t.weak]
         covered = [t for t in topic_progress if t.covered]
@@ -517,87 +562,80 @@ Be specific to THIS student's data. Reference their actual weak topics, accuracy
 @progress_bp.route('/weekly-plan', methods=['GET'])
 @login_required
 def get_weekly_plan(user):
-    """Generate a personalized weekly revision plan based on performance."""
+    """Return the same rolling seven-day schedule shown by Study Planner."""
     try:
         from datetime import datetime, timedelta
 
         topic_progress = TopicProgress.query.filter_by(user_id=user.id).all()
-        revision_plans = RevisionPlan.query.filter_by(user_id=user.id).all()
-
-        today = datetime.utcnow()
-        start_of_week = today - timedelta(days=today.weekday())
-        days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-
-        weak_topics = sorted(
-            [t for t in topic_progress if t.weak],
-            key=lambda t: t.mastery_score or 0
-        )
-        needs_revision = sorted(
-            [t for t in topic_progress if t.next_revision_at and t.next_revision_at <= today + timedelta(days=7)],
-            key=lambda t: t.next_revision_at or today
-        )
-        uncovered = [t for t in topic_progress if not t.covered]
-
+        today = datetime.utcnow().date()
+        end_date = today + timedelta(days=6)
+        revision_plans = RevisionPlan.query.filter(
+            RevisionPlan.user_id == user.id,
+            RevisionPlan.status == 'pending',
+            RevisionPlan.revision_date >= today.isoformat(),
+            RevisionPlan.revision_date <= end_date.isoformat(),
+        ).order_by(RevisionPlan.revision_date.asc(), RevisionPlan.start_time.asc()).all()
+        uploads = {
+            upload.id: upload for upload in StudentUpload.query.filter(
+                StudentUpload.user_id == user.id,
+                StudentUpload.id.in_({plan.upload_id for plan in revision_plans if plan.upload_id}),
+            ).all()
+        } if any(plan.upload_id for plan in revision_plans) else {}
+        progress_by_topic = {
+            (topic.subject_id, topic.topic_id): topic for topic in topic_progress
+        }
         weekly_plan = []
-        topic_pool = weak_topics + needs_revision + uncovered
-        topic_idx = 0
-
-        for day_offset, day_name in enumerate(days):
-            day_date = (start_of_week + timedelta(days=day_offset)).strftime('%Y-%m-%d')
-            is_weekend = day_offset >= 5
-
-            existing = [
-                p for p in revision_plans
-                if p.revision_date == day_date and p.status == 'pending'
-            ]
-
+        for day_offset in range(7):
+            day = today + timedelta(days=day_offset)
+            day_date = day.isoformat()
             tasks = []
-            for p in existing[:3]:
+            for plan in (item for item in revision_plans if item.revision_date == day_date):
+                upload = uploads.get(plan.upload_id)
+                progress = progress_by_topic.get((plan.subject_id, plan.topic_id))
                 tasks.append({
-                    'title': p.title,
-                    'subject': p.subject,
+                    'plan_id': plan.id,
+                    'title': plan.title,
+                    'subject': plan.subject,
                     'type': 'scheduled',
-                    'priority': p.priority,
+                    'priority': plan.priority,
+                    'topic_id': plan.topic_id,
+                    'topic_title': plan.topic_title,
+                    'upload_id': plan.upload_id,
+                    'filename': upload.filename if upload else None,
+                    'source_type': plan.source_type,
+                    'reason': plan.scheduling_reason,
+                    'start_time': plan.start_time,
+                    'end_time': plan.end_time,
+                    'duration_minutes': plan.duration_minutes,
+                    'mastery': progress.mastery_score if progress else None,
+                    'warning': bool(upload and upload.validation_status == 'needs_review'),
                 })
-
-            if not is_weekend and topic_idx < len(topic_pool):
-                t = topic_pool[topic_idx]
-                tasks.append({
-                    'title': f"Revise: {t.topic_title}",
-                    'subject': '',
-                    'type': 'recommended',
-                    'priority': 'high' if t.weak else 'medium',
-                    'mastery': t.mastery_score,
-                })
-                topic_idx += 1
-
-            if is_weekend and topic_idx < len(topic_pool):
-                t = topic_pool[topic_idx]
-                tasks.append({
-                    'title': f"Deep dive: {t.topic_title}",
-                    'subject': '',
-                    'type': 'recommended',
-                    'priority': 'medium',
-                    'mastery': t.mastery_score,
-                })
-                topic_idx += 1
-
             weekly_plan.append({
-                'day': day_name,
+                'day': day.strftime('%A'),
                 'date': day_date,
-                'is_today': day_date == today.strftime('%Y-%m-%d'),
-                'is_weekend': is_weekend,
+                'is_today': day_offset == 0,
+                'is_weekend': day.weekday() >= 5,
                 'tasks': tasks,
             })
 
+        scheduled_topic_keys = {
+            (plan.subject_id, plan.topic_id) for plan in revision_plans if plan.topic_id
+        }
+        now = datetime.utcnow()
         return jsonify({
             'weekly_plan': weekly_plan,
             'stats': {
-                'topics_scheduled': min(topic_idx, len(topic_pool)),
-                'total_weak': len(weak_topics),
-                'total_needs_revision': len(needs_revision),
-                'total_uncovered': len(uncovered),
+                'topics_scheduled': len(revision_plans),
+                'total_weak': sum(1 for topic in topic_progress if topic.weak),
+                'total_needs_revision': sum(
+                    1 for topic in topic_progress
+                    if topic.next_revision_at and topic.next_revision_at <= now
+                    and (topic.subject_id, topic.topic_id) not in scheduled_topic_keys
+                ),
+                'total_uncovered': sum(1 for topic in topic_progress if not topic.covered),
             },
+            'source': 'study_planner',
+            'horizon': {'start': today.isoformat(), 'end': end_date.isoformat()},
         }), 200
 
     except Exception as e:

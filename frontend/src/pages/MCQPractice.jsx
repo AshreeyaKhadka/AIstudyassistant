@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Target, Library, Sparkles, Loader2, ChevronLeft, CheckCircle2,
   XCircle, FileText, AlertCircle, Trophy, Bookmark, Clock, Search,
@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 
 const MCQPractice = () => {
-  const { user } = useOutletContext();
   const navigate = useNavigate();
 
   const [uploads, setUploads] = useState([]);
@@ -40,7 +39,12 @@ const MCQPractice = () => {
       const res = await fetch('/api/upload/', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setUploads(data);
+        setUploads(data.filter((upload) =>
+          upload.admission_status === 'admitted' &&
+          upload.processing_status === 'ready' &&
+          upload.embedding_status === 'embedded' &&
+          ['approved', 'needs_review'].includes(upload.validation_status)
+        ));
       }
     } catch (err) {
       console.error('Failed to fetch uploads:', err);
@@ -117,7 +121,6 @@ const MCQPractice = () => {
   };
 
   const handleFinishQuiz = async () => {
-    const finalScore = calculateScore();
     if (currentQuizSetId) {
       setSubmittingScore(true);
       try {
@@ -127,7 +130,7 @@ const MCQPractice = () => {
           credentials: 'include',
           body: JSON.stringify({
             quiz_set_id: currentQuizSetId,
-            score: finalScore
+            answers
           })
         });
       } catch (err) {
@@ -214,6 +217,9 @@ const MCQPractice = () => {
             <h3 className="text-base font-bold text-[#111111] leading-relaxed">
               {q.question}
             </h3>
+            <p className="text-[10px] font-mono text-[#666666]">
+              {q.topic_title || 'General'}{q.page_number ? ` · Source page ${q.page_number}` : ''}{q.difficulty ? ` · ${q.difficulty}` : ''}
+            </p>
 
             {/* MCQ Options Grid */}
             <div className="space-y-2.5 pt-2">
@@ -486,8 +492,6 @@ const MCQPractice = () => {
               {filteredUploads.map((upload) => {
                 const genCount = upload.mcq_generation_count || 0;
                 const limitReached = genCount >= 2;
-                const isReady = upload.embedding_status === 'embedded' || upload.embedding_status === 'ready' || !upload.embedding_status;
-
                 return (
                   <div
                     key={upload.id}
@@ -565,11 +569,11 @@ const SavedMCQCard = ({ upload, fetchSavedMCQs, savedMCQs, loadingSaved, onStart
   const [expanded, setExpanded] = useState(false);
   const genCount = upload.mcq_generation_count || 0;
 
-  useEffect(() => {
-    if (expanded) {
-      fetchSavedMCQs(upload.id);
-    }
-  }, [expanded]);
+  const toggleExpanded = () => {
+    const next = !expanded;
+    setExpanded(next);
+    if (next) fetchSavedMCQs(upload.id);
+  };
 
   return (
     <div className="bg-white rounded-[4px] p-5 border border-[#D7D3CF] space-y-3 shadow-2xs">
@@ -587,7 +591,7 @@ const SavedMCQCard = ({ upload, fetchSavedMCQs, savedMCQs, loadingSaved, onStart
       </h4>
 
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={toggleExpanded}
         className="w-full py-1.5 border border-[#D7D3CF] bg-white text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] text-xs font-mono font-semibold uppercase transition-colors"
       >
         {expanded ? 'HIDE SAVED SETS' : `VIEW SETS (${genCount})`}

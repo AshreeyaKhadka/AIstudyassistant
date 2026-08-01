@@ -8,6 +8,7 @@ class ChatSession(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     subject_id = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=True)
     title = db.Column(db.String(255), nullable=True)
+    context_metadata = db.Column(db.JSON, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -21,4 +22,5 @@ class ChatMessage(db.Model):
     session_id = db.Column(db.Integer, db.ForeignKey('chat_sessions.id'), nullable=False)
     role = db.Column(db.String(20), nullable=False)  # user or assistant
     content = db.Column(db.Text, nullable=False)
+    message_metadata = db.Column(db.JSON, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

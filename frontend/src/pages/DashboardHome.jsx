@@ -89,7 +89,7 @@ const DashboardHome = () => {
 
   if (!dashboardData) return null;
 
-  const { studentData, recentQueries, uploadedMaterials, sharedResources, flashcards, generatedNotes, recommendations } = dashboardData;
+  const { studentData, recentQueries, uploadedMaterials, sharedResources, flashcards, generatedNotes, recommendations, revisionSchedule } = dashboardData;
 
   return (
     <div className="space-y-6 pb-8">
@@ -126,7 +126,7 @@ const DashboardHome = () => {
           <FocusWidget />
 
           {/* Revision Schedule (Light Card) */}
-          <RevisionWidget />
+          <RevisionWidget items={revisionSchedule} />
 
           {/* Academic Progress Card */}
           <ProgressTracker progress={studentData?.academicProgress} />

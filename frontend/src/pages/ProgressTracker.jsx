@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   LineChart, BookOpen, Brain, Target, Calendar, AlertTriangle,
   CheckCircle2, XCircle, Clock, TrendingUp, TrendingDown,
   Loader2, ChevronRight, Sparkles, FileText, BarChart3,
   RefreshCw, ArrowUpRight, Lightbulb, AlertCircle, Zap,
-  BookMarked, GraduationCap, Layers, Timer, Flame, Trophy,
+  BookMarked, GraduationCap, Timer, Flame, Trophy,
   ArrowRight, Star, Repeat, Eye, Award, PieChart
 } from 'lucide-react';
 
@@ -23,7 +23,6 @@ const TASK_TYPE_STYLES = {
 };
 
 const ProgressTracker = () => {
-  const { user } = useOutletContext();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -46,8 +45,8 @@ const ProgressTracker = () => {
       if (!res.ok) throw new Error('Failed to load progress data');
       const data = await res.json();
       setOverview(data);
-      if (data.uploads?.length > 0 && !selectedUploadId) {
-        setSelectedUploadId(data.uploads[0].id);
+      if (data.uploads?.length > 0) {
+        setSelectedUploadId((current) => current || data.uploads[0].id);
       }
     } catch (err) {
       setError(err.message);
@@ -102,22 +101,31 @@ const ProgressTracker = () => {
 
   useEffect(() => {
     fetchOverview();
-    fetchMistakes();
-    fetchRecommendations();
-    fetchWeeklyPlan();
-  }, []);
+  }, [fetchOverview]);
 
   useEffect(() => {
-    fetchRecommendations(coachSubject);
-  }, [coachSubject]);
+    if (activeSection === 'recommendations') fetchRecommendations(coachSubject);
+  }, [activeSection, coachSubject, fetchRecommendations]);
 
   useEffect(() => {
-    fetchMistakes(mistakeSubject);
-  }, [mistakeSubject]);
+    if (activeSection === 'mistakes') fetchMistakes(mistakeSubject);
+  }, [activeSection, mistakeSubject, fetchMistakes]);
 
   useEffect(() => {
-    if (selectedUploadId) fetchSummary(selectedUploadId);
-  }, [selectedUploadId]);
+    if (activeSection === 'summary' && selectedUploadId) fetchSummary(selectedUploadId);
+  }, [activeSection, selectedUploadId, fetchSummary]);
+
+  useEffect(() => {
+    if (activeSection === 'weekly') fetchWeeklyPlan();
+  }, [activeSection, fetchWeeklyPlan]);
+
+  const refreshCurrentSection = () => {
+    fetchOverview();
+    if (activeSection === 'recommendations') fetchRecommendations(coachSubject);
+    if (activeSection === 'mistakes') fetchMistakes(mistakeSubject);
+    if (activeSection === 'summary' && selectedUploadId) fetchSummary(selectedUploadId);
+    if (activeSection === 'weekly') fetchWeeklyPlan();
+  };
 
   const selectedUpload = overview?.uploads?.find(u => u.id === selectedUploadId);
   const stats = overview?.stats;
@@ -153,7 +161,7 @@ const ProgressTracker = () => {
           <p className="text-xs text-[#666666] mt-0.5">Your personalized study command center. Track, plan, and conquer.</p>
         </div>
         <button
-          onClick={() => { fetchOverview(); fetchMistakes(mistakeSubject); fetchRecommendations(coachSubject); fetchWeeklyPlan(); }}
+          onClick={refreshCurrentSection}
           className="px-4 py-2 bg-white border border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7] rounded-[4px] font-mono text-xs font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-2 shrink-0"
         >
           <RefreshCw size={14} />
@@ -198,7 +206,7 @@ const ProgressTracker = () => {
           { id: 'summary', label: 'SUMMARIES', icon: FileText },
           { id: 'mistakes', label: 'MISTAKE LEDGER', icon: Target },
           { id: 'weekly', label: 'WEEKLY PLAN', icon: Calendar },
-        ].map(({ id, label, icon: Icon }) => (
+        ].map(({ id, label, icon }) => (
           <button
             key={id}
             onClick={() => setActiveSection(id)}
@@ -206,7 +214,7 @@ const ProgressTracker = () => {
               activeSection === id ? 'bg-[#102326] text-white' : 'text-[#666666] hover:text-[#111111]'
             }`}
           >
-            <Icon size={13} />
+            {React.createElement(icon, { size: 13 })}
             {label}
           </button>
         ))}
@@ -303,40 +311,6 @@ const ProgressTracker = () => {
             </div>
           )}
 
-          {/* Subject Progress Grid */}
-          {overview?.subjects?.length > 0 && (
-            <div className="mt-6">
-              <div className="flex items-center justify-between pb-2 border-b border-[#D7D3CF]">
-                <h4 className="text-xs font-mono uppercase tracking-wider text-[#666666] font-semibold flex items-center gap-2">
-                  <Layers size={14} className="text-[#102326]" />
-                  Subject Breakdown
-                </h4>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                {overview.subjects.map((subj) => (
-                  <div key={subj.id} className="bg-white rounded-[4px] border border-[#D7D3CF] p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h5 className="text-xs font-bold text-[#111111]">{subj.name}</h5>
-                        <span className="text-[10px] font-mono text-[#666666]">{subj.code || `Sem ${subj.semester}`}</span>
-                      </div>
-                      <span className="text-lg font-bold font-mono text-[#102326]">{subj.coverage_percent}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-[#ECEAE7] rounded-none overflow-hidden">
-                      <div className="bg-[#102326] h-full transition-all duration-500" style={{ width: `${subj.coverage_percent}%` }} />
-                    </div>
-                    <div className="flex justify-between text-[10px] font-mono text-[#666666]">
-                      <span>{subj.practiced_topics} practiced</span>
-                      <span>{subj.upload_count} files</span>
-                      {subj.weak_topics > 0 && (
-                        <span className="text-[#C96A32] font-semibold">{subj.weak_topics} weak</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -857,7 +831,7 @@ const ProgressTracker = () => {
           <div className="flex items-center justify-between pb-2 border-b border-[#D7D3CF]">
             <h4 className="text-xs font-mono uppercase tracking-wider text-[#666666] font-semibold flex items-center gap-2">
               <Calendar size={14} className="text-[#102326]" />
-              Personalized Weekly Revision Plan
+              Your Study Planner Week
             </h4>
             <button
               onClick={() => navigate('/dashboard/revision')}
@@ -873,9 +847,20 @@ const ProgressTracker = () => {
             </div>
           ) : (
             <>
+              {weeklyPlan.stats?.topics_scheduled === 0 && (
+                <div className="bg-white border border-dashed border-[#BDB8B2] rounded-[4px] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h5 className="text-xs font-bold text-[#111111]">No sessions scheduled for the next seven days</h5>
+                    <p className="mt-1 text-[10px] font-mono text-[#666666]">Choose the documents you want to study, then build your week in Study Planner.</p>
+                  </div>
+                  <button onClick={() => navigate('/dashboard/revision')} className="px-3 py-2 bg-[#102326] text-white rounded-[4px] text-xs font-mono font-semibold uppercase inline-flex items-center justify-center gap-1.5 shrink-0">
+                    <Calendar size={13} /> Build My Week
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-4 border border-[#D7D3CF] bg-white rounded-[4px] divide-x divide-[#D7D3CF] overflow-hidden">
                 <div className="p-4 flex flex-col justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">SCHEDULED</span>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">NEXT 7 DAYS</span>
                   <span className="text-xl font-bold font-mono text-[#102326] mt-1">{weeklyPlan.stats?.topics_scheduled || 0}</span>
                 </div>
                 <div className="p-4 flex flex-col justify-between">
@@ -883,7 +868,7 @@ const ProgressTracker = () => {
                   <span className="text-xl font-bold font-mono text-[#C96A32] mt-1">{weeklyPlan.stats?.total_weak || 0}</span>
                 </div>
                 <div className="p-4 flex flex-col justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">NEEDS REVIEW</span>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">UNSCHEDULED DUE</span>
                   <span className="text-xl font-bold font-mono text-[#111111] mt-1">{weeklyPlan.stats?.total_needs_revision || 0}</span>
                 </div>
                 <div className="p-4 flex flex-col justify-between bg-[#FFFDFB]">
@@ -934,6 +919,31 @@ const ProgressTracker = () => {
                             }`}
                           >
                             <p className="text-[10px] font-mono font-bold text-[#111111] leading-tight line-clamp-2">{task.title}</p>
+                            {task.start_time && (
+                              <span className="mt-1 block font-mono text-[9px] text-[#666666]">
+                                {task.start_time}{task.end_time ? ` - ${task.end_time}` : ''}
+                              </span>
+                            )}
+                            {task.filename ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const params = new URLSearchParams({
+                                    study_mode: 'document',
+                                    upload_id: String(task.upload_id),
+                                    filename: task.filename,
+                                  });
+                                  if (task.subject) params.set('subject', task.subject);
+                                  navigate(`/dashboard/chat?${params.toString()}`);
+                                }}
+                                className="mt-1 block max-w-full truncate text-left font-mono text-[9px] text-[#24485B] underline"
+                                title={`Study from ${task.filename}`}
+                              >
+                                {task.filename}
+                              </button>
+                            ) : task.source_type === 'uncovered_syllabus' ? (
+                              <span className="mt-1 block font-mono text-[9px] text-[#666666]">Uncovered syllabus topic</span>
+                            ) : null}
                             <div className="flex items-center gap-2 mt-1">
                               <span className={`text-[8px] font-mono uppercase px-1 py-0.5 rounded-[1px] font-semibold ${
                                 PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.medium
@@ -943,6 +953,7 @@ const ProgressTracker = () => {
                               {task.mastery != null && (
                                 <span className="text-[9px] font-mono text-[#666666]">{Math.round(task.mastery)}%</span>
                               )}
+                              {task.warning && <span className="text-[8px] font-mono font-semibold uppercase text-[#C96A32]">Warning</span>}
                             </div>
                           </div>
                         ))}

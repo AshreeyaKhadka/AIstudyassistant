@@ -136,6 +136,7 @@ const ExamPreparation = () => {
       setToolResult({
         type: 'mock-test',
         ...data.mock_test,
+        assessment_id: data.assessment_id,
         source_doc: data.source_doc,
         subject: data.subject || subject.name,
       });
@@ -467,20 +468,23 @@ const SubjectDetailView = ({ subject, onBack, onSetExamDate, onOpenTool }) => {
   );
 };
 
-const PrepCard = ({ icon: Icon, title, desc, onClick, large }) => (
-  <button
-    onClick={onClick}
-    className={`bg-white p-5 rounded-[4px] border border-[#D7D3CF] space-y-2 text-left hover:border-[#102326] transition-colors w-full ${large ? '' : ''}`}
-  >
-    <div className="w-8 h-8 rounded-[4px] bg-[#ECEAE7] text-[#102326] flex items-center justify-center">
-      <Icon size={18} />
-    </div>
-    <div>
-      <h5 className="text-xs font-bold text-[#111111]">{title}</h5>
-      <p className="text-[10px] font-mono text-[#666666] mt-0.5">{desc}</p>
-    </div>
-  </button>
-);
+const PrepCard = ({ icon, title, desc, onClick, large }) => {
+  const ToolIcon = icon;
+  return (
+    <button
+      onClick={onClick}
+      className={`bg-white p-5 rounded-[4px] border border-[#D7D3CF] space-y-2 text-left hover:border-[#102326] transition-colors w-full ${large ? '' : ''}`}
+    >
+      <div className="w-8 h-8 rounded-[4px] bg-[#ECEAE7] text-[#102326] flex items-center justify-center">
+        <ToolIcon size={18} />
+      </div>
+      <div>
+        <h5 className="text-xs font-bold text-[#111111]">{title}</h5>
+        <p className="text-[10px] font-mono text-[#666666] mt-0.5">{desc}</p>
+      </div>
+    </button>
+  );
+};
 
 const Modal = ({ title, onClose, children }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
@@ -646,6 +650,8 @@ const MockTestView = ({ test }) => {
                   <span>{q.marks || section.marks_each || '?'} marks</span>
                   {q.question_style && <span>{String(q.question_style).replace('_', ' ')}</span>}
                   {q.difficulty && <span>{q.difficulty}</span>}
+                  {q.topic_title && <span>{q.topic_title}</span>}
+                  {q.page_number ? <span>Page {q.page_number}</span> : null}
                 </div>
                 <p className="text-sm font-medium text-[#111111]">{q.question}</p>
                 {q.answer_points?.length > 0 && (
@@ -706,14 +712,13 @@ const MockBattleView = ({ quizSet, onClose }) => {
   };
 
   const submitBattle = async () => {
-    const score = scoreQuiz();
     setFinished(true);
     if (quizSet.id) {
       await fetch('/api/quiz/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ quiz_set_id: quizSet.id, score }),
+        body: JSON.stringify({ quiz_set_id: quizSet.id, answers }),
       });
     }
   };

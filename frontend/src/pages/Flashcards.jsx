@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BrainCircuit, Loader2, ChevronLeft, ChevronRight, RotateCcw, FileText, Sparkles } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { BrainCircuit, Loader2, ChevronLeft, ChevronRight, RotateCcw, FileText, Sparkles, Clock, AlertCircle, Play } from 'lucide-react';
+import { motion as Motion } from 'framer-motion';
 import { useGeneration } from '../context/GenerationContext';
 
 const Flashcards = () => {
@@ -12,6 +12,9 @@ const Flashcards = () => {
   const [flipped, setFlipped] = useState(false);
   const [studyMode, setStudyMode] = useState(false);
   const [sessionFlashcards, setSessionFlashcards] = useState([]);
+  const [decks, setDecks] = useState([]);
+  const [activeDeckId, setActiveDeckId] = useState(null);
+  const [reviewSaving, setReviewSaving] = useState(false);
 
   useEffect(() => {
     fetchUploads();
@@ -19,17 +22,24 @@ const Flashcards = () => {
 
   useEffect(() => {
     if (!flashcardState.generating && flashcardState.results) {
-      setSessionFlashcards(flashcardState.results);
+      setSessionFlashcards(flashcardState.results.map((card, index) => ({ ...card, _cardIndex: index })));
+      setActiveDeckId(flashcardState.deckId);
       setStudyMode(true);
+      fetchDecks();
     }
-  }, [flashcardState.generating, flashcardState.results]);
+  }, [flashcardState.deckId, flashcardState.generating, flashcardState.results]);
 
   const fetchUploads = async () => {
     try {
       const res = await fetch('/api/upload/', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setUploads(data);
+        setUploads(data.filter((upload) =>
+          upload.admission_status === 'admitted' &&
+          upload.processing_status === 'ready' &&
+          upload.embedding_status === 'embedded' &&
+          ['approved', 'needs_review'].includes(upload.validation_status)
+        ));
       }
     } catch (err) {
       console.error('Failed to fetch uploads:', err);
@@ -37,6 +47,19 @@ const Flashcards = () => {
       setLoading(false);
     }
   };
+
+  const fetchDecks = async () => {
+    try {
+      const res = await fetch('/api/quiz/flashcards', { credentials: 'include' });
+      if (res.ok) setDecks((await res.json()).decks || []);
+    } catch (err) {
+      console.error('Failed to fetch flashcard decks:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDecks();
+  }, []);
 
   const handleGenerate = async (uploadId) => {
     setSelectedUpload(uploadId);
@@ -58,6 +81,47 @@ const Flashcards = () => {
   const resetDeck = () => {
     setCurrentIndex(0);
     setFlipped(false);
+  };
+
+  const startDeck = (deck) => {
+    const now = Date.now();
+    const dueCards = deck.cards
+      .map((card, index) => ({ ...card, _cardIndex: index }))
+      .filter((card) => !card.review?.due_at || new Date(card.review.due_at).getTime() <= now);
+    setSessionFlashcards(dueCards.length ? dueCards : deck.cards.map((card, index) => ({ ...card, _cardIndex: index })));
+    setActiveDeckId(deck.id);
+    setCurrentIndex(0);
+    setFlipped(false);
+    setStudyMode(true);
+  };
+
+  const rateCard = async (rating) => {
+    if (!activeDeckId || reviewSaving) return;
+    const card = sessionFlashcards[currentIndex];
+    setReviewSaving(true);
+    try {
+      const res = await fetch(`/api/quiz/flashcards/${activeDeckId}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ card_index: card._cardIndex, rating }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not save review');
+      setDecks((current) => current.map((deck) => deck.id === activeDeckId ? data.deck : deck));
+      if (currentIndex >= sessionFlashcards.length - 1) {
+        setStudyMode(false);
+        setSessionFlashcards([]);
+        resetFlashcards();
+      } else {
+        setFlipped(false);
+        setCurrentIndex((index) => index + 1);
+      }
+    } catch (err) {
+      console.error('Failed to save flashcard review:', err);
+    } finally {
+      setReviewSaving(false);
+    }
   };
 
   if (studyMode && sessionFlashcards.length > 0) {
@@ -101,7 +165,7 @@ const Flashcards = () => {
               className="relative w-full h-72 perspective-1000 cursor-pointer"
               onClick={() => setFlipped(!flipped)}
             >
-              <motion.div
+              <Motion.div
                 animate={{ rotateY: flipped ? 180 : 0 }}
                 transition={{ duration: 0.4 }}
                 style={{ transformStyle: 'preserve-3d' }}
@@ -116,6 +180,7 @@ const Flashcards = () => {
                     QUESTION
                   </div>
                   <h3 className="text-lg font-bold text-[#111111] tracking-tight leading-relaxed px-4">{card.front}</h3>
+                  <p className="text-[10px] font-mono text-[#666666] mt-4">{card.topic_title || 'General'}{card.page_number ? ` · Page ${card.page_number}` : ''}</p>
                   <p className="text-[10px] font-mono text-[#C96A32] uppercase tracking-wider mt-6 font-semibold">TAP TO REVEAL</p>
                 </div>
 
@@ -129,10 +194,30 @@ const Flashcards = () => {
                   </div>
                   <p className="text-sm font-medium leading-relaxed text-white px-4">{card.back}</p>
                 </div>
-              </motion.div>
+              </Motion.div>
             </div>
 
-            {/* Navigation Controls */}
+            {flipped && activeDeckId && (
+              <div className="grid grid-cols-4 gap-2 mt-4" aria-label="Rate recall">
+                {[
+                  ['again', 'Again', '1 day'],
+                  ['hard', 'Hard', '2+ days'],
+                  ['good', 'Good', '3+ days'],
+                  ['easy', 'Easy', '7+ days'],
+                ].map(([rating, label, interval]) => (
+                  <button
+                    key={rating}
+                    onClick={(event) => { event.stopPropagation(); rateCard(rating); }}
+                    disabled={reviewSaving}
+                    className="min-w-0 border border-[#D7D3CF] bg-white px-2 py-2 rounded-[4px] text-[10px] font-mono text-[#111111] hover:border-[#102326] disabled:opacity-50"
+                  >
+                    <span className="block font-bold">{label}</span>
+                    <span className="block text-[#666666] mt-0.5">{interval}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center justify-center gap-4 mt-6">
               <button
                 onClick={prevCard}
@@ -168,6 +253,36 @@ const Flashcards = () => {
         <h1 className="text-2xl font-bold text-[#111111] tracking-tight">Flashcard Decks</h1>
         <p className="text-xs text-[#666666] mt-1">Master your syllabus with instant generated review cards from uploaded documents.</p>
       </div>
+
+      {flashcardState.error && (
+        <div className="p-3 border border-[#C96A32] bg-[#FFFDFB] text-[#C96A32] text-xs font-mono flex items-center gap-2">
+          <AlertCircle size={14} /> {flashcardState.error}
+        </div>
+      )}
+
+      {decks.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-[#D7D3CF]">
+            <h4 className="text-xs font-mono uppercase text-[#666666] font-semibold">Saved Review Decks</h4>
+            <span className="text-[10px] font-mono text-[#666666]">{decks.reduce((sum, deck) => sum + deck.due_count, 0)} due</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {decks.map((deck) => (
+              <div key={deck.id} className="border border-[#D7D3CF] bg-white rounded-[4px] p-4">
+                <h3 className="text-sm font-bold text-[#111111] truncate" title={deck.title}>{deck.title}</h3>
+                <p className="text-[10px] font-mono text-[#666666] mt-1 truncate">{deck.source_doc || 'Uploaded material'}</p>
+                <div className="flex items-center justify-between mt-3 text-[10px] font-mono text-[#666666]">
+                  <span>{deck.card_count} cards</span>
+                  <span className="inline-flex items-center gap-1"><Clock size={11} /> {deck.due_count} due</span>
+                </div>
+                <button onClick={() => startDeck(deck)} className="mt-3 w-full py-2 bg-[#102326] text-white rounded-[4px] text-xs font-mono font-semibold uppercase inline-flex items-center justify-center gap-1.5">
+                  <Play size={13} /> {deck.due_count ? 'Review Due' : 'Study Deck'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Document Selection Grid */}
       <div className="space-y-4">

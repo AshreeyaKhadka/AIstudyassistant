@@ -11,8 +11,8 @@ All generation is grounded strictly in the provided context.
 
 import json
 import logging
-import requests
-from config import Config
+import re
+from services.llm_service import LLMServiceError, call_prompt, configured_model_name, get_last_call_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -45,69 +45,24 @@ def _log_ai_usage(user_id, action_type, usage_metadata, model_used=None, subject
             pass
 
 
+def _call_llm(prompt: str, temperature: float = 0.4, max_tokens: int = 32768) -> str:
+    """Generate a JSON response through the configured provider."""
+    return call_prompt(prompt, temperature=temperature, max_tokens=max_tokens, json_mode=True)
+
+
 def _call_gemini(prompt: str, temperature: float = 0.4, max_tokens: int = 32768) -> str:
-    """
-    Send a prompt to Gemini and return the text response.
-    """
-    api_key = Config.GEMINI_API_KEY
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY not configured")
-
-    base_url = Config.GEMINI_API_BASE_URL.rstrip('/')
-    model = Config.GEMINI_MODEL or 'gemini-2.5-flash'
-
-    payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": prompt}],
-            }
-        ],
-        "generationConfig": {
-            "temperature": temperature,
-            "maxOutputTokens": max_tokens,
-            "responseMimeType": "application/json",
-        },
-    }
-
-    try:
-        response = requests.post(
-            f"{base_url}/models/{model}:generateContent",
-            headers={"x-goog-api-key": api_key},
-            json=payload,
-            timeout=120,
-        )
-        response.raise_for_status()
-    except requests.RequestException as exc:
-        logger.error(f"Gemini generation request failed: {exc}")
-        raise RuntimeError(f"AI service error: {exc}")
-
-    data = response.json()
-    candidates = data.get("candidates", [])
-    if not candidates:
-        raise RuntimeError("AI returned no candidates")
-
-    content = candidates[0].get("content", {})
-    parts = content.get("parts", [])
-    text_parts = [p.get("text", "") for p in parts if isinstance(p, dict)]
-    result = "\n".join(t for t in text_parts if t).strip()
-
-    if not result:
-        raise RuntimeError("AI returned empty response")
-
-    # Store usage metadata on the function for callers to access
-    _call_gemini.last_usage = data.get('usageMetadata', {})
-
-    return result
+    """Compatibility alias; calls the provider selected by LLM_PROVIDER."""
+    return _call_llm(prompt, temperature=temperature, max_tokens=max_tokens)
 
 
 def _log_usage(action_type, subject=None):
-    """Convenience: log the last Gemini call's token usage for the current user."""
+    """Log usage from the most recent configured-provider call."""
     try:
         from flask import g
         user_id = getattr(g, 'user_id', None)
-        if user_id and _call_gemini.last_usage:
-            _log_ai_usage(user_id, action_type, _call_gemini.last_usage, model_used=Config.GEMINI_MODEL, subject=subject)
+        usage = get_last_call_metadata()
+        if user_id and usage:
+            _log_ai_usage(user_id, action_type, usage, model_used=configured_model_name(), subject=subject)
     except Exception:
         pass
 
@@ -220,6 +175,7 @@ STUDY MATERIAL CONTEXT:
 
 REQUIREMENTS:
 - Each flashcard must have a "front" (question/term) and "back" (answer/definition).
+- Include "topic_title", "difficulty" (easy, medium, or hard), and the supporting "page_number".
 - Cover core definitions, key formulas, foundational concepts, and important relationships.
 - Questions should test understanding, not just rote memorization.
 - Answers should be concise but complete (2-4 sentences max).
@@ -229,7 +185,7 @@ REQUIREMENTS:
 OUTPUT FORMAT (strict JSON):
 {{
   "flashcards": [
-    {{"front": "What is...?", "back": "It is..."}},
+    {{"front": "What is...?", "back": "It is...", "topic_title": "Topic", "difficulty": "medium", "page_number": 3}},
     ...
   ]
 }}
@@ -240,7 +196,7 @@ Generate exactly {count} flashcards. Return ONLY valid JSON."""
 def generate_flashcards(context: str, count: int = 10) -> list[dict]:
     """Generate flashcards from retrieved context."""
     prompt = FLASHCARD_PROMPT.format(context=context, count=count)
-    raw = _call_gemini(prompt, temperature=0.3)
+    raw = _call_llm(prompt, temperature=0.3)
     _log_usage('flashcard_generate')
     parsed = _parse_json_response(raw)
 
@@ -255,6 +211,11 @@ def generate_flashcards(context: str, count: int = 10) -> list[dict]:
             validated.append({
                 "front": str(fc["front"]).strip(),
                 "back": str(fc["back"]).strip(),
+                "topic_title": str(fc.get("topic_title", "General")).strip() or "General",
+                "difficulty": str(fc.get("difficulty", "medium")).strip().lower()
+                if str(fc.get("difficulty", "medium")).strip().lower() in {"easy", "medium", "hard"}
+                else "medium",
+                "page_number": int(fc.get("page_number", 0)) if str(fc.get("page_number", "0")).isdigit() else 0,
             })
 
     return validated
@@ -276,6 +237,7 @@ REQUIREMENTS:
 - Exactly one option must be correct.
 - Include a brief explanation (1-2 sentences) of why the correct answer is right, citing the relevant concept from the text.
 - Include a difficulty rating of "easy", "medium", or "hard" based on how much inference vs. direct recall the question requires.
+- Include a concise "topic_title" naming the specific concept being assessed.
 - IMPORTANT: Include a "page_number" field with the page number where the answer can be found in the source material. Use the [Page N] markers from the context to determine this. If the page is not identifiable, use 0.
 - Questions should test conceptual understanding, application, and analysis—not just recall.
 - Distractors (wrong answers) should be plausible but clearly incorrect based on the material.
@@ -289,6 +251,7 @@ OUTPUT FORMAT (strict JSON):
       "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}},
       "correct": "B",
       "difficulty": "medium",
+      "topic_title": "Specific topic",
       "explanation": "B is correct because...",
       "page_number": 3
     }},
@@ -306,11 +269,13 @@ def generate_mcqs(context: str, count: int = 10) -> list[dict]:
     parsed = None
     for _ in range(2):
         try:
-            raw = _call_gemini(prompt, temperature=0.4)
+            raw = _call_llm(prompt, temperature=0.4)
             _log_usage('mcq_generate')
             parsed = _parse_json_response(raw)
             break
         except Exception as exc:
+            if isinstance(exc, LLMServiceError):
+                raise
             last_error = exc
             logger.warning(f"MCQ generation parse attempt failed: {exc}")
 
@@ -341,6 +306,8 @@ def generate_mcqs(context: str, count: int = 10) -> list[dict]:
             if str(mcq.get("difficulty", "medium")).strip().lower() in {"easy", "medium", "hard"}
             else "medium",
             "explanation": str(mcq.get("explanation", "")).strip(),
+            "topic_title": str(mcq.get("topic_title", "General")).strip() or "General",
+            "marks": 1,
             "page_number": int(mcq.get("page_number", 0)) if str(mcq.get("page_number", "0")).isdigit() else 0,
         })
 
@@ -390,7 +357,7 @@ Generate exactly {count} exam questions. Return ONLY valid JSON."""
 def generate_exam_questions(context: str, count: int = 8) -> list[dict]:
     """Generate probable exam questions from retrieved context."""
     prompt = EXAM_PROMPT.format(context=context, count=count)
-    raw = _call_gemini(prompt, temperature=0.5)
+    raw = _call_llm(prompt, temperature=0.5)
     _log_usage('exam_generate')
     parsed = _parse_json_response(raw)
 
@@ -466,7 +433,7 @@ Generate exactly {count} cards. Return ONLY valid JSON."""
 
 def generate_blueprint_sheet(context: str, subject: str = 'Subject') -> dict:
     prompt = BLUEPRINT_PROMPT.format(context=context, subject=subject)
-    raw = _call_gemini(prompt, temperature=0.4)
+    raw = _call_llm(prompt, temperature=0.4)
     _log_usage('blueprint_generate', subject=subject)
     parsed = _parse_json_response(raw)
     sections = parsed.get('sections', [])
@@ -481,7 +448,7 @@ def generate_blueprint_sheet(context: str, subject: str = 'Subject') -> dict:
 
 def generate_rapid_revision(context: str, count: int = 15) -> list[dict]:
     prompt = RAPID_REVISION_PROMPT.format(context=context, count=count)
-    raw = _call_gemini(prompt, temperature=0.5)
+    raw = _call_llm(prompt, temperature=0.5)
     _log_usage('rapid_revision_generate')
     parsed = _parse_json_response(raw)
     cards = parsed.get('cards', [])
@@ -511,6 +478,7 @@ Build a realistic exam paper for {subject}. Follow this marks distribution:
 Requirements:
 - Questions must be answerable from the context.
 - Include expected answer points or marking guidance for each question.
+- Include the specific topic_title and supporting page_number for each question.
 - Include a difficulty: easy, medium, or hard.
 - Include a question_style: definition, short_answer, explanation, numerical, long_answer, or problem_solving.
 - If numerical questions are not supported by the material, use conceptual problem-solving instead.
@@ -530,6 +498,8 @@ OUTPUT FORMAT (strict JSON):
           "marks": 1,
           "question_style": "definition",
           "difficulty": "easy",
+          "topic_title": "Specific topic",
+          "page_number": 1,
           "answer_points": ["..."]
         }}
       ]
@@ -542,18 +512,51 @@ Return ONLY valid JSON."""
 
 def generate_mock_test(context: str, subject: str = 'Subject') -> dict:
     prompt = MOCK_TEST_PROMPT.format(context=context, subject=subject)
-    raw = _call_gemini(prompt, temperature=0.35)
+    raw = _call_llm(prompt, temperature=0.35)
     _log_usage('mock_test_generate', subject=subject)
     parsed = _parse_json_response(raw)
     sections = parsed.get('sections', [])
     if not isinstance(sections, list) or not sections:
         raise RuntimeError('Invalid mock test format')
+    normalized_sections = []
+    total_marks = 0
+    for section in sections:
+        if not isinstance(section, dict):
+            continue
+        questions = []
+        default_marks = int(section.get('marks_each', 1) or 1)
+        for question in section.get('questions') or []:
+            if not isinstance(question, dict) or not str(question.get('question') or '').strip():
+                continue
+            marks = int(question.get('marks', default_marks) or default_marks)
+            total_marks += marks
+            questions.append({
+                **question,
+                'question': str(question['question']).strip(),
+                'marks': marks,
+                'topic_title': str(question.get('topic_title') or 'General').strip(),
+                'page_number': int(question.get('page_number', 0)) if str(question.get('page_number', '0')).isdigit() else 0,
+                'answer_points': [str(point).strip() for point in question.get('answer_points', []) if str(point).strip()],
+            })
+        if questions:
+            normalized_sections.append({**section, 'marks_each': default_marks, 'questions': questions})
+    if not normalized_sections:
+        raise RuntimeError('AI returned no valid mock-test questions')
+    marks_distribution = {}
+    for section in normalized_sections:
+        for question in section['questions']:
+            marks_distribution[question['marks']] = marks_distribution.get(question['marks'], 0) + 1
+    expected_distribution = {1: 5, 2: 5, 5: 3, 10: 2}
+    if marks_distribution != expected_distribution:
+        raise RuntimeError(
+            f'AI returned an invalid marks distribution: {marks_distribution}; expected {expected_distribution}'
+        )
     return {
         'title': parsed.get('title', f'{subject} Mock Test'),
         'subject': subject,
         'duration_minutes': int(parsed.get('duration_minutes', 120)),
-        'total_marks': int(parsed.get('total_marks', 50)),
-        'sections': sections,
+        'total_marks': total_marks,
+        'sections': normalized_sections,
     }
 
 
@@ -597,7 +600,7 @@ def generate_learning_path(subject: str, topics: list[dict]) -> dict:
         for item in topics[:12]
     ) or "- No weak/uncovered topics yet; create a balanced revision path."
     prompt = LEARNING_PATH_PROMPT.format(subject=subject, topics=topic_text)
-    raw = _call_gemini(prompt, temperature=0.35)
+    raw = _call_llm(prompt, temperature=0.35)
     _log_usage('learning_path_generate', subject=subject)
     parsed = _parse_json_response(raw)
     return {
@@ -626,6 +629,10 @@ RULES:
 4. Do NOT fabricate topics that are not in the original text.
 5. If you cannot determine a chapter name, use "Chapter N" where N is the sequence number.
 6. The `syllabus_title` should be the document title or the course name if found, otherwise "Untitled Syllabus".
+7. "Course Content", "Course Contents", "Detailed Course Content", "Syllabus", and similar labels are containers, never chapter names.
+8. If "Course Content" contains Unit I, Unit II, Chapter 1, Module 1, or equivalent headings, return each of those headings as a separate chapter.
+9. Exclude course objectives, teaching methods, evaluation/grading schemes, textbooks, references, and bibliographies unless they are explicitly listed as teachable course-content topics.
+10. Preserve topic numbering and stated hours when they are part of a topic title. A heading may appear as "UNIT I - Title", "Chapter 1: Title", or a heading followed by its title on the next line.
 
 SYLLABUS TEXT:
 {syllabus_text}
@@ -649,6 +656,98 @@ OUTPUT FORMAT (strict JSON):
 Return ONLY valid JSON. Do NOT wrap in markdown code fences."""
 
 
+_CONTENT_CONTAINER_RE = re.compile(
+    r'^(?:detailed\s+)?course\s+contents?|^syllabus$|^course\s+outline$',
+    re.IGNORECASE,
+)
+_EXPLICIT_DIVISION_RE = re.compile(
+    r'^(chapter|unit|module)\s+([ivxlcdm]+|\d+)\s*(?:[:.\-–—]\s*)?(.*)$',
+    re.IGNORECASE,
+)
+_NON_CONTENT_HEADING_RE = re.compile(
+    r'^(course\s+objectives?|learning\s+outcomes?|evaluation|grading|assessment|textbooks?|references?|bibliography|teaching\s+methods?)\b',
+    re.IGNORECASE,
+)
+
+
+def _deterministic_syllabus_hierarchy(syllabus_text: str):
+    lines = [re.sub(r'\s+', ' ', line).strip() for line in syllabus_text.splitlines()]
+    lines = [line for line in lines if line and not re.match(r'^\[(?:Page|Slide)\s+\d+\]$', line, re.IGNORECASE)]
+    heading_positions = [
+        (index, _EXPLICIT_DIVISION_RE.match(line))
+        for index, line in enumerate(lines)
+        if _EXPLICIT_DIVISION_RE.match(line)
+    ]
+    if len(heading_positions) < 2:
+        return None
+
+    syllabus_title = next(
+        (
+            line for line in lines[:heading_positions[0][0]]
+            if not _CONTENT_CONTAINER_RE.match(line)
+            and not _NON_CONTENT_HEADING_RE.match(line)
+        ),
+        'Syllabus',
+    )
+
+    chapters = []
+    for heading_index, (line_index, match) in enumerate(heading_positions):
+        end = heading_positions[heading_index + 1][0] if heading_index + 1 < len(heading_positions) else len(lines)
+        division_label = f'{match.group(1).title()} {match.group(2).upper()}'
+        title = (match.group(3) or '').strip()
+        if not title and line_index + 1 < end:
+            candidate = lines[line_index + 1]
+            if (
+                not _NON_CONTENT_HEADING_RE.match(candidate)
+                and not _CONTENT_CONTAINER_RE.match(candidate)
+                and not re.match(r'^\d+(?:\.\d+)+\b', candidate)
+            ):
+                title = candidate
+                line_index += 1
+        chapter_name = title or division_label
+        topic_lines = []
+        for line in lines[line_index + 1:end]:
+            if _NON_CONTENT_HEADING_RE.match(line):
+                break
+            if _CONTENT_CONTAINER_RE.match(line):
+                continue
+            if len(line) > 500:
+                line = line[:500]
+            if line.casefold() not in {item.casefold() for item in topic_lines}:
+                topic_lines.append(line)
+        chapters.append({
+            'chapter_name': chapter_name,
+            'units': [{'unit_name': division_label, 'subtopics': topic_lines}],
+        })
+    return {'syllabus_title': syllabus_title, 'chapters': chapters}
+
+
+def _repair_syllabus_hierarchy(parsed):
+    chapters = parsed.get('chapters') if isinstance(parsed, dict) else None
+    if not isinstance(chapters, list):
+        return parsed
+    repaired = []
+    for chapter in chapters:
+        if not isinstance(chapter, dict):
+            continue
+        chapter_name = str(chapter.get('chapter_name') or '').strip()
+        units = chapter.get('units') if isinstance(chapter.get('units'), list) else []
+        if _CONTENT_CONTAINER_RE.match(chapter_name) and units:
+            for unit in units:
+                if not isinstance(unit, dict):
+                    continue
+                unit_name = str(unit.get('unit_name') or '').strip()
+                if not unit_name or _CONTENT_CONTAINER_RE.match(unit_name):
+                    continue
+                repaired.append({
+                    'chapter_name': re.sub(r'^(?:chapter|unit|module)\s+(?:[ivxlcdm]+|\d+)\s*[:.\-–—]?\s*', '', unit_name, flags=re.IGNORECASE) or unit_name,
+                    'units': [{'unit_name': unit_name, 'subtopics': unit.get('subtopics') or []}],
+                })
+        elif chapter_name and not _NON_CONTENT_HEADING_RE.match(chapter_name):
+            repaired.append(chapter)
+    return {**parsed, 'chapters': repaired}
+
+
 def parse_syllabus_hierarchy(syllabus_text: str) -> dict:
     """
     Parse raw syllabus text into a structured hierarchy of chapters, units, and subtopics.
@@ -657,11 +756,14 @@ def parse_syllabus_hierarchy(syllabus_text: str) -> dict:
     if not syllabus_text or not syllabus_text.strip():
         raise ValueError("Empty syllabus text")
 
-    truncated = syllabus_text[:15000]
-    prompt = SYLLABUS_HIERARCHY_PROMPT.format(syllabus_text=truncated)
-    raw = _call_gemini(prompt, temperature=0.1)
-    _log_usage('syllabus_parse')
-    parsed = _parse_json_response(raw)
+    parsed = _deterministic_syllabus_hierarchy(syllabus_text)
+    if not parsed:
+        truncated = syllabus_text[:15000]
+        prompt = SYLLABUS_HIERARCHY_PROMPT.format(syllabus_text=truncated)
+        raw = _call_llm(prompt, temperature=0.1)
+        _log_usage('syllabus_parse')
+        parsed = _parse_json_response(raw)
+    parsed = _repair_syllabus_hierarchy(parsed)
 
     syllabus_title = str(parsed.get("syllabus_title", "Untitled Syllabus")).strip()
     raw_chapters = parsed.get("chapters", [])
