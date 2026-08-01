@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { useAuth, useUser } from '@clerk/react';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 import { syncClerkSession } from '../utils/syncClerkSession';
+import { FocusProvider } from '../context/FocusContext';
+import GlobalFocusBar from '../components/focus/GlobalFocusBar';
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -16,10 +18,10 @@ const DashboardLayout = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleSignIn = () => {
+  const handleSignIn = useCallback(() => {
     sessionStorage.removeItem('onboarded_session');
     navigate('/signin');
-  };
+  }, [navigate]);
 
   useEffect(() => {
     if (!isLoaded || !isUserLoaded) return;
@@ -50,7 +52,6 @@ const DashboardLayout = () => {
       }
 
       const clerkFirstName = clerkUser.firstName || '';
-      const clerkLastName = clerkUser.lastName || '';
       const clerkEmail = clerkUser.primaryEmailAddress?.emailAddress || '';
 
       const fallbackUser = {
@@ -112,7 +113,9 @@ const DashboardLayout = () => {
     loadProfile();
 
     return () => controller.abort();
-  }, [isLoaded, isUserLoaded, isSignedIn, clerkUser?.id, clerkUser?.publicMetadata?.role, clerkUser?.unsafeMetadata?.role, location.pathname, navigate]);
+  // Clerk may replace the user object while refreshing session data; depend on stable identity fields.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isUserLoaded, isSignedIn, clerkUser?.id, clerkUser?.publicMetadata?.role, clerkUser?.unsafeMetadata?.role, location.pathname, navigate, handleSignIn]);
 
   useEffect(() => {
     const handleScroll = (e) => {
@@ -133,9 +136,23 @@ const DashboardLayout = () => {
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-[#F7F5F2] p-6">
+        <div className="w-full max-w-sm border border-[#D7D3CF] bg-white p-6 text-center">
+          <h1 className="text-base font-bold text-[#111111]">Could not load your dashboard</h1>
+          <p className="mt-2 text-xs leading-5 text-[#666666]">Your sign-in session or local profile could not be synchronized.</p>
+          <div className="mt-5 flex justify-center gap-2">
+            <button type="button" onClick={() => window.location.reload()} className="rounded-[4px] bg-[#102326] px-4 py-2 font-mono text-xs font-semibold uppercase text-white">Retry</button>
+            <button type="button" onClick={handleSignIn} className="rounded-[4px] border border-[#D7D3CF] px-4 py-2 font-mono text-xs font-semibold uppercase text-[#111111]">Sign in</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
+    <FocusProvider>
     <div className="flex h-screen bg-[#F7F5F2] overflow-hidden font-sans text-[#111111]">
       <Sidebar
         user={user}
@@ -149,6 +166,7 @@ const DashboardLayout = () => {
           scrolled={scrolled}
           onToggleSidebar={() => setSidebarOpen(prev => !prev)}
         />
+        <GlobalFocusBar />
 
         {/* Main Content Area */}
         <div
@@ -156,7 +174,7 @@ const DashboardLayout = () => {
           className="flex-1 overflow-y-auto overflow-x-hidden relative z-0 p-4 md:p-8"
         >
           <AnimatePresence mode="wait">
-            <motion.div
+            <Motion.div
               key={location.pathname}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
@@ -165,11 +183,12 @@ const DashboardLayout = () => {
               className="max-w-[1400px] mx-auto min-h-full"
             >
               <Outlet context={{ user }} />
-            </motion.div>
+            </Motion.div>
           </AnimatePresence>
         </div>
       </main>
     </div>
+    </FocusProvider>
   );
 };
 

@@ -61,8 +61,8 @@ def _topic_from_chunk(chunk):
     metadata = chunk.get('metadata') or {}
     chunk_index = metadata.get('chunk_index', 'unknown')
     return {
-        'topic_id': f"chunk:{chunk_index}",
-        'topic_title': metadata.get('heading') or metadata.get('unit') or metadata.get('chapter') or f"Syllabus chunk {chunk_index}",
+        'topic_id': metadata.get('topic_id') or metadata.get('unit_id') or f"chunk:{chunk_index}",
+        'topic_title': metadata.get('topic_title') or metadata.get('unit_title') or metadata.get('heading') or metadata.get('unit') or metadata.get('chapter') or f"Syllabus chunk {chunk_index}",
         'syllabus_upload_id': metadata.get('upload_id'),
     }
 
@@ -97,15 +97,24 @@ def map_material_upload_to_topics(upload_id):
         return []
 
     topic_units = get_syllabus_topic_units(syllabus.id)
+    validated_topics = {
+        item.get('topic_id'): item
+        for item in (upload.validation_details or {}).get('matched_topics', [])
+        if item.get('topic_id')
+    }
     mapped = []
     for unit in topic_units:
-        matches = retrieve_context(
-            upload_id=upload.id,
-            query=unit['text'],
-            top_k=3,
-            filter_metadata={'doc_type': 'material'},
-        )
-        best_score = float(matches[0].get('score', 0) or 0) if matches else 0.0
+        validation_match = validated_topics.get(unit['id'])
+        if validation_match:
+            best_score = float(validation_match.get('best_score', 0) or 0)
+        else:
+            matches = retrieve_context(
+                upload_id=upload.id,
+                query=unit['text'],
+                top_k=3,
+                filter_metadata={'doc_type': 'material'},
+            )
+            best_score = float(matches[0].get('score', 0) or 0) if matches else 0.0
         if best_score >= CHAT_MATERIAL_RELEVANCE_THRESHOLD:
             upsert_topic_progress(
                 upload.user_id,
@@ -186,7 +195,16 @@ def record_generation(user_id, upload, quiz_set=None, action='generated_mcq'):
     db.session.commit()
 
 
-def record_quiz_result(user_id, quiz_set, score):
+def _assessment_topic(upload, topic_title):
+    normalized = str(topic_title or 'General').strip()
+    for item in ((upload.validation_details or {}).get('matched_topics') or []) if upload else []:
+        if isinstance(item, dict) and str(item.get('topic_title') or '').casefold() == normalized.casefold():
+            return str(item.get('topic_id')), str(item.get('topic_title'))
+    slug = '-'.join(normalized.casefold().split())[:180] or 'general'
+    return f'assessment:{slug}', normalized
+
+
+def record_quiz_result(user_id, quiz_set, score, results=None):
     upload = StudentUpload.query.get(quiz_set.upload_id) if quiz_set.upload_id else None
     questions = quiz_set.questions_json if isinstance(quiz_set.questions_json, list) else []
     total = max(len(questions), 1)
@@ -202,22 +220,60 @@ def record_quiz_result(user_id, quiz_set, score):
         score=accuracy,
     )
 
-    if upload and upload.validation_status == 'approved':
-        mapped = map_material_upload_to_topics(upload.id)
-        for item in mapped:
-            next_revision = _next_revision_date(accuracy)
+    if upload and upload.validation_status in {'approved', 'needs_review'}:
+        grouped = {}
+        for result in results or []:
+            title = result.get('topic_title') or quiz_set.topic
+            grouped.setdefault(title, []).append(bool(result.get('is_correct')))
+        if not grouped:
+            grouped = {quiz_set.topic: [accuracy >= 0.6]}
+        for title, outcomes in grouped.items():
+            topic_accuracy = sum(outcomes) / max(len(outcomes), 1)
+            topic_id, topic_title = _assessment_topic(upload, title)
+            next_revision = _next_revision_date(topic_accuracy)
             upsert_topic_progress(
                 user_id,
                 upload.subject_id,
-                item['topic_id'],
-                item['topic_title'],
+                topic_id,
+                topic_title,
                 practiced=True,
-                weak=accuracy < 0.6,
-                mastery_score=round(accuracy * 100, 2),
+                weak=topic_accuracy < 0.6,
+                mastery_score=round(topic_accuracy * 100, 2),
                 last_practiced_at=datetime.utcnow(),
                 next_revision_at=next_revision,
             )
     db.session.commit()
+
+
+def record_flashcard_review(user_id, deck, card, rating, interval_days):
+    upload = StudentUpload.query.get(deck.upload_id) if deck.upload_id else None
+    if not upload or not upload.subject_id:
+        return
+    topic_id, topic_title = _assessment_topic(upload, card.get('topic_title'))
+    mastery = {'again': 20, 'hard': 45, 'good': 75, 'easy': 95}[rating]
+    upsert_topic_progress(
+        user_id,
+        upload.subject_id,
+        topic_id,
+        topic_title,
+        practiced=True,
+        reviewed=True,
+        weak=rating in {'again', 'hard'},
+        mastery_score=mastery,
+        last_practiced_at=datetime.utcnow(),
+        next_revision_at=datetime.utcnow() + timedelta(days=interval_days),
+    )
+    log_activity(
+        user_id,
+        'reviewed_flashcard',
+        subject_id=upload.subject_id,
+        upload_id=upload.id,
+        quiz_set_id=deck.id,
+        topic_id=topic_id,
+        topic_title=topic_title,
+        score=mastery / 100,
+        metadata={'rating': rating, 'interval_days': interval_days},
+    )
 
 
 def _next_revision_date(accuracy):
@@ -264,6 +320,7 @@ def get_subject_mastery(user_id, subject_id):
             'average_mastery': avg_mastery,
             'approved_materials': sum(1 for upload in uploads if upload.doc_type == 'material' and upload.validation_status == 'approved'),
             'rejected_materials': sum(1 for upload in uploads if upload.doc_type == 'material' and upload.validation_status == 'rejected'),
+            'review_materials': sum(1 for upload in uploads if upload.doc_type == 'material' and upload.validation_status == 'needs_review'),
             'pending_materials': sum(1 for upload in uploads if upload.doc_type == 'material' and upload.validation_status == 'pending'),
         },
         'topics': [row.to_dict() for row in rows],

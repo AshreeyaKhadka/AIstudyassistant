@@ -102,7 +102,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
             <div className="space-y-0.5">
               <NavItem to="/dashboard/focus" icon={<Target size={16} />} label="Smart Focus Mode" onClick={handleNavClick} />
               <NavItem to="/dashboard/flashcards" icon={<BrainCircuit size={16} />} label="Flashcards" onClick={handleNavClick} />
-              <NavItem to="/dashboard/revision" icon={<CalendarCheck size={16} />} label="Calendar" onClick={handleNavClick} />
+              <NavItem to="/dashboard/revision" icon={<CalendarCheck size={16} />} label="Study Planner" onClick={handleNavClick} />
             </div>
           </div>
 

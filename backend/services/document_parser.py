@@ -2,15 +2,19 @@ import base64
 import logging
 import mimetypes
 import os
-import requests
+import re
+
 import fitz
+import requests
+
 from config import Config
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_EXTENSIONS = {'.pdf', '.txt', '.png', '.jpg', '.jpeg', '.webp', '.pptx'}
 IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp'}
-OCR_TEXT_MIN_CHARS_PER_PAGE = 80
+OCR_MIN_ALNUM_CHARS = 20
+OCR_MIN_IMAGE_COVERAGE = 0.25
 MAX_OCR_PAGES = 25
 
 
@@ -29,168 +33,254 @@ def parse_uploaded_material(file, filepath: str) -> str:
 
 
 def parse_uploaded_material_with_metadata(file, filepath: str) -> tuple[str, dict]:
-    """
-    Save and extract study text from supported material files.
-
-    PDFs and PPTX files use structured text extraction first. Scanned PDFs and
-    handwritten note images fall back to Gemini vision OCR when configured.
-    """
+    """Compatibility wrapper that saves an upload before extracting it."""
     filename = file.filename or ''
-    _, ext = os.path.splitext(filename)
-    ext = ext.lower()
+    if not is_supported_material(filename):
+        raise ValueError(supported_material_message())
+    file.save(filepath)
+    return extract_material_from_path(filepath, filename)
 
+
+def extract_material_from_path(filepath: str, filename: str = '') -> tuple[str, dict]:
+    """Extract structured study text and diagnostics from a file already on disk."""
+    _, ext = os.path.splitext(filename or filepath)
+    ext = ext.lower()
     if ext not in SUPPORTED_EXTENSIONS:
         raise ValueError(supported_material_message())
 
-    file.save(filepath)
-
     if ext == '.txt':
-        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
-            text = f.read()
-        return text, _extraction_metadata('typed_text', text)
+        with open(filepath, 'r', encoding='utf-8', errors='replace') as source:
+            raw_text = source.read().strip()
+        warnings = []
+        if '\ufffd' in raw_text:
+            warnings.append('Some text characters could not be decoded exactly.')
+        text = f'[Page 1]\n{raw_text}' if raw_text else ''
+        return text, _extraction_metadata('typed_text', text, 1, warnings)
 
     if ext == '.pdf':
-        text = _parse_pdf(filepath)
-        method = 'pdf_text_ocr' if '[OCR Page' in text else 'pdf_text'
-        return text, _extraction_metadata(method, text)
+        return _parse_pdf(filepath)
 
     if ext == '.pptx':
-        text = _parse_pptx(filepath)
-        return text, _extraction_metadata('slide_text', text)
+        return _parse_pptx(filepath)
 
     if ext in IMAGE_EXTENSIONS:
-        text = _ocr_image_file(filepath)
-        return text, _extraction_metadata('ocr', text)
+        text = _ocr_image_file(filepath).strip()
+        marked_text = f'[Page 1]\n{text}' if text else ''
+        return marked_text, _extraction_metadata('ocr', marked_text, 1, [])
 
     raise ValueError(supported_material_message())
 
 
-def _extraction_metadata(method: str, text: str) -> dict:
-    length = len((text or '').strip())
-    if length >= 500:
-        quality = 'good'
-    elif length >= 120:
+def _extraction_metadata(
+    method: str, text: str, page_count: int, warnings: list[str], empty_pages: int = 0,
+    native_text_pages: int = 0, ocr_pages: int = 0,
+) -> dict:
+    character_count = len((text or '').strip())
+    content_characters = max(0, character_count - max(1, page_count) * 10)
+    density = content_characters / max(1, page_count)
+    empty_ratio = empty_pages / max(1, page_count)
+
+    if character_count == 0 or density < 50 or empty_ratio > 0.5:
+        quality = 'low'
+    elif density < 180 or empty_ratio > 0.2 or warnings:
         quality = 'partial'
     else:
-        quality = 'low'
+        quality = 'good'
+
     return {
         'extraction_method': method,
         'extraction_quality': quality,
-        'character_count': length,
+        'character_count': character_count,
+        'page_count': page_count,
+        'empty_pages': empty_pages,
+        'native_text_pages': native_text_pages,
+        'ocr_pages': ocr_pages,
+        'warnings': list(dict.fromkeys(warnings)),
     }
 
 
-def _parse_pdf(filepath: str) -> str:
-    parts = []
-    ocr_pages = []
+def _page_image_coverage(page) -> float:
+    page_area = max(1.0, float(page.rect.width * page.rect.height))
+    covered_area = 0.0
     try:
-        doc = fitz.open(filepath)
-    except Exception as e:
-        msg = str(e).lower()
-        if 'password' in msg or 'encrypted' in msg:
-            raise ValueError("This PDF is password-protected. Please upload an unprotected version.")
-        if 'cannot open' in msg or 'broken' in msg or 'truncat' in msg:
-            raise ValueError("This PDF appears to be corrupted or incomplete. Please try a different file.")
-        raise ValueError(f"Could not open this PDF: {e}")
+        for image in page.get_image_info(xrefs=False):
+            bbox = image.get('bbox')
+            if not bbox or len(bbox) != 4:
+                continue
+            width = max(0.0, float(bbox[2]) - float(bbox[0]))
+            height = max(0.0, float(bbox[3]) - float(bbox[1]))
+            covered_area += width * height
+    except Exception:
+        return 0.0
+    return min(1.0, covered_area / page_area)
+
+
+def _should_ocr_pdf_page(page, extracted_text: str) -> bool:
+    """OCR only image-backed pages whose selectable text is effectively unusable."""
+    alnum_count = len(re.findall(r'[A-Za-z0-9]', extracted_text or ''))
+    if alnum_count >= OCR_MIN_ALNUM_CHARS:
+        return False
+    return _page_image_coverage(page) >= OCR_MIN_IMAGE_COVERAGE
+
+
+def _open_pdf(filepath: str):
+    try:
+        document = fitz.open(filepath)
+        if document.needs_pass:
+            document.close()
+            raise ValueError('This PDF is password-protected. Please upload an unprotected version.')
+        return document
+    except ValueError:
+        raise
+    except Exception as exc:
+        message = str(exc).lower()
+        if 'password' in message or 'encrypted' in message:
+            raise ValueError('This PDF is password-protected. Please upload an unprotected version.') from exc
+        if any(term in message for term in ('cannot open', 'broken', 'truncat')):
+            raise ValueError('This PDF appears to be corrupted or incomplete. Please try a different file.') from exc
+        raise ValueError(f'Could not open this PDF: {exc}') from exc
+
+
+def _parse_pdf(filepath: str) -> tuple[str, dict]:
+    document = _open_pdf(filepath)
+    sections = []
+    warnings = []
+    empty_pages = 0
+    ocr_attempts = 0
+    ocr_successes = 0
+    native_text_pages = 0
 
     try:
-        for index, page in enumerate(doc):
-            text = (page.get_text() or '').strip()
-            if text:
-                parts.append(f"[Page {index + 1}]\n{text}")
-            if len(text) < OCR_TEXT_MIN_CHARS_PER_PAGE and len(ocr_pages) < MAX_OCR_PAGES:
-                ocr_pages.append(index)
+        page_count = len(document)
+        for index, page in enumerate(document):
+            page_number = index + 1
+            extracted = (page.get_text('text', sort=True) or '').strip()
+            selected_text = extracted
 
-        if ocr_pages:
-            for index in ocr_pages:
-                page = doc[index]
-                pixmap = page.get_pixmap(matrix=fitz.Matrix(1.6, 1.6), alpha=False)
-                image_bytes = pixmap.tobytes('png')
-                ocr_text = _ocr_image_bytes(image_bytes, 'image/png')
-                if ocr_text:
-                    parts.append(f"[OCR Page {index + 1}]\n{ocr_text}")
+            if _should_ocr_pdf_page(page, extracted):
+                if ocr_attempts >= MAX_OCR_PAGES:
+                    warnings.append(f'OCR limit reached; page {page_number} was not OCR processed.')
+                elif not Config.GEMINI_API_KEY:
+                    warnings.append(f'Page {page_number} has little selectable text and OCR is not configured.')
+                else:
+                    ocr_attempts += 1
+                    try:
+                        pixmap = page.get_pixmap(matrix=fitz.Matrix(1.6, 1.6), alpha=False)
+                        ocr_text = _ocr_image_bytes(pixmap.tobytes('png'), 'image/png').strip()
+                        if len(ocr_text) > len(selected_text):
+                            selected_text = ocr_text
+                            ocr_successes += 1
+                    except Exception as exc:
+                        logger.warning('OCR failed for PDF page %s: %s', page_number, exc)
+                        warnings.append(f'OCR failed for page {page_number}; selectable text was kept where available.')
+
+            if selected_text:
+                sections.append(f'[Page {page_number}]\n{selected_text}')
+                if selected_text == extracted:
+                    native_text_pages += 1
+            else:
+                empty_pages += 1
+                warnings.append(f'No readable text was found on page {page_number}.')
     finally:
-        doc.close()
+        document.close()
 
-    return "\n\n".join(part for part in parts if part.strip())
+    method = 'pdf_text_ocr' if ocr_successes else 'pdf_text'
+    text = '\n\n'.join(sections)
+    return text, _extraction_metadata(
+        method, text, page_count, warnings, empty_pages,
+        native_text_pages=native_text_pages,
+        ocr_pages=ocr_successes,
+    )
 
 
-def _parse_pptx(filepath: str) -> str:
+def _parse_pptx(filepath: str) -> tuple[str, dict]:
     try:
         from pptx import Presentation
+        presentation = Presentation(filepath)
     except ImportError as exc:
-        raise RuntimeError("PPTX parsing requires python-pptx. Install backend requirements first.") from exc
+        raise RuntimeError('PPTX parsing requires python-pptx. Install backend requirements first.') from exc
+    except Exception as exc:
+        raise ValueError('This slide deck appears to be corrupted or is not a valid PPTX file.') from exc
 
-    prs = Presentation(filepath)
     slides = []
-    for index, slide in enumerate(prs.slides, start=1):
+    empty_slides = 0
+    warnings = []
+    for index, slide in enumerate(presentation.slides, start=1):
         text_parts = []
+        seen = set()
         for shape in slide.shapes:
-            if hasattr(shape, "text") and shape.text:
-                text_parts.append(shape.text.strip())
-            if getattr(shape, "has_table", False):
+            shape_text = (getattr(shape, 'text', '') or '').strip()
+            if shape_text and shape_text not in seen:
+                text_parts.append(shape_text)
+                seen.add(shape_text)
+            if getattr(shape, 'has_table', False):
                 for row in shape.table.rows:
-                    row_text = " | ".join(cell.text.strip() for cell in row.cells if cell.text.strip())
-                    if row_text:
+                    row_text = ' | '.join(cell.text.strip() for cell in row.cells if cell.text.strip())
+                    if row_text and row_text not in seen:
                         text_parts.append(row_text)
+                        seen.add(row_text)
         if text_parts:
-            slides.append(f"[Slide {index}]\n" + "\n".join(text_parts))
-    return "\n\n".join(slides)
+            slides.append(f'[Slide {index}]\n' + '\n'.join(text_parts))
+        else:
+            empty_slides += 1
+
+    if empty_slides:
+        warnings.append(f'{empty_slides} slide(s) contained no extractable text.')
+    text = '\n\n'.join(slides)
+    return text, _extraction_metadata('slide_text', text, len(presentation.slides), warnings, empty_slides)
 
 
 def _ocr_image_file(filepath: str) -> str:
     mime_type = mimetypes.guess_type(filepath)[0] or 'image/png'
-    with open(filepath, 'rb') as f:
-        return _ocr_image_bytes(f.read(), mime_type)
+    with open(filepath, 'rb') as source:
+        return _ocr_image_bytes(source.read(), mime_type)
 
 
 def _ocr_image_bytes(image_bytes: bytes, mime_type: str) -> str:
     if not Config.GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY is required for OCR of handwritten or scanned notes.")
+        raise RuntimeError('GEMINI_API_KEY is required for OCR of handwritten or scanned notes.')
 
-    base_url = Config.GEMINI_API_BASE_URL.rstrip('/')
-    model = Config.GEMINI_MODEL or 'gemini-2.5-flash'
     payload = {
-        "contents": [{
-            "role": "user",
-            "parts": [
+        'contents': [{
+            'role': 'user',
+            'parts': [
                 {
-                    "text": (
-                        "Extract all readable study-note text from this image. "
-                        "Preserve headings, bullet points, formulas, and slide structure. "
-                        "Return plain text only. If text is unclear, transcribe the readable parts."
+                    'text': (
+                        'Extract all readable study-note text from this image. Preserve headings, '
+                        'bullet points, formulas, table rows, code, and slide structure. Return plain '
+                        'text only. Mark unclear fragments as [unclear] instead of inventing text.'
                     )
                 },
                 {
-                    "inline_data": {
-                        "mime_type": mime_type,
-                        "data": base64.b64encode(image_bytes).decode('ascii'),
+                    'inline_data': {
+                        'mime_type': mime_type,
+                        'data': base64.b64encode(image_bytes).decode('ascii'),
                     }
                 },
             ],
         }],
-        "generationConfig": {
-            "temperature": 0.0,
-            "maxOutputTokens": 4096,
-        },
+        'generationConfig': {'temperature': 0.0, 'maxOutputTokens': 4096},
     }
 
     try:
         response = requests.post(
-            f"{base_url}/models/{model}:generateContent",
-            headers={"x-goog-api-key": Config.GEMINI_API_KEY},
+            f"{Config.GEMINI_API_BASE_URL.rstrip('/')}/models/{Config.GEMINI_MODEL}:generateContent",
+            headers={'x-goog-api-key': Config.GEMINI_API_KEY},
             json=payload,
             timeout=90,
         )
         response.raise_for_status()
     except requests.RequestException as exc:
-        logger.error(f"Gemini OCR request failed: {exc}")
-        raise RuntimeError(f"OCR failed: {exc}")
+        logger.error('Gemini OCR request failed: %s', exc)
+        raise RuntimeError(f'OCR failed: {exc}') from exc
 
-    data = response.json()
-    candidates = data.get("candidates", [])
+    try:
+        data = response.json()
+    except ValueError as exc:
+        raise RuntimeError('OCR service returned an invalid response.') from exc
+    candidates = data.get('candidates') or []
     if not candidates:
-        return ""
-    content = candidates[0].get("content", {}) or {}
-    parts = content.get("parts", []) or []
-    return "\n".join(part.get("text", "") for part in parts if isinstance(part, dict)).strip()
+        return ''
+    content = (candidates[0] or {}).get('content') or {}
+    parts = content.get('parts') or []
+    return '\n'.join(part.get('text', '') for part in parts if isinstance(part, dict)).strip()

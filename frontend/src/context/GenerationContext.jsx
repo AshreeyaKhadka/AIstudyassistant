@@ -8,6 +8,7 @@ export const GenerationProvider = ({ children }) => {
             generating: false,
             selectedUploadId: null,
             results: null,
+            deckId: null,
             error: null,
             progress: 0,
         }
@@ -22,6 +23,7 @@ export const GenerationProvider = ({ children }) => {
                 selectedUploadId: uploadId,
                 error: null,
                 results: null,
+                deckId: null,
                 progress: 10,
             }
         }));
@@ -35,9 +37,8 @@ export const GenerationProvider = ({ children }) => {
                 body: JSON.stringify({ upload_id: uploadId, count: 15 }),
             });
 
-            if (!res.ok) throw new Error('Generation failed');
-
             const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Generation failed');
 
             setGenerationState(prev => ({
                 ...prev,
@@ -45,6 +46,7 @@ export const GenerationProvider = ({ children }) => {
                     ...prev.flashcards,
                     generating: false,
                     results: data.flashcards || [],
+                    deckId: data.deck_id || null,
                     progress: 100,
                 }
             }));
@@ -68,6 +70,7 @@ export const GenerationProvider = ({ children }) => {
                 generating: false,
                 selectedUploadId: null,
                 results: null,
+                deckId: null,
                 error: null,
                 progress: 0,
             }
@@ -85,6 +88,7 @@ export const GenerationProvider = ({ children }) => {
     );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useGeneration = () => {
     const context = useContext(GenerationContext);
     if (!context) {

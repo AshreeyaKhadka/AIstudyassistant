@@ -557,8 +557,14 @@ def upload_syllabus(admin_user):
             upload.user_id = admin_user.id
             upload.extraction_method = extraction_meta.get('extraction_method')
             upload.extraction_quality = extraction_meta.get('extraction_quality')
+            upload.processing_warnings = extraction_meta.get('warnings') or []
+            upload.page_count = extraction_meta.get('page_count')
+            upload.character_count = extraction_meta.get('character_count')
             upload.validation_status = 'approved'
             upload.validation_error = None
+            upload.structured_syllabus = None
+            upload.syllabus_version = int(upload.syllabus_version or 1) + 1
+            upload.syllabus_structure_hash = None
         else:
             upload = StudentUpload(
                 filename=filename,
@@ -571,6 +577,9 @@ def upload_syllabus(admin_user):
                 syllabus_kind='official',
                 extraction_method=extraction_meta.get('extraction_method'),
                 extraction_quality=extraction_meta.get('extraction_quality'),
+                processing_warnings=extraction_meta.get('warnings') or [],
+                page_count=extraction_meta.get('page_count'),
+                character_count=extraction_meta.get('character_count'),
                 validation_status='approved',
             )
             db.session.add(upload)

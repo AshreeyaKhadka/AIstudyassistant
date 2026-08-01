@@ -17,7 +17,7 @@ export const Button = ({ variant = 'primary', className = '', style = {}, childr
 
   return (
     <button
-      className={`px-4 py-2 rounded-[4px] font-mono text-xs font-semibold tracking-wider uppercase transition-colors inline-flex items-center justify-center gap-2 ${variantClasses} ${className}`}
+      className={`min-h-9 px-4 py-2 rounded-[4px] font-mono text-xs font-semibold uppercase transition-colors inline-flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50 ${variantClasses} ${className}`}
       style={style}
       {...props}
     >

@@ -8,6 +8,14 @@ load_dotenv()
 db = SQLAlchemy()
 
 
+def _positive_int_env(name, default):
+    try:
+        value = int(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
 def _resolve_sqlite_database_url(database_url):
     if not database_url or not database_url.startswith('sqlite:///'):
         return database_url
@@ -26,7 +34,7 @@ def _resolve_sqlite_database_url(database_url):
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-default-key')
     SQLALCHEMY_DATABASE_URI = _resolve_sqlite_database_url(
-        os.environ.get('DATABASE_URL', 'sqlite:///app.db')
+        os.environ.get('DATABASE_URL', 'sqlite:///instance/app.db')
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -36,8 +44,24 @@ class Config:
     ALLOWED_EMAIL_DOMAIN = os.environ.get('ALLOWED_EMAIL_DOMAIN') # Can be None/empty
 
     # Providers
-    LLM_PROVIDER = os.environ.get('LLM_PROVIDER', 'placeholder')
-    EMBEDDING_PROVIDER = os.environ.get('EMBEDDING_PROVIDER', 'placeholder')
+    LLM_PROVIDER = os.environ.get('LLM_PROVIDER', 'gemini').strip().lower()
+    EMBEDDING_PROVIDER = os.environ.get('EMBEDDING_PROVIDER', 'gemini').strip().lower()
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY') or os.environ.get('Gemini_API_KEY')
     GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
     GEMINI_API_BASE_URL = os.environ.get('GEMINI_API_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta')
+    OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
+    OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'google/gemini-2.5-flash')
+    OPENROUTER_EMBEDDING_MODEL = os.environ.get(
+        'OPENROUTER_EMBEDDING_MODEL',
+        'openai/text-embedding-3-large',
+    )
+    OPENROUTER_EMBEDDING_DIMENSIONS = _positive_int_env(
+        'OPENROUTER_EMBEDDING_DIMENSIONS',
+        3072,
+    )
+    OPENROUTER_API_BASE_URL = os.environ.get('OPENROUTER_API_BASE_URL', 'https://openrouter.ai/api/v1')
+    OPENROUTER_SITE_URL = os.environ.get('OPENROUTER_SITE_URL', 'http://localhost:5173')
+    OPENROUTER_APP_NAME = os.environ.get('OPENROUTER_APP_NAME', 'AI Study Assistant')
+    GEMINI_EMBEDDING_MODEL = os.environ.get('GEMINI_EMBEDDING_MODEL', 'gemini-embedding-2')
+    GEMINI_EMBEDDING_DIMENSIONS = _positive_int_env('GEMINI_EMBEDDING_DIMENSIONS', 3072)
+    CHROMA_COLLECTION_NAME = os.environ.get('CHROMA_COLLECTION_NAME', 'study_materials_v2')

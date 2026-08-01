@@ -2,8 +2,12 @@ from flask import Blueprint, request, jsonify
 from services.auth_service import login_required
 from services.exam_prep_service import get_exam_prep_overview, upsert_subject_exam_date
 from services.generation_service import generate_exam_questions, generate_blueprint_sheet, generate_rapid_revision, generate_mock_test
-from services.rag_service import get_full_context, validate_upload_against_syllabus
+from services.document_admission import is_upload_usable
+from services.rag_service import get_full_context
 from models.content import Subject, StudentUpload
+from models.quiz import QuizSet
+from config import db
+from services.api_response import ai_service_error_response
 import logging
 import traceback
 
@@ -55,13 +59,7 @@ def _resolve_upload(user, subject_name, upload_id=None):
 def _upload_allowed_for_generation(upload):
     if upload.doc_type == 'syllabus':
         return True
-    if upload.validation_status == 'pending':
-        try:
-            validate_upload_against_syllabus(upload.id)
-        except Exception as exc:
-            logger.warning(f"Upload validation failed during exam prep resolve for {upload.id}: {exc}")
-            return False
-    return upload.validation_status == 'approved'
+    return upload.embedding_status == 'embedded' and is_upload_usable(upload)
 
 
 @exam_prep_bp.route('/overview', methods=['GET'])
@@ -124,7 +122,7 @@ def high_yield_questions(user):
         }), 200
     except Exception as e:
         logger.error(f"High yield generation failed: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": f"Generation failed: {str(e)}"}), 500
+        return ai_service_error_response(e)
 
 
 @exam_prep_bp.route('/blueprint', methods=['POST'])
@@ -152,7 +150,7 @@ def blueprint_sheet(user):
         }), 200
     except Exception as e:
         logger.error(f"Blueprint generation failed: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": f"Generation failed: {str(e)}"}), 500
+        return ai_service_error_response(e)
 
 
 @exam_prep_bp.route('/mock-test', methods=['POST'])
@@ -171,15 +169,36 @@ def mock_test(user):
         if not context:
             return jsonify({"error": "No content found for this document"}), 400
         test = generate_mock_test(context, subject=subject or upload.subject)
+        questions = [question for section in test['sections'] for question in section.get('questions', [])]
+        assessment = QuizSet(
+            user_id=user.id,
+            subject_id=upload.subject_id,
+            upload_id=upload.id,
+            topic=subject or upload.subject or upload.filename,
+            assessment_type='mock_test',
+            title=test['title'],
+            questions_json=questions,
+            total_marks=test['total_marks'],
+            duration_minutes=test['duration_minutes'],
+            source_metadata={
+                'filename': upload.filename,
+                'sections': test['sections'],
+                'warning': upload.validation_status == 'needs_review',
+            },
+        )
+        db.session.add(assessment)
+        db.session.commit()
         return jsonify({
             "subject": subject or upload.subject,
             "upload_id": upload.id,
             "source_doc": upload.filename,
             "mock_test": test,
+            "assessment_id": assessment.id,
         }), 200
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Mock test generation failed: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": f"Generation failed: {str(e)}"}), 500
+        return ai_service_error_response(e)
 
 
 @exam_prep_bp.route('/rapid-revision', methods=['POST'])
@@ -208,4 +227,4 @@ def rapid_revision(user):
         }), 200
     except Exception as e:
         logger.error(f"Rapid revision generation failed: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": f"Generation failed: {str(e)}"}), 500
+        return ai_service_error_response(e)

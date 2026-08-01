@@ -18,6 +18,10 @@ class User(db.Model):
     ban_reason = db.Column(db.Text, nullable=True)
     token_quota = db.Column(db.Integer, default=100000)  # daily token limit
     token_quota_enabled = db.Column(db.Boolean, default=False)
+    study_daily_minutes = db.Column(db.Integer, default=60, nullable=False)
+    study_session_minutes = db.Column(db.Integer, default=25, nullable=False)
+    study_start_time = db.Column(db.String(5), default='18:00', nullable=False)
+    study_days = db.Column(db.JSON, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_active = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -45,6 +49,10 @@ class User(db.Model):
             'ban_reason': self.ban_reason,
             'token_quota': self.token_quota,
             'token_quota_enabled': self.token_quota_enabled,
+            'study_daily_minutes': self.study_daily_minutes,
+            'study_session_minutes': self.study_session_minutes,
+            'study_start_time': self.study_start_time,
+            'study_days': self.study_days or [0, 1, 2, 3, 4, 5, 6],
             'university': 'Pokhara University',
             'course': 'Computer Engineering',
             'profile_complete': bool(self.first_name and self.last_name and self.college and self.semester),

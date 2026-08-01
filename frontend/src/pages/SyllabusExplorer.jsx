@@ -11,6 +11,7 @@ import {
   FileText,
   GraduationCap,
   Loader2,
+  MessageSquare,
   NotebookPen,
   Plus,
   RefreshCw,
@@ -50,12 +51,18 @@ const structuredToChapters = (structured) => {
   if (!structured || !Array.isArray(structured.chapters)) return [];
   return structured.chapters.map((ch, index) => {
     const units = Array.isArray(ch.units) ? ch.units : [];
-    const topics = units.flatMap((u) => Array.isArray(u.subtopics) ? u.subtopics : []);
+    const topics = units.flatMap((unit) => {
+      if (Array.isArray(unit.topics)) return unit.topics;
+      return (Array.isArray(unit.subtopics) ? unit.subtopics : []).map((topic, topicIndex) => ({
+        topic_id: `${unit.unit_id || `unit-${index}`}-topic-${topicIndex}`,
+        topic_title: topic
+      }));
+    });
     const unitLabel = units.length === 1 ? units[0].unit_name : `Unit ${romanNumerals[index] || index + 1}`;
     return {
-      id: `ch-${index}`,
+      id: ch.chapter_id || `ch-${index}`,
       title: ch.chapter_name || `Chapter ${index + 1}`,
-      summary: topics.slice(0, 5).join('; '),
+      summary: topics.slice(0, 5).map((topic) => topic.topic_title || topic).join('; '),
       unit: unitLabel,
       hours: '',
       topics
@@ -131,7 +138,7 @@ const SyllabusExplorer = () => {
         const personalData = await parseResponse(personalRes);
         setPersonalUploads(Array.isArray(personalData) ? personalData.map((item) => normalizePersonalUpload(item)) : []);
       }
-    } catch (err) {
+    } catch {
       setOfficial(null);
       setPersonal(null);
     } finally {
@@ -407,6 +414,14 @@ const SyllabusExplorer = () => {
       contextType: chapter ? 'chapter' : 'subject'
     });
     if (chapter?.title) params.set('unit', chapter.title);
+    if (chapter && typeof subject.id === 'string' && subject.id.startsWith('sem')) {
+      params.set('study_mode', 'syllabus');
+      params.set('catalog_subject_key', subject.id);
+      params.set('catalog_unit_key', chapter.id);
+      params.set('semester', String(selectedSem));
+    }
+    const databaseSubjectId = subject.upload?.subject_id || (Number.isInteger(subject.id) ? subject.id : null);
+    if (databaseSubjectId) params.set('subject_id', String(databaseSubjectId));
     navigate(`/dashboard/chat?${params.toString()}`);
   };
 
@@ -628,7 +643,7 @@ const ChoiceCard = ({ icon: Icon, title, description, note, active, ready, empty
   <section className="group bg-white border border-[#D7D3CF] rounded-[12px] p-6 md:p-7 min-h-[360px] flex flex-col shadow-sm transition-colors hover:border-[#102326]">
     <div className="flex items-start justify-between gap-4">
       <div className="w-12 h-12 rounded-[10px] bg-[#102326] text-white flex items-center justify-center shrink-0">
-        <Icon size={23} />
+        {React.createElement(Icon, { size: 23 })}
       </div>
       {active && <span className="text-[10px] uppercase text-[#185C28] bg-[#DDEFE2] border border-[#3E8B4E] px-2 py-1 rounded-full">Selected</span>}
     </div>
@@ -980,6 +995,31 @@ const SyllabusStudyShell = ({
 };
 
 const SubjectContent = ({ subject, onAiMode, onOpenPdf }) => {
+  const navigate = useNavigate();
+  const [mastery, setMastery] = useState(null);
+  const [answersByTopic, setAnswersByTopic] = useState({});
+  const subjectId = subject?.upload?.subject_id || (Number.isInteger(subject?.id) ? subject.id : null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!subjectId) return () => { cancelled = true; };
+    Promise.all([
+      fetch(`/api/syllabus/${subjectId}/mastery`, { credentials: 'include' }),
+      fetch(`/api/chat/topic-answers?subject_id=${subjectId}`, { credentials: 'include' })
+    ])
+      .then(async ([masteryResponse, answersResponse]) => ({
+        mastery: masteryResponse.ok ? await parseResponse(masteryResponse) : null,
+        answers: answersResponse.ok ? await parseResponse(answersResponse) : null
+      }))
+      .then(({ mastery: masteryData, answers }) => {
+        if (cancelled) return;
+        if (masteryData) setMastery(masteryData);
+        setAnswersByTopic(answers?.by_topic || {});
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [subjectId, subject?.upload?.syllabus_structure_hash]);
+
   if (!subject) {
     return <EmptyPanel text="Choose a subject first." compact />;
   }
@@ -990,6 +1030,7 @@ const SubjectContent = ({ subject, onAiMode, onOpenPdf }) => {
 
   const structureStatus = subject.upload?.structure_status;
   const isProcessing = structureStatus === 'processing' && chapters.length === 0;
+  const progressByTopic = new Map((mastery?.topics || []).map((topic) => [topic.topic_id, topic]));
 
   return (
     <div className="mb-4 overflow-hidden rounded-[10px] border border-[#D7D3CF] bg-white shadow-sm">
@@ -1008,7 +1049,6 @@ const SubjectContent = ({ subject, onAiMode, onOpenPdf }) => {
             {subject.sourcePdf && (
               <ActionButton onClick={() => onOpenPdf(subject)} icon={FileText} label="View PDF" />
             )}
-            <ActionButton onClick={() => onAiMode(subject)} icon={CheckCircle2} label="Go AI Mode" primary />
           </div>
         </div>
       </div>
@@ -1025,6 +1065,12 @@ const SubjectContent = ({ subject, onAiMode, onOpenPdf }) => {
               {totalTopics} topics
             </div>
           )}
+          {mastery?.summary && (
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#D7D3CF] bg-white px-3 py-1.5 text-xs text-[#444444] w-fit">
+              <CheckCircle2 size={14} className="text-[#185C28]" />
+              {mastery.summary.covered_topics}/{mastery.summary.total_topics} covered
+            </div>
+          )}
         </div>
 
         {isProcessing ? (
@@ -1039,6 +1085,9 @@ const SubjectContent = ({ subject, onAiMode, onOpenPdf }) => {
                 key={chapter.id}
                 chapter={chapter}
                 number={chapter.unit?.replace(/[^0-9]/g, '') || index + 1}
+                progressByTopic={progressByTopic}
+                answersByTopic={answersByTopic}
+                onContinueAnswer={(answer) => navigate(`/dashboard/chat?session_id=${answer.session_id}`)}
                 onAiMode={() => onAiMode(subject, chapter)}
               />
             ))}
@@ -1058,10 +1107,13 @@ const Metric = ({ label, value }) => (
   </div>
 );
 
-const UnitCard = ({ chapter, number, onAiMode }) => {
+const UnitCard = ({ chapter, number, onAiMode, progressByTopic, answersByTopic, onContinueAnswer }) => {
   const topics = Array.isArray(chapter.topics) ? chapter.topics : [];
   const previewTopics = topics.slice(0, 4);
   const remaining = topics.length - previewTopics.length;
+  const answeredTopics = topics
+    .map((topic) => ({ topic, answers: answersByTopic?.[topic?.topic_id] || [] }))
+    .filter((item) => item.answers.length > 0);
 
   return (
     <article className="group rounded-[10px] border border-[#D7D3CF] bg-white p-4 md:p-5 transition-colors hover:border-[#102326]">
@@ -1075,11 +1127,17 @@ const UnitCard = ({ chapter, number, onAiMode }) => {
             {chapter.summary && <p className="text-sm text-[#555555] leading-relaxed mt-1 max-w-3xl">{chapter.summary}</p>}
             {previewTopics.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
-                {previewTopics.map((topic, index) => (
-                  <span key={`${chapter.id}-preview-${index}`} className="rounded-full border border-[#D7D3CF] bg-[#FAF9F7] px-3 py-1 text-xs text-[#444444]">
-                    {topic}
+                {previewTopics.map((topic, index) => {
+                  const topicId = topic?.topic_id;
+                  const progress = topicId ? progressByTopic.get(topicId) : null;
+                  return (
+                  <span key={topicId || `${chapter.id}-preview-${index}`} className={`rounded-full border px-3 py-1 text-xs ${progress?.covered ? 'border-[#3E8B4E] bg-[#DDEFE2] text-[#185C28]' : 'border-[#D7D3CF] bg-[#FAF9F7] text-[#444444]'}`}>
+                    {topic?.topic_title || topic}
+                    {progress?.covered ? ' · Covered' : ''}
+                    {answersByTopic?.[topicId]?.length ? ` · ${answersByTopic[topicId].length} saved` : ''}
                   </span>
-                ))}
+                  );
+                })}
                 {remaining > 0 && (
                   <span className="rounded-full bg-[#ECEAE7] px-3 py-1 text-xs font-semibold text-[#444444]">
                     +{remaining} more
@@ -1092,15 +1150,52 @@ const UnitCard = ({ chapter, number, onAiMode }) => {
         <ActionButton onClick={onAiMode} icon={CheckCircle2} label="Go AI Mode" />
       </div>
 
+      {answeredTopics.length > 0 && (
+        <div className="mt-4 border-t border-[#D7D3CF] pt-4">
+          <p className="mb-2 inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase text-[#102326]">
+            <MessageSquare size={12} /> Saved topic answers
+          </p>
+          <div className="space-y-2">
+            {answeredTopics.slice(0, 3).map(({ topic, answers }) => {
+              const latest = answers[0];
+              return (
+                <div key={topic.topic_id} className="flex flex-col gap-2 rounded-[6px] bg-[#FAF9F7] px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-[#111111]">{topic.topic_title}</p>
+                    <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-[#666666]">
+                      {latest.question ? `${latest.question} - ` : ''}{latest.answer_excerpt}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onContinueAnswer(latest)}
+                    className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-[4px] border border-[#D7D3CF] bg-white px-2.5 py-1.5 text-[10px] font-semibold text-[#102326] hover:border-[#102326]"
+                  >
+                    Continue <ChevronRight size={11} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {topics.length > previewTopics.length && (
         <details className="mt-4 rounded-[8px] border border-[#D7D3CF] bg-[#FAF9F7]">
           <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-[#102326]">Show all topics</summary>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 border-t border-[#D7D3CF] p-3">
-            {topics.map((topic, index) => (
-              <div key={`${chapter.id}-${index}`} className="rounded-[6px] bg-white px-3 py-2 text-xs leading-relaxed text-[#444444]">
-                {topic}
+            {topics.map((topic, index) => {
+              const progress = topic?.topic_id ? progressByTopic.get(topic.topic_id) : null;
+              return (
+              <div key={topic?.topic_id || `${chapter.id}-${index}`} className="rounded-[6px] bg-white px-3 py-2 text-xs leading-relaxed text-[#444444] flex items-center justify-between gap-3">
+                <span>{topic?.topic_title || topic}</span>
+                <span className="shrink-0 text-[10px] font-mono text-[#666666]">
+                  {progress ? `${Math.round(progress.mastery_score || 0)}% mastery` : ''}
+                  {answersByTopic?.[topic?.topic_id]?.length ? `${progress ? ' · ' : ''}${answersByTopic[topic.topic_id].length} answers` : ''}
+                </span>
               </div>
-            ))}
+              );
+            })}
           </div>
         </details>
       )}
@@ -1141,7 +1236,7 @@ const ActionButton = ({ icon: Icon, label, onClick, disabled = false, primary = 
           : 'bg-white border-[#D7D3CF] text-[#111111] hover:bg-[#ECEAE7]'
     }`}
   >
-    <Icon size={13} />
+    {React.createElement(Icon, { size: 13 })}
     {label}
   </button>
 );

@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import User, StudentUpload, ChatSession, QuizSet, RevisionPlan, Subject, StudySession, TopicProgress
+from models import User, StudentUpload, ChatSession, QuizSet, RevisionPlan, Subject, StudySession, TopicProgress, Exam
 from services.auth_service import login_required
 from config import db
 from datetime import datetime, timedelta
@@ -55,6 +55,10 @@ def get_dashboard_data(user):
 
     # 1. Student Profile & Stats
     uploads = StudentUpload.query.filter_by(user_id=user_id).all()
+    material_uploads = [
+        upload for upload in uploads
+        if upload.doc_type == 'material' and (upload.admission_status or 'admitted') == 'admitted'
+    ]
     uploads_count = len(uploads)
     quizzes = QuizSet.query.filter_by(user_id=user_id).all()
     quizzes_count = len(quizzes)
@@ -94,27 +98,22 @@ def get_dashboard_data(user):
     )
     study_streak = _compute_study_streak(user_id)
 
-    # Calculate real Academic Progress (% of semester subjects that have uploaded syllabi or materials)
+    # Academic progress follows the topics represented by admitted uploaded materials.
     user_sem = user.semester if user.semester else 1
-    sem_subjects = [s for s in user_subjects if s.semester == user_sem]
-    if sem_subjects:
-        progress_values = []
-        fallback_covered_count = 0
-        for sub in sem_subjects:
-            rows = TopicProgress.query.filter_by(user_id=user_id, subject_id=sub.id).all()
-            if rows:
-                covered = sum(1 for row in rows if row.covered)
-                progress_values.append((covered / len(rows)) * 100)
-            else:
-                has_doc = StudentUpload.query.filter_by(subject_id=sub.id).first()
-                if has_doc:
-                    fallback_covered_count += 1
-        if progress_values:
-            academic_progress = round(sum(progress_values) / len(progress_values))
-        else:
-            academic_progress = round((fallback_covered_count / len(sem_subjects)) * 100)
-    else:
-        academic_progress = 0
+    tracked_keys = {
+        (upload.subject_id, str(item.get('topic_id')))
+        for upload in material_uploads
+        for item in ((upload.validation_details or {}).get('matched_topics') or [])
+        if upload.subject_id and isinstance(item, dict) and item.get('topic_id')
+    }
+    tracked_rows = [
+        row for row in TopicProgress.query.filter_by(user_id=user_id).all()
+        if (row.subject_id, row.topic_id) in tracked_keys
+    ]
+    academic_progress = round(
+        sum(1 for row in tracked_rows if row.covered) * 100 / len(tracked_keys)
+    ) if tracked_keys else 0
+    active_subjects = [s for s in user_subjects if s.is_current or s.is_backlog]
 
     student_data = {
         'name': user.name,
@@ -196,8 +195,8 @@ def get_dashboard_data(user):
 
     # 6. Dynamic AI Recommendations based on user subjects and activity
     recommendations = []
-    if sem_subjects:
-        for s in sem_subjects[:3]:
+    if active_subjects:
+        for s in active_subjects[:3]:
             has_syllabus = StudentUpload.query.filter_by(subject_id=s.id, doc_type='syllabus').first()
             if not has_syllabus:
                 recommendations.append({
@@ -221,6 +220,24 @@ def get_dashboard_data(user):
             'type': 'upload'
         })
 
+    today = datetime.utcnow().strftime('%Y-%m-%d')
+    calendar_items = [
+        {
+            'id': f'plan-{plan.id}', 'title': plan.title, 'subject': plan.subject or 'General',
+            'date': plan.revision_date, 'start_time': plan.start_time, 'type': plan.event_type or 'Study Session',
+        }
+        for plan in RevisionPlan.query.filter(
+            RevisionPlan.user_id == user_id,
+            RevisionPlan.status == 'pending',
+            RevisionPlan.revision_date >= today,
+        ).all()
+    ]
+    calendar_items.extend({
+        'id': f'exam-{exam.id}', 'title': exam.title, 'subject': exam.subject,
+        'date': exam.exam_date, 'start_time': exam.start_time, 'type': 'Exam',
+    } for exam in Exam.query.filter(Exam.user_id == user_id, Exam.exam_date >= today).all())
+    calendar_items.sort(key=lambda item: (item['date'], item.get('start_time') or '23:59'))
+
     return jsonify({
         'studentData': student_data,
         'recentQueries': recent_queries,
@@ -228,5 +245,6 @@ def get_dashboard_data(user):
         'sharedResources': [],
         'flashcards': flashcards,
         'generatedNotes': generated_notes,
-        'recommendations': recommendations
+        'recommendations': recommendations,
+        'revisionSchedule': calendar_items[:3],
     }), 200

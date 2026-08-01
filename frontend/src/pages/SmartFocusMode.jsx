@@ -1,246 +1,176 @@
-import React, { useState, useEffect } from 'react';
-import { Send, Sparkles, Target } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { BookOpen, CheckCircle2, Pause, Play, Plus, RotateCcw, Target, Trash2, X } from 'lucide-react';
+import { formatFocusTime, useFocus } from '../context/FocusContext';
 
-import PomodoroTimer from '../components/focus/PomodoroTimer';
-import StudyHistory from '../components/focus/StudyHistory';
-import FocusAnalytics from '../components/focus/FocusAnalytics';
-import StudyRecommendations from '../components/focus/StudyRecommendations';
+const PRESETS = [25, 50, 90];
 
 const SmartFocusMode = () => {
-  const [sessions, setSessions] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
-  const [recommendations, setRecommendations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [coachPrompt, setCoachPrompt] = useState('');
-  const [coachReply, setCoachReply] = useState('');
-  const [coachLoading, setCoachLoading] = useState(false);
-  const [coachError, setCoachError] = useState('');
-  
-  const [dbSubjects, setDbSubjects] = useState([]);
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [topic, setTopic] = useState('');
+  const { state, configure, start, pause, reset, submitRecall } = useFocus();
+  const [subjects, setSubjects] = useState([]);
+  const [catalog, setCatalog] = useState([]);
+  const [subjectManagerOpen, setSubjectManagerOpen] = useState(false);
+  const [semester, setSemester] = useState(1);
+  const [answer, setAnswer] = useState('');
+  const [customMinutes, setCustomMinutes] = useState(String(state.focusMinutes));
+  const [submitting, setSubmitting] = useState(false);
+  const [pageError, setPageError] = useState('');
+
+  const loadSubjects = async () => {
+    const response = await fetch('/api/syllabus/subjects', { credentials: 'include' });
+    const data = await response.json().catch(() => []);
+    if (!response.ok) throw new Error(data.error || 'Could not load subjects.');
+    setSubjects(data);
+    if (!state.subject && data.length) configure({ subject: data[0] });
+  };
 
   useEffect(() => {
-    fetchSubjects();
-    fetchFocusData();
-  }, []);
+    loadSubjects().catch((error) => setPageError(error.message));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchSubjects = async () => {
+  const openSubjectManager = async () => {
+    setPageError('');
     try {
-      const res = await fetch('/api/syllabus/subjects', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        setDbSubjects(data);
-      }
-    } catch (err) {
-      console.error(err);
+      const response = await fetch('/api/syllabus/catalog', { credentials: 'include' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not load the subject catalog.');
+      setCatalog(data.subjects || []);
+      setSemester(data.subjects?.[0]?.semester || 1);
+      setSubjectManagerOpen(true);
+    } catch (error) {
+      setPageError(error.message);
     }
   };
 
-  const fetchFocusData = async () => {
-    setLoading(true);
-    setRecommendationsLoading(true);
-    setError('');
-    try {
-      const [histRes, statRes, recRes] = await Promise.all([
-        fetch('/api/focus/sessions', { credentials: 'include' }),
-        fetch('/api/focus/analytics', { credentials: 'include' }),
-        fetch('/api/focus/recommendations', { credentials: 'include' })
-      ]);
+  const additionalCount = subjects.filter((subject) => subject.is_backlog).length;
+  const activeCatalogKeys = new Set(subjects.map((subject) => subject.catalog_key).filter(Boolean));
+  const semesterSubjects = catalog.filter((subject) => Number(subject.semester) === Number(semester));
 
-      if (!histRes.ok || !statRes.ok || !recRes.ok) {
-        throw new Error('Failed to load focus data');
-      }
-      
-      if (histRes.ok) setSessions(await histRes.json());
-      if (statRes.ok) setAnalytics(await statRes.json());
-      if (recRes.ok) setRecommendations(await recRes.json());
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Failed to load focus mode');
-    } finally {
-      setLoading(false);
-      setRecommendationsLoading(false);
-    }
+  const addSubject = async (catalogKey) => {
+    setPageError('');
+    const response = await fetch('/api/syllabus/subjects/additional', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+      body: JSON.stringify({ catalog_key: catalogKey }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return setPageError(data.error || 'Could not add subject.');
+    await loadSubjects();
   };
 
-  const handleSessionComplete = async (sessionData) => {
-    try {
-      const payload = {
-        ...sessionData,
-        subject: selectedSubject || 'General',
-        topic: topic || 'Review'
-      };
-      
-      const res = await fetch('/api/focus/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        credentials: 'include'
-      });
-      if (!res.ok) throw new Error('Failed to save focus session');
-      
-      fetchFocusData();
-    } catch (err) {
-      console.error(err);
-      setError(err.message || 'Failed to save focus session');
-    }
+  const removeSubject = async (subject) => {
+    const response = await fetch(`/api/syllabus/subjects/${subject.id}/additional`, { method: 'DELETE', credentials: 'include' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) return setPageError(data.error || 'Could not remove subject.');
+    if (state.subject?.id === subject.id) configure({ subject: null });
+    await loadSubjects();
   };
 
-  const askFocusCoach = async (event) => {
+  const totalSeconds = state.focusMinutes * 60;
+  const progress = totalSeconds ? Math.min(100, ((totalSeconds - state.remainingSeconds) / totalSeconds) * 100) : 0;
+  const timerLocked = state.running || ['saving', 'recall', 'reviewed'].includes(state.status);
+
+  const handleRecall = async (event) => {
     event.preventDefault();
-    if (!coachPrompt.trim() || coachLoading) return;
-
-    setCoachLoading(true);
-    setCoachError('');
+    setSubmitting(true);
+    setPageError('');
     try {
-      const res = await fetch('/api/focus/coach', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: coachPrompt,
-          subject: selectedSubject || 'General',
-          topic: topic || 'Review',
-        }),
-        credentials: 'include',
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'AI coach is unavailable.');
-      setCoachReply(data.reply || '');
-    } catch (err) {
-      console.error(err);
-      setCoachError(err.message || 'AI coach is unavailable.');
+      await submitRecall(answer);
+    } catch (error) {
+      setPageError(error.message);
     } finally {
-      setCoachLoading(false);
+      setSubmitting(false);
     }
   };
+
+  const applyCustomTime = (event) => {
+    event.preventDefault();
+    const parsed = Number.parseInt(customMinutes, 10);
+    if (Number.isNaN(parsed) || parsed < 1 || parsed > 240) {
+      setPageError('Study time must be between 1 and 240 minutes.');
+      return;
+    }
+    configure({ focusMinutes: parsed });
+    setCustomMinutes(String(parsed));
+    setPageError('');
+  };
+
+  const citationText = useMemo(() => (state.recall?.citations || []).map((citation) => (
+    [citation.filename, citation.page_number ? `page ${citation.page_number}` : '', citation.heading].filter(Boolean).join(' · ')
+  )), [state.recall]);
 
   return (
-    <div className="flex flex-col gap-6 pb-12">
-      {/* Header */}
-      <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px] flex items-center gap-4">
-        <div className="w-10 h-10 bg-[#102326] rounded-[4px] flex items-center justify-center shrink-0">
-          <Target className="text-white" size={20} />
-        </div>
+    <div className="mx-auto flex max-w-5xl flex-col gap-5 pb-12">
+      <header className="flex items-center gap-3 border-b border-[#D7D3CF] pb-4">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-[4px] bg-[#102326] text-white"><Target size={18} /></div>
         <div>
-          <div className="text-[10px] font-mono text-[#666666] uppercase tracking-wider font-semibold mb-1">
-            PRODUCTIVITY
-          </div>
-          <h1 className="text-2xl font-bold text-[#111111] tracking-tight">Focus Mode</h1>
-          <p className="text-xs text-[#666666] mt-0.5">Focus, track, and adapt your study sessions.</p>
+          <h1 className="text-xl font-bold text-[#111111]">Focus Mode</h1>
+          <p className="text-xs text-[#666666]">Choose what you are studying, focus, then check what you remember.</p>
         </div>
-      </div>
+      </header>
 
-      {error && (
-        <div className="bg-[#FFFDFB] border border-[#D7D3CF] text-[#C96A32] rounded-[4px] p-3 text-xs font-mono flex items-center justify-between gap-3">
-          <span>{error}</span>
-          <button onClick={fetchFocusData} className="underline">Retry</button>
-        </div>
-      )}
+      {(pageError || state.error) && <div className="rounded-[4px] border border-[#E3B39B] bg-[#FFF7F2] p-3 text-xs text-[#A24D23]">{pageError || state.error}</div>}
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Column (Timer & Config) */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          
-          {/* Study Configuration */}
-          <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-6">
-            <h3 className="text-[10px] font-mono font-semibold text-[#666666] uppercase tracking-wider mb-4 border-b border-[#D7D3CF] pb-2">
-              SESSION FOCUS
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-mono text-[#666666] uppercase font-semibold mb-1.5 block">Subject</label>
-                <select 
-                  value={selectedSubject} 
-                  onChange={(e) => setSelectedSubject(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-[#D7D3CF] rounded-[4px] text-xs font-mono text-[#111111] outline-none focus:border-[#102326] cursor-pointer"
-                >
-                  <option value="">Select Subject (Optional)</option>
-                  {dbSubjects.map(s => (
-                    <option key={s.id} value={s.name}>{s.name} (S{s.semester})</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-[10px] font-mono text-[#666666] uppercase font-semibold mb-1.5 block">Topic (Optional)</label>
-                <input 
-                  type="text" 
-                  value={topic} 
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder="e.g. Virtual Memory"
-                  className="w-full px-3 py-2 bg-white border border-[#D7D3CF] rounded-[4px] text-xs font-mono text-[#111111] outline-none focus:border-[#102326] placeholder:text-[#666666]"
-                />
-              </div>
+      <main className="grid gap-5 lg:grid-cols-[320px_1fr]">
+        <section className="space-y-4 border-r-0 border-[#D7D3CF] lg:border-r lg:pr-5">
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <label htmlFor="focus-subject" className="font-mono text-[10px] font-semibold uppercase text-[#666666]">Subject</label>
+              <button type="button" onClick={openSubjectManager} disabled={timerLocked} className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#102326] disabled:opacity-40"><Plus size={12} /> Add other subject</button>
             </div>
+            <select id="focus-subject" value={state.subject?.id || ''} disabled={timerLocked} onChange={(event) => configure({ subject: subjects.find((item) => item.id === Number(event.target.value)) || null })} className="w-full rounded-[4px] border border-[#D7D3CF] bg-white px-3 py-2.5 text-xs outline-none focus:border-[#102326] disabled:bg-[#ECEAE7]">
+              <option value="">Choose a subject</option>
+              {subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.name} · Semester {subject.semester}</option>)}
+            </select>
           </div>
 
-          <PomodoroTimer
-            onSessionComplete={handleSessionComplete}
-            selectedSubject={selectedSubject}
-            topic={topic}
-            recommendations={recommendations}
-          />
-
-        </div>
-
-        {/* Right Column (Analytics & Recommendations) */}
-        <div className="lg:col-span-7 flex flex-col gap-6">
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FocusAnalytics analytics={analytics} loading={loading} />
-            <StudyRecommendations recommendations={recommendations} loading={recommendationsLoading} error={error} />
+          <div>
+            <label htmlFor="focus-topic" className="mb-2 block font-mono text-[10px] font-semibold uppercase text-[#666666]">Topic <span className="normal-case font-normal">(optional)</span></label>
+            <input id="focus-topic" value={state.topic} disabled={timerLocked} onChange={(event) => configure({ topic: event.target.value })} placeholder="e.g. Virtual memory" className="w-full rounded-[4px] border border-[#D7D3CF] bg-white px-3 py-2.5 text-xs outline-none focus:border-[#102326] disabled:bg-[#ECEAE7]" />
           </div>
 
-          <StudyHistory sessions={sessions} loading={loading} />
-
-          <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-5">
-            <div className="flex items-center gap-2 border-b border-[#D7D3CF] pb-3">
-              <Sparkles size={16} className="text-[#C96A32]" />
-              <div>
-                <h3 className="text-base font-bold text-[#111111] tracking-tight">Ask AI Focus Coach</h3>
-                <p className="text-[10px] font-mono text-[#666666] uppercase tracking-wider">
-                  Uses your selected subject, topic, and recent focus history
-                </p>
-              </div>
+          <div>
+            <span className="mb-2 block font-mono text-[10px] font-semibold uppercase text-[#666666]">Session length</span>
+            <div className="grid grid-cols-3 gap-2">
+              {PRESETS.map((minutes) => <button key={minutes} type="button" disabled={timerLocked} onClick={() => { configure({ focusMinutes: minutes }); setCustomMinutes(String(minutes)); }} className={`h-9 rounded-[4px] border font-mono text-xs font-semibold ${state.focusMinutes === minutes ? 'border-[#102326] bg-[#102326] text-white' : 'border-[#D7D3CF] bg-white text-[#111111]'} disabled:opacity-50`}>{minutes} min</button>)}
             </div>
-
-            <form onSubmit={askFocusCoach} className="mt-4 flex gap-2">
-              <input
-                value={coachPrompt}
-                onChange={(event) => setCoachPrompt(event.target.value)}
-                placeholder="e.g. Plan this session, quiz me after focus, or break this topic into steps"
-                className="min-w-0 flex-1 rounded-[4px] border border-[#D7D3CF] bg-white px-3 py-2 text-xs text-[#111111] outline-none focus:border-[#102326]"
-              />
-              <button
-                type="submit"
-                disabled={coachLoading || !coachPrompt.trim()}
-                className="inline-flex items-center gap-2 rounded-[4px] border border-[#102326] bg-[#102326] px-4 py-2 font-mono text-xs font-semibold uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Send size={14} />
-                {coachLoading ? 'Asking' : 'Ask'}
-              </button>
+            <form onSubmit={applyCustomTime} className="mt-2 grid grid-cols-[1fr_auto] gap-2">
+              <label className="sr-only" htmlFor="custom-focus-minutes">Custom study time in minutes</label>
+              <input id="custom-focus-minutes" type="number" min="1" max="240" value={customMinutes} disabled={timerLocked} onChange={(event) => setCustomMinutes(event.target.value)} placeholder="Custom minutes" className="h-9 min-w-0 rounded-[4px] border border-[#D7D3CF] bg-white px-3 font-mono text-xs outline-none focus:border-[#102326] disabled:bg-[#ECEAE7]" />
+              <button type="submit" disabled={timerLocked || !customMinutes} className="h-9 rounded-[4px] border border-[#102326] px-3 font-mono text-[10px] font-semibold uppercase text-[#102326] disabled:opacity-40">Set time</button>
             </form>
-
-            {coachError && (
-              <div className="mt-3 rounded-[4px] border border-[#F2B8A0] bg-[#FFF7F2] p-3 text-xs font-mono text-[#A24D23]">
-                {coachError}
-              </div>
-            )}
-
-            {coachReply && (
-              <div className="mt-3 whitespace-pre-wrap rounded-[4px] border border-[#D7D3CF] bg-[#FAF9F7] p-4 text-sm leading-6 text-[#111111]">
-                {coachReply}
-              </div>
-            )}
+            <p className="mt-1.5 text-[10px] text-[#666666]">Choose any study duration from 1 to 240 minutes.</p>
           </div>
-          
-        </div>
 
-      </div>
+          <div className="border-t border-[#D7D3CF] pt-4 text-[11px] text-[#666666]">
+            <p className="flex items-start gap-2"><BookOpen size={14} className="mt-0.5 shrink-0" />Your recall question uses approved materials and syllabus context for this subject.</p>
+          </div>
+        </section>
+
+        <section className="flex min-h-[430px] flex-col items-center justify-center bg-white p-6 text-center sm:p-10">
+          {['recall', 'reviewed'].includes(state.status) ? (
+            <div className="w-full max-w-xl text-left">
+              <p className="mb-2 font-mono text-[10px] font-semibold uppercase text-[#666666]">Active recall</p>
+              <h2 className="text-lg font-bold leading-7 text-[#111111]">{state.recall?.question || 'Preparing your recall question...'}</h2>
+              {state.recall && !state.feedback && <form onSubmit={handleRecall} className="mt-5 space-y-3"><textarea value={answer} onChange={(event) => setAnswer(event.target.value)} rows={5} placeholder="Explain it in your own words..." className="w-full resize-y rounded-[4px] border border-[#D7D3CF] p-3 text-sm leading-6 outline-none focus:border-[#102326]" /><button disabled={submitting || answer.trim().length < 3} className="rounded-[4px] bg-[#102326] px-4 py-2.5 font-mono text-xs font-semibold uppercase text-white disabled:opacity-50">{submitting ? 'Checking' : 'Check recall'}</button></form>}
+              {state.feedback && <div className="mt-5 border-l-2 border-[#102326] pl-4"><div className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#185C28]" /><p className="text-sm font-bold">{state.feedback.score == null ? 'Answer saved' : `${Math.round(state.feedback.score)}% recall`}</p></div><p className="mt-2 text-sm leading-6 text-[#333333]">{state.feedback.feedback}</p><p className="mt-2 text-xs text-[#666666]"><strong>Next:</strong> {state.feedback.next_step}</p></div>}
+              {citationText.length > 0 && <div className="mt-5 border-t border-[#D7D3CF] pt-3"><p className="font-mono text-[9px] font-semibold uppercase text-[#666666]">Based on</p>{citationText.map((text) => <p key={text} className="mt-1 text-[10px] text-[#666666]">{text}</p>)}</div>}
+              {state.feedback && <button type="button" onClick={() => { setAnswer(''); reset(); }} className="mt-6 inline-flex items-center gap-2 rounded-[4px] border border-[#D7D3CF] px-4 py-2 text-xs font-semibold"><RotateCcw size={14} /> New session</button>}
+            </div>
+          ) : (
+            <>
+              <div className="mb-3 font-mono text-[10px] font-semibold uppercase text-[#666666]">{state.running ? 'Focus in progress' : state.status === 'saving' ? 'Session complete' : 'Ready to focus'}</div>
+              <div className="font-mono text-6xl font-bold tabular-nums text-[#111111] sm:text-7xl">{formatFocusTime(state.remainingSeconds)}</div>
+              <div className="mt-6 h-1.5 w-full max-w-md overflow-hidden bg-[#ECEAE7]"><div className="h-full bg-[#102326] transition-[width] duration-300" style={{ width: `${progress}%` }} /></div>
+              <p className="mt-4 min-h-5 text-xs text-[#666666]">{state.subject?.name || 'Select a subject to begin'}{state.topic ? ` · ${state.topic}` : ''}</p>
+              <div className="mt-7 flex items-center gap-3">
+                <button type="button" onClick={state.running ? pause : start} disabled={state.status === 'saving'} className="inline-flex h-11 items-center gap-2 rounded-[4px] bg-[#102326] px-6 font-mono text-xs font-semibold uppercase text-white disabled:opacity-50">{state.running ? <Pause size={16} /> : <Play size={16} />}{state.running ? 'Pause' : state.remainingSeconds < totalSeconds ? 'Resume' : 'Start'}</button>
+                <button type="button" onClick={reset} title="Reset timer" className="grid h-11 w-11 place-items-center rounded-[4px] border border-[#D7D3CF] bg-white"><RotateCcw size={16} /></button>
+              </div>
+            </>
+          )}
+        </section>
+      </main>
+
+      {subjectManagerOpen && <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4" onMouseDown={(event) => event.target === event.currentTarget && setSubjectManagerOpen(false)}><section className="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-[4px] bg-white shadow-xl"><header className="flex items-center justify-between border-b border-[#D7D3CF] p-4"><div><h2 className="text-sm font-bold">Additional subjects</h2><p className="mt-0.5 text-[10px] text-[#666666]">Choose up to four subjects outside your current semester · {additionalCount}/4 added</p></div><button onClick={() => setSubjectManagerOpen(false)} aria-label="Close"><X size={18} /></button></header><div className="flex gap-1 overflow-x-auto border-b border-[#D7D3CF] p-3">{[1,2,3,4,5,6,7,8].map((item) => <button key={item} onClick={() => setSemester(item)} className={`h-8 min-w-10 rounded-[4px] px-2 font-mono text-xs ${semester === item ? 'bg-[#102326] text-white' : 'bg-[#F7F5F2] text-[#333333]'}`}>S{item}</button>)}</div><div className="max-h-[55vh] divide-y divide-[#E7E4E0] overflow-y-auto p-3">{semesterSubjects.map((item) => { const active = activeCatalogKeys.has(item.id); const activeSubject = subjects.find((subject) => subject.catalog_key === item.id); return <div key={item.id} className="flex items-center justify-between gap-3 py-3"><div className="min-w-0"><p className="text-xs font-semibold text-[#111111]">{item.name}</p><p className="mt-0.5 font-mono text-[9px] text-[#666666]">Semester {item.semester}</p></div>{active ? activeSubject?.is_backlog ? <button onClick={() => removeSubject(activeSubject)} className="grid h-8 w-8 place-items-center rounded-[4px] border border-[#D7D3CF] text-[#A24D23]" title="Remove additional subject"><Trash2 size={14} /></button> : <span className="text-[10px] font-semibold text-[#185C28]">Current</span> : <button disabled={additionalCount >= 4} onClick={() => addSubject(item.id)} className="rounded-[4px] border border-[#102326] px-3 py-1.5 text-[10px] font-semibold text-[#102326] disabled:opacity-35">Add</button>}</div>; })}</div></section></div>}
     </div>
   );
 };

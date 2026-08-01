@@ -24,6 +24,8 @@ from services.generation_service import (
     generate_exam_questions,
 )
 from services.progress_service import map_material_upload_to_topics, record_generation
+from services.document_admission import is_upload_usable
+from services.api_response import ai_service_error_response
 from models.content import StudentUpload
 from models.quiz import QuizSet
 from services.arcade_service import sync_questions_from_mcqs
@@ -65,10 +67,11 @@ def _ensure_embedded(upload):
             logger.error(f"Embedding failed for upload {upload.id}: {e}")
             return False, f"Embedding failed: {str(e)}"
 
-    if upload.doc_type == 'material' and upload.validation_status == 'pending':
-        upload.validation_status = 'approved'
-        upload.validation_error = None
-        db.session.commit()
+    if upload.doc_type == 'material' and not is_upload_usable(upload):
+        return False, (
+            'This material must pass syllabus validation and subject relevance screening before study content can be generated. '
+            f'Current status: {upload.validation_status or "pending"}.'
+        )
 
     return True, None
 
@@ -161,18 +164,34 @@ def gen_flashcards(user):
             return jsonify({"error": "No content found for this document"}), 400
 
         flashcards = generate_flashcards(context, count=count)
-        record_generation(user.id, upload, action='generated_flashcards')
+        if not flashcards:
+            return jsonify({"error": "The model returned no valid flashcards. Please try again."}), 502
+        deck = QuizSet(
+            user_id=user.id,
+            subject_id=upload.subject_id,
+            upload_id=upload.id,
+            topic=upload.subject or upload.filename,
+            assessment_type='flashcard',
+            title=f'{upload.subject or upload.filename} Review Deck',
+            questions_json=flashcards,
+            source_metadata={'filename': upload.filename, 'warning': upload.validation_status == 'needs_review'},
+        )
+        db.session.add(deck)
+        db.session.flush()
+        record_generation(user.id, upload, quiz_set=deck, action='generated_flashcards')
+        db.session.commit()
 
         return jsonify({
             "flashcards": flashcards,
             "source_doc": upload.filename,
             "count": len(flashcards),
             "chunks_used": len(context.split("---")),
+            "deck_id": deck.id,
         }), 200
 
     except Exception as e:
         logger.error(f"Flashcard generation failed: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": f"Generation failed: {str(e)}"}), 500
+        return ai_service_error_response(e)
 
 
 # ---------------------------------------------------------------------------
@@ -213,13 +232,20 @@ def gen_mcqs(user):
             return jsonify({"error": "No content found for this document"}), 400
 
         mcqs = generate_mcqs(context, count=count)
+        if not mcqs:
+            return jsonify({"error": "The model returned no valid MCQs. Please try again."}), 502
 
         # Save MCQs to database
         quiz_set = QuizSet(
             user_id=user.id,
+            subject_id=upload.subject_id,
             upload_id=upload.id,
             topic=upload.filename,
+            assessment_type='mcq',
+            title=f'{upload.subject or upload.filename} MCQ Drill',
             questions_json=mcqs,
+            total_marks=len(mcqs),
+            source_metadata={'filename': upload.filename, 'warning': upload.validation_status == 'needs_review'},
         )
         db.session.add(quiz_set)
         sync_questions_from_mcqs(user.id, upload, mcqs)
@@ -242,7 +268,7 @@ def gen_mcqs(user):
     except Exception as e:
         db.session.rollback()
         logger.error(f"MCQ generation failed: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": f"Generation failed: {str(e)}"}), 500
+        return ai_service_error_response(e)
 
 
 # ---------------------------------------------------------------------------
@@ -284,7 +310,7 @@ def gen_exam_questions(user):
 
     except Exception as e:
         logger.error(f"Exam question generation failed: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": f"Generation failed: {str(e)}"}), 500
+        return ai_service_error_response(e)
 
 
 # ---------------------------------------------------------------------------
@@ -299,7 +325,7 @@ def get_saved_mcqs(user, upload_id):
         return error
 
     quiz_sets = (
-        QuizSet.query.filter_by(user_id=user.id, upload_id=upload_id)
+        QuizSet.query.filter_by(user_id=user.id, upload_id=upload_id, assessment_type='mcq')
         .order_by(QuizSet.created_at.desc())
         .all()
     )

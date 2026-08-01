@@ -3,12 +3,15 @@ RAG Service – Document Chunking, Embedding & Retrieval Engine
 =============================================================
 Handles the full pipeline:
   1. Text → semantic chunks  (RecursiveCharacterTextSplitter)
-  2. Chunks → vector embeddings  (Gemini text-embedding-004)
+  2. Chunks → vector embeddings  (configured Gemini or OpenRouter model)
   3. Embeddings → ChromaDB upsert
   4. Query → similarity search → top-k context retrieval
 """
 
+import hashlib
+import json
 import os
+import re
 import time
 import logging
 import requests
@@ -32,12 +35,13 @@ os.makedirs(CHROMA_PERSIST_DIR, exist_ok=True)
 
 _chroma_client = chromadb.PersistentClient(path=CHROMA_PERSIST_DIR)
 
-COLLECTION_NAME = 'study_materials'
+COLLECTION_NAME = Config.CHROMA_COLLECTION_NAME
 
 CHUNK_SYLLABUS_MATCH_THRESHOLD = 0.68
 UPLOAD_SYLLABUS_COVERAGE_THRESHOLD = 0.35
 CHAT_SYLLABUS_RELEVANCE_THRESHOLD = 0.62
 CHAT_MATERIAL_RELEVANCE_THRESHOLD = 0.68
+UPLOAD_SYLLABUS_REVIEW_COVERAGE_THRESHOLD = 0.20
 
 def _get_collection():
     """Get or create the study_materials collection."""
@@ -51,10 +55,10 @@ def _get_collection():
 # 1. Chunking
 # ---------------------------------------------------------------------------
 _splitter = RecursiveCharacterTextSplitter(
-    chunk_size=512,
-    chunk_overlap=50,
+    chunk_size=900,
+    chunk_overlap=120,
     length_function=len,
-    separators=["\n\n", "\n", ". ", " ", ""],
+    separators=["\n\n", "\n", ". ", "; ", " ", ""],
     is_separator_regex=False,
 )
 
@@ -68,9 +72,87 @@ def chunk_text(text: str) -> list[str]:
     return [c for c in chunks if len(c.strip()) > 30]
 
 
-import re
+_DOCUMENT_MARKER_RE = re.compile(r'\[(Page|OCR Page|Slide)\s+(\d+)\]\s*\n')
+_NUMBERED_HEADING_RE = re.compile(r'^(?:unit|chapter|module|topic|section)?\s*\d+(?:\.\d+)*[.):\s-]+\S+', re.IGNORECASE)
 
-_PAGE_MARKER_RE = re.compile(r'\[(?:Page|OCR Page|Slide)\s+(\d+)\]\n')
+
+def _is_heading(line: str) -> bool:
+    candidate = re.sub(r'\s+', ' ', line or '').strip()
+    if not candidate or len(candidate) > 140:
+        return False
+    if _NUMBERED_HEADING_RE.match(candidate):
+        return True
+    if re.match(r'^(unit|chapter|module|topic|section)\b', candidate, re.IGNORECASE):
+        return True
+    letters = [char for char in candidate if char.isalpha()]
+    return len(letters) >= 4 and candidate == candidate.upper()
+
+
+def _semantic_sections(page_text: str) -> list[tuple[str, str]]:
+    sections = []
+    current_heading = ''
+    current_lines = []
+
+    def flush():
+        body = '\n'.join(current_lines).strip()
+        if body:
+            sections.append((current_heading, body))
+
+    for raw_line in page_text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            if current_lines and current_lines[-1] != '':
+                current_lines.append('')
+            continue
+        if _is_heading(line):
+            flush()
+            current_heading = line
+            current_lines = [line]
+        else:
+            current_lines.append(line)
+    flush()
+    return sections or [('', page_text.strip())]
+
+
+def chunk_document(text: str) -> list[dict]:
+    """Create heading-aware chunks while preserving page or slide provenance."""
+    if not text or not text.strip():
+        return []
+
+    parts = _DOCUMENT_MARKER_RE.split(text)
+    pages = []
+    if len(parts) >= 4:
+        for index in range(1, len(parts), 3):
+            marker = parts[index]
+            number = int(parts[index + 1])
+            content = parts[index + 2] if index + 2 < len(parts) else ''
+            if content.strip():
+                pages.append((marker, number, content.strip()))
+    else:
+        pages.append(('Page', 1, text.strip()))
+
+    chunks = []
+    for marker, page_number, page_text in pages:
+        for heading, section_text in _semantic_sections(page_text):
+            for chunk in _splitter.split_text(section_text):
+                cleaned = chunk.strip()
+                if len(cleaned) <= 30:
+                    continue
+                if heading and heading not in cleaned[: len(heading) + 10]:
+                    cleaned = f'{heading}\n{cleaned}'
+                chunks.append({
+                    'text': cleaned,
+                    'page_number': page_number,
+                    'locator_type': 'slide' if marker == 'Slide' else 'page',
+                    'heading': heading,
+                })
+
+    if not chunks:
+        return [
+            {'text': chunk, 'page_number': 0, 'locator_type': 'document', 'heading': ''}
+            for chunk in chunk_text(text)
+        ]
+    return chunks
 
 
 def chunk_text_by_page(text: str) -> list[tuple[str, int]]:
@@ -83,44 +165,12 @@ def chunk_text_by_page(text: str) -> list[tuple[str, int]]:
     if not text or not text.strip():
         return []
 
-    # Split on [Page N] markers, keeping the page number
-    parts = _PAGE_MARKER_RE.split(text)
-    # parts alternates: [pre-marker text, page_num, text, page_num, text, ...]
-
-    page_sections = []
-    if len(parts) >= 3:
-        # First part is any text before the first marker (usually empty)
-        for i in range(1, len(parts), 2):
-            page_num = int(parts[i])
-            page_text = parts[i + 1] if i + 1 < len(parts) else ''
-            if page_text.strip():
-                page_sections.append((page_text.strip(), page_num))
-    elif len(parts) == 1:
-        # No page markers found — treat as page 1
-        page_sections.append((text.strip(), 1))
-
-    # Chunk within each page section
-    results = []
-    for page_text, page_num in page_sections:
-        page_chunks = _splitter.split_text(page_text)
-        for chunk in page_chunks:
-            if len(chunk.strip()) > 30:
-                results.append((chunk.strip(), page_num))
-
-    # Fallback: if page-aware chunking produced nothing, use flat chunking
-    if not results:
-        flat = chunk_text(text)
-        for chunk in flat:
-            results.append((chunk, 0))
-
-    return results
+    return [(chunk['text'], chunk['page_number']) for chunk in chunk_document(text)]
 
 
 # ---------------------------------------------------------------------------
-# 2. Embedding via Gemini
+# 2. Provider-neutral embeddings
 # ---------------------------------------------------------------------------
-EMBEDDING_MODEL = 'gemini-embedding-2'
-EMBEDDING_DIMENSIONS = 768
 _BATCH_SIZE = 25  # Conservative batch size to avoid 429s
 _BATCH_DELAY = 1  # seconds between batches
 
@@ -129,68 +179,137 @@ _EMBED_MAX_RETRIES = 4
 _EMBED_BACKOFF_BASE = 3  # seconds
 
 
-def _embed_texts(texts: list[str]) -> list[list[float]]:
-    """Call Gemini embedding endpoint for a batch of texts, with retry on 429."""
-    api_key = Config.GEMINI_API_KEY
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not configured")
+def _embedding_provider():
+    provider = (Config.EMBEDDING_PROVIDER or 'gemini').strip().lower()
+    if provider not in {'gemini', 'openrouter'}:
+        raise RuntimeError(
+            f'Unsupported embedding provider: {provider}. '
+            'Supported providers: gemini, openrouter'
+        )
+    return provider
 
-    base_url = Config.GEMINI_API_BASE_URL.rstrip('/')
-    url = f"{base_url}/models/{EMBEDDING_MODEL}:batchEmbedContents"
 
-    # Build batch request body
+def _validate_embeddings(embeddings, expected_count, expected_dimensions):
+    if len(embeddings) != expected_count:
+        raise RuntimeError(
+            f'Embedding count mismatch: expected {expected_count}, got {len(embeddings)}'
+        )
+    invalid = [len(vector) for vector in embeddings if len(vector) != expected_dimensions]
+    if invalid:
+        raise RuntimeError(
+            f'Embedding dimension mismatch: expected {expected_dimensions}, got {invalid[0]}'
+        )
+    return embeddings
+
+
+def _request_embeddings(url, headers, payload, provider_name):
+    last_error = None
+    for attempt in range(_EMBED_MAX_RETRIES):
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=60)
+        except requests.RequestException as exc:
+            last_error = exc
+            if attempt == _EMBED_MAX_RETRIES - 1:
+                break
+            wait = _EMBED_BACKOFF_BASE * (2 ** attempt)
+            logger.warning(
+                '%s embedding request failed, retrying in %ss (attempt %s/%s)',
+                provider_name,
+                wait,
+                attempt + 1,
+                _EMBED_MAX_RETRIES,
+            )
+            time.sleep(wait)
+            continue
+
+        if response.status_code == 429:
+            wait = _EMBED_BACKOFF_BASE * (2 ** attempt)
+            logger.warning(
+                '%s embeddings rate-limited, retrying in %ss (attempt %s/%s)',
+                provider_name,
+                wait,
+                attempt + 1,
+                _EMBED_MAX_RETRIES,
+            )
+            time.sleep(wait)
+            continue
+        if response.status_code >= 400:
+            raise RuntimeError(f'{provider_name} embedding API error {response.status_code}')
+        try:
+            return response.json()
+        except ValueError as exc:
+            raise RuntimeError(f'{provider_name} returned invalid embedding JSON') from exc
+
+    if last_error:
+        raise RuntimeError(f'Unable to reach {provider_name} embedding API: {last_error}')
+    raise RuntimeError(
+        f'{provider_name} embedding API rate limit exceeded after '
+        f'{_EMBED_MAX_RETRIES} retries. Try again later.'
+    )
+
+
+def _embed_texts_gemini(texts: list[str]) -> list[list[float]]:
+    if not Config.GEMINI_API_KEY:
+        raise RuntimeError('GEMINI_API_KEY is not configured')
+
+    model = Config.GEMINI_EMBEDDING_MODEL
     requests_body = []
     for text in texts:
         truncated = text[:2048]
         requests_body.append({
-            "model": f"models/{EMBEDDING_MODEL}",
+            "model": f"models/{model}",
             "content": {"parts": [{"text": truncated}]},
             "taskType": "RETRIEVAL_DOCUMENT",
         })
-
     payload = {"requests": requests_body}
+    data = _request_embeddings(
+        f"{Config.GEMINI_API_BASE_URL.rstrip('/')}/models/{model}:batchEmbedContents",
+        {'x-goog-api-key': Config.GEMINI_API_KEY},
+        payload,
+        'Gemini',
+    )
+    embeddings = [item.get('values', []) for item in data.get('embeddings', [])]
+    return _validate_embeddings(
+        embeddings,
+        len(texts),
+        Config.GEMINI_EMBEDDING_DIMENSIONS,
+    )
 
-    last_exc = None
-    for attempt in range(_EMBED_MAX_RETRIES):
-        try:
-            response = requests.post(
-                url,
-                headers={"x-goog-api-key": api_key},
-                json=payload,
-                timeout=60,
-            )
-            if response.status_code == 429:
-                wait = _EMBED_BACKOFF_BASE * (2 ** attempt)
-                logger.warning(f"Embedding rate-limited (429), retrying in {wait}s (attempt {attempt + 1}/{_EMBED_MAX_RETRIES})")
-                time.sleep(wait)
-                continue
-            response.raise_for_status()
-            break
-        except requests.RequestException as exc:
-            last_exc = exc
-            if '429' in str(exc):
-                wait = _EMBED_BACKOFF_BASE * (2 ** attempt)
-                logger.warning(f"Embedding rate-limited, retrying in {wait}s (attempt {attempt + 1}/{_EMBED_MAX_RETRIES})")
-                time.sleep(wait)
-                continue
-            logger.error(f"Gemini embedding request failed: {exc}")
-            raise RuntimeError(f"Embedding API error: {exc}")
-    else:
-        logger.error(f"Embedding failed after {_EMBED_MAX_RETRIES} retries")
-        raise RuntimeError(f"Embedding API rate limit exceeded after {_EMBED_MAX_RETRIES} retries. Try again later.")
 
-    data = response.json()
-    embeddings = []
-    for emb in data.get("embeddings", []):
-        values = emb.get("values", [])
-        embeddings.append(values)
+def _embed_texts_openrouter(texts: list[str]) -> list[list[float]]:
+    if not Config.OPENROUTER_API_KEY:
+        raise RuntimeError('OPENROUTER_API_KEY is not configured')
 
-    if len(embeddings) != len(texts):
-        raise RuntimeError(
-            f"Embedding count mismatch: expected {len(texts)}, got {len(embeddings)}"
-        )
+    data = _request_embeddings(
+        f"{Config.OPENROUTER_API_BASE_URL.rstrip('/')}/embeddings",
+        {
+            'Authorization': f'Bearer {Config.OPENROUTER_API_KEY}',
+            'Content-Type': 'application/json',
+            'HTTP-Referer': Config.OPENROUTER_SITE_URL,
+            'X-OpenRouter-Title': Config.OPENROUTER_APP_NAME,
+        },
+        {
+            'model': Config.OPENROUTER_EMBEDDING_MODEL,
+            'input': [text[:8192] for text in texts],
+        },
+        'OpenRouter',
+    )
+    ordered = sorted(data.get('data', []), key=lambda item: item.get('index', 0))
+    embeddings = [item.get('embedding', []) for item in ordered]
+    return _validate_embeddings(
+        embeddings,
+        len(texts),
+        Config.OPENROUTER_EMBEDDING_DIMENSIONS,
+    )
 
-    return embeddings
+
+def _embed_texts(texts: list[str]) -> list[list[float]]:
+    """Embed text using the provider selected by EMBEDDING_PROVIDER."""
+    if not texts:
+        return []
+    if _embedding_provider() == 'openrouter':
+        return _embed_texts_openrouter(texts)
+    return _embed_texts_gemini(texts)
 
 
 def embed_texts_batched(texts: list[str]) -> list[list[float]]:
@@ -221,20 +340,23 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
     upload = StudentUpload.query.get(upload_id)
     if upload:
         upload.embedding_status = 'indexing'
+        upload.processing_status = 'indexing'
+        upload.processing_error = None
         db.session.commit()
 
     try:
-        page_chunks = chunk_text_by_page(parsed_text)
-        if not page_chunks:
+        document_chunks = chunk_document(parsed_text)
+        if not document_chunks:
             logger.warning(f"No valid chunks for upload {upload_id}")
             if upload:
                 upload.embedding_status = 'failed'
                 upload.embedding_error = 'No valid text chunks found in document'
+                upload.processing_status = 'failed'
+                upload.processing_error = upload.embedding_error
                 db.session.commit()
             return 0
 
-        chunks = [c[0] for c in page_chunks]
-        page_numbers = [c[1] for c in page_chunks]
+        chunks = [chunk['text'] for chunk in document_chunks]
 
         logger.info(f"Embedding {len(chunks)} chunks for upload {upload_id} ({filename})")
 
@@ -255,9 +377,13 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
                 "user_id": user_id,
                 "filename": filename,
                 "chunk_index": i,
-                "page_number": page_numbers[i],
+                "page_number": document_chunks[i]['page_number'],
+                "locator_type": document_chunks[i]['locator_type'],
+                "heading": document_chunks[i]['heading'],
                 "subject_id": subject_id,
                 "doc_type": doc_type,
+                "source_type": "raw_page",
+                "syllabus_version": int(upload.syllabus_version or 1) if upload and doc_type == 'syllabus' else 0,
                 "validation_status": validation_status if doc_type == 'material' else 'approved',
             }
             for i in range(len(chunks))
@@ -278,6 +404,8 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
         if upload:
             upload.embedding_status = 'embedded'
             upload.embedding_error = None
+            upload.processing_status = 'ready'
+            upload.processing_error = None
             db.session.commit()
 
         logger.info(f"Successfully embedded {len(chunks)} chunks for upload {upload_id}")
@@ -288,6 +416,8 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
         if upload:
             upload.embedding_status = 'failed'
             upload.embedding_error = str(e)[:500]  # Truncate long errors
+            upload.processing_status = 'failed'
+            upload.processing_error = str(e)[:1000]
             db.session.commit()
         raise
 
@@ -295,6 +425,20 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
 # ---------------------------------------------------------------------------
 # 4. Retrieval: similarity search
 # ---------------------------------------------------------------------------
+def _build_chroma_where(filters):
+    """Convert application filters to Chroma's explicit logical-filter shape."""
+    clauses = [
+        {key: value}
+        for key, value in (filters or {}).items()
+        if value is not None
+    ]
+    if not clauses:
+        return None
+    if len(clauses) == 1:
+        return clauses[0]
+    return {"$and": clauses}
+
+
 def retrieve_context(upload_id: int = None, query: str = None, top_k: int = 8, filter_metadata: dict = None) -> list[dict]:
     """
     Retrieve the top-k most relevant chunks.
@@ -312,21 +456,24 @@ def retrieve_context(upload_id: int = None, query: str = None, top_k: int = 8, f
             if v is not None:
                 where_filter[k] = v
 
+    chroma_where = _build_chroma_where(where_filter)
     if query:
         # Embed the query
         query_embedding = _embed_texts([query])[0]
-        results = collection.query(
+        query_kwargs = dict(
             query_embeddings=[query_embedding],
-            where=where_filter,
             n_results=top_k,
             include=["documents", "metadatas", "distances"],
         )
+        if chroma_where:
+            query_kwargs['where'] = chroma_where
+        results = collection.query(**query_kwargs)
     else:
         # Get chunks
-        results = collection.get(
-            where=where_filter,
-            include=["documents", "metadatas"],
-        )
+        get_kwargs = {"include": ["documents", "metadatas"]}
+        if chroma_where:
+            get_kwargs['where'] = chroma_where
+        results = collection.get(**get_kwargs)
 
     # Normalize output format
     chunks = []
@@ -378,6 +525,16 @@ def _update_document_chunk_metadata(upload_id: int, updates: dict):
     collection.update(ids=ids, metadatas=merged)
 
 
+def update_document_filename(upload_id: int, filename: str):
+    """Keep citation metadata synchronized when a document is renamed."""
+    _update_document_chunk_metadata(upload_id, {'filename': filename})
+
+
+def update_document_metadata(upload_id: int, updates: dict):
+    """Keep retrieval metadata synchronized with durable upload state."""
+    _update_document_chunk_metadata(upload_id, updates)
+
+
 def get_subject_syllabus_upload(user_id: int, subject_id: int):
     """Find the syllabus that should validate/chat for this user's subject."""
     if subject_id is None:
@@ -424,9 +581,31 @@ def validate_upload_against_syllabus(
     if not upload:
         raise ValueError("Upload not found")
 
+    def finish(status, error, score, coverage, details):
+        upload.validation_status = status
+        upload.validation_error = error
+        upload.validation_details = details
+        upload.syllabus_match_score = score
+        upload.syllabus_match_coverage = coverage
+        db.session.commit()
+        metadata = {"validation_status": status}
+        if score is not None:
+            metadata["syllabus_match_score"] = float(score)
+        if coverage is not None:
+            metadata["syllabus_match_coverage"] = float(coverage)
+        _update_document_chunk_metadata(upload.id, metadata)
+        return {
+            "validation_status": status,
+            "validation_error": error,
+            "syllabus_match_score": score,
+            "syllabus_match_coverage": coverage,
+            **details,
+        }
+
     if upload.doc_type != 'material':
         upload.validation_status = 'approved'
         upload.validation_error = None
+        upload.validation_details = {}
         db.session.commit()
         _update_document_chunk_metadata(upload.id, {"validation_status": "approved"})
         return {
@@ -438,37 +617,21 @@ def validate_upload_against_syllabus(
         }
 
     if not upload.subject_id:
-        upload.validation_status = 'rejected'
-        upload.validation_error = 'Upload must be tagged with a subject before it can be used in chat.'
-        upload.syllabus_match_score = 0.0
-        upload.syllabus_match_coverage = 0.0
-        db.session.commit()
-        _update_document_chunk_metadata(upload.id, {"validation_status": "rejected"})
-        return {
-            "validation_status": upload.validation_status,
-            "validation_error": upload.validation_error,
-            "syllabus_match_score": upload.syllabus_match_score,
-            "syllabus_match_coverage": upload.syllabus_match_coverage,
+        return finish('rejected', 'Upload must be tagged with a subject before it can be used in chat.', 0.0, 0.0, {
             "matched_chunks": 0,
             "total_chunks": 0,
-        }
+            "matched_topics": [],
+            "unmatched_sections": [],
+        })
 
     syllabus = get_subject_syllabus_upload(upload.user_id, upload.subject_id)
     if not syllabus:
-        upload.validation_status = 'pending'
-        upload.validation_error = 'No embedded syllabus is available for this subject yet.'
-        upload.syllabus_match_score = None
-        upload.syllabus_match_coverage = None
-        db.session.commit()
-        _update_document_chunk_metadata(upload.id, {"validation_status": "pending"})
-        return {
-            "validation_status": upload.validation_status,
-            "validation_error": upload.validation_error,
-            "syllabus_match_score": upload.syllabus_match_score,
-            "syllabus_match_coverage": upload.syllabus_match_coverage,
+        return finish('pending', 'No embedded syllabus is available for this subject yet.', None, None, {
             "matched_chunks": 0,
             "total_chunks": 0,
-        }
+            "matched_topics": [],
+            "unmatched_sections": [],
+        })
 
     material_chunks = retrieve_context(
         upload_id=upload.id,
@@ -476,25 +639,21 @@ def validate_upload_against_syllabus(
         filter_metadata={"doc_type": "material"},
     )
     if not material_chunks:
-        upload.validation_status = 'rejected'
-        upload.validation_error = 'No embedded chunks were found for this upload.'
-        upload.syllabus_match_score = 0.0
-        upload.syllabus_match_coverage = 0.0
-        db.session.commit()
-        _update_document_chunk_metadata(upload.id, {"validation_status": "rejected"})
-        return {
-            "validation_status": upload.validation_status,
-            "validation_error": upload.validation_error,
-            "syllabus_match_score": upload.syllabus_match_score,
-            "syllabus_match_coverage": upload.syllabus_match_coverage,
+        return finish('rejected', 'No embedded chunks were found for this upload.', 0.0, 0.0, {
             "matched_chunks": 0,
             "total_chunks": 0,
-        }
+            "matched_topics": [],
+            "unmatched_sections": [],
+        })
 
     scores = []
     matched = 0
+    matched_topics = {}
+    matched_sections = []
+    unmatched_sections = []
     for chunk in material_chunks:
         text = (chunk.get("text") or "").strip()
+        material_metadata = chunk.get("metadata") or {}
         if not text:
             scores.append(0.0)
             continue
@@ -511,34 +670,70 @@ def validate_upload_against_syllabus(
         scores.append(best_score)
         if best_score >= chunk_threshold:
             matched += 1
+            topic_match = next(
+                (match for match in syllabus_matches if (match.get('metadata') or {}).get('topic_id')),
+                syllabus_matches[0] if syllabus_matches else {},
+            )
+            best_metadata = topic_match.get("metadata") or {}
+            topic_id = best_metadata.get("topic_id")
+            evidence = {
+                "page_number": material_metadata.get("page_number"),
+                "heading": material_metadata.get("heading") or "",
+                "excerpt": text[:220],
+                "score": round(best_score, 4),
+                "topic_id": topic_id,
+                "topic_title": best_metadata.get("topic_title") or best_metadata.get("unit_title") or best_metadata.get("heading") or "Syllabus section",
+            }
+            if len(matched_sections) < 12:
+                matched_sections.append(evidence)
+            if topic_id:
+                current = matched_topics.setdefault(topic_id, {
+                    "topic_id": topic_id,
+                    "topic_title": best_metadata.get("topic_title") or "Topic",
+                    "unit_id": best_metadata.get("unit_id"),
+                    "unit_title": best_metadata.get("unit_title"),
+                    "chapter_id": best_metadata.get("chapter_id"),
+                    "chapter_title": best_metadata.get("chapter_title"),
+                    "matched_sections": 0,
+                    "best_score": 0.0,
+                })
+                current["matched_sections"] += 1
+                current["best_score"] = round(max(current["best_score"], best_score), 4)
+        elif len(unmatched_sections) < 12:
+            unmatched_sections.append({
+                "page_number": material_metadata.get("page_number"),
+                "heading": material_metadata.get("heading") or "",
+                "excerpt": text[:220],
+                "best_score": round(best_score, 4),
+            })
 
     average_score = sum(scores) / len(scores) if scores else 0.0
     coverage = matched / len(scores) if scores else 0.0
-    approved = coverage >= coverage_threshold
+    review_threshold = min(coverage_threshold, UPLOAD_SYLLABUS_REVIEW_COVERAGE_THRESHOLD)
+    if coverage >= coverage_threshold:
+        status = 'approved'
+        error = None
+    elif coverage >= review_threshold:
+        status = 'needs_review'
+        error = 'Some sections match the syllabus, but the document needs review before it can be used for answers.'
+    else:
+        status = 'rejected'
+        error = 'Document does not match the selected subject syllabus closely enough.'
 
-    upload.validation_status = 'approved' if approved else 'rejected'
-    upload.validation_error = None if approved else 'Document does not match the selected subject syllabus closely enough.'
-    upload.syllabus_match_score = average_score
-    upload.syllabus_match_coverage = coverage
-    db.session.commit()
-
-    _update_document_chunk_metadata(upload.id, {
-        "validation_status": upload.validation_status,
-        "syllabus_match_score": average_score,
-        "syllabus_match_coverage": coverage,
-    })
-
-    return {
-        "validation_status": upload.validation_status,
-        "validation_error": upload.validation_error,
-        "syllabus_match_score": average_score,
-        "syllabus_match_coverage": coverage,
+    details = {
         "matched_chunks": matched,
         "total_chunks": len(scores),
         "syllabus_upload_id": syllabus.id,
+        "syllabus_version": syllabus.syllabus_version or 1,
+        "syllabus_structure_hash": syllabus.syllabus_structure_hash,
         "chunk_threshold": chunk_threshold,
         "coverage_threshold": coverage_threshold,
+        "review_threshold": review_threshold,
+        "matched_topics": sorted(matched_topics.values(), key=lambda item: item["best_score"], reverse=True),
+        "matched_sections": matched_sections,
+        "unmatched_sections": unmatched_sections,
     }
+    return finish(status, error, average_score, coverage, details)
 
 
 SECTION_METADATA_KEYS = (
@@ -580,6 +775,24 @@ def get_syllabus_topic_units(upload_id: int) -> list[dict]:
     )
     if not chunks:
         return []
+
+    structured_topics = []
+    seen_topic_ids = set()
+    for chunk in chunks:
+        metadata = chunk.get('metadata') or {}
+        topic_id = metadata.get('topic_id')
+        if metadata.get('source_type') != 'structured_topic' or not topic_id or topic_id in seen_topic_ids:
+            continue
+        seen_topic_ids.add(topic_id)
+        structured_topics.append({
+            'id': topic_id,
+            'title': metadata.get('topic_title') or 'Topic',
+            'text': (chunk.get('text') or '').strip(),
+            'metadata': metadata,
+            'chunk_indices': [metadata.get('chunk_index')],
+        })
+    if structured_topics:
+        return structured_topics
 
     grouped = {}
     ordered_units = []
@@ -807,40 +1020,98 @@ def get_embedding_stats(upload_id: int) -> dict:
 # ---------------------------------------------------------------------------
 # 6. Structured syllabus embedding
 # ---------------------------------------------------------------------------
-def _structured_to_chunks(structured: dict) -> list[str]:
-    """
-    Convert a structured syllabus hierarchy into semantic text chunks
-    suitable for embedding. Each chapter becomes one chunk containing
-    its units and subtopics.
-    """
-    if not structured or not isinstance(structured.get("chapters"), list):
-        return []
+def _stable_hierarchy_id(kind: str, *parts: str) -> str:
+    normalized = '|'.join(re.sub(r'\s+', ' ', str(part or '')).strip().casefold() for part in parts)
+    return f"{kind}:{hashlib.sha256(normalized.encode('utf-8')).hexdigest()[:16]}"
 
-    title = structured.get("syllabus_title", "Syllabus")
-    chunks = []
-    for ch in structured["chapters"]:
-        if not isinstance(ch, dict):
-            continue
-        chapter_name = ch.get("chapter_name", "")
-        units = ch.get("units", [])
-        if not isinstance(units, list) or not units:
-            chunks.append(f"Syllabus: {title}\nChapter: {chapter_name}")
-            continue
 
-        parts = [f"Syllabus: {title}", f"Chapter: {chapter_name}"]
-        for unit in units:
+def normalize_syllabus_structure(structured: dict) -> dict:
+    """Add deterministic hierarchy IDs while preserving the parser's public shape."""
+    source = structured if isinstance(structured, dict) else {}
+    title = str(source.get('syllabus_title') or 'Syllabus').strip()
+    normalized = {'syllabus_title': title, 'chapters': []}
+    for chapter_index, chapter in enumerate(source.get('chapters') or []):
+        if not isinstance(chapter, dict):
+            continue
+        chapter_name = str(chapter.get('chapter_name') or f'Chapter {chapter_index + 1}').strip()
+        chapter_id = _stable_hierarchy_id('chapter', title, chapter_name)
+        normalized_chapter = {
+            **chapter,
+            'chapter_id': chapter_id,
+            'chapter_name': chapter_name,
+            'position': chapter_index + 1,
+            'units': [],
+        }
+        for unit_index, unit in enumerate(chapter.get('units') or []):
             if not isinstance(unit, dict):
                 continue
-            unit_name = unit.get("unit_name", "")
-            subtopics = unit.get("subtopics", [])
-            if isinstance(subtopics, list) and subtopics:
-                topic_list = "; ".join(str(s) for s in subtopics if s)
-                parts.append(f"Unit: {unit_name}\nTopics: {topic_list}")
-            else:
-                parts.append(f"Unit: {unit_name}")
-        chunks.append("\n".join(parts))
+            unit_name = str(unit.get('unit_name') or f'Unit {unit_index + 1}').strip()
+            unit_id = _stable_hierarchy_id('unit', title, chapter_name, unit_name)
+            topics = []
+            for topic_index, topic in enumerate(unit.get('subtopics') or []):
+                topic_title = str(topic.get('topic_title') if isinstance(topic, dict) else topic or '').strip()
+                if not topic_title:
+                    continue
+                topic_id = _stable_hierarchy_id('topic', title, chapter_name, unit_name, topic_title)
+                topics.append({
+                    'topic_id': topic_id,
+                    'topic_title': topic_title,
+                    'position': topic_index + 1,
+                })
+            if not topics:
+                topics.append({
+                    'topic_id': _stable_hierarchy_id('topic', title, chapter_name, unit_name, unit_name),
+                    'topic_title': unit_name,
+                    'position': 1,
+                })
+            normalized_chapter['units'].append({
+                **unit,
+                'unit_id': unit_id,
+                'unit_name': unit_name,
+                'position': unit_index + 1,
+                'topics': topics,
+                'subtopics': [topic['topic_title'] for topic in topics],
+            })
+        if not normalized_chapter['units']:
+            unit_id = _stable_hierarchy_id('unit', title, chapter_name, chapter_name)
+            normalized_chapter['units'].append({
+                'unit_id': unit_id,
+                'unit_name': chapter_name,
+                'position': 1,
+                'topics': [{
+                    'topic_id': _stable_hierarchy_id('topic', title, chapter_name, chapter_name, chapter_name),
+                    'topic_title': chapter_name,
+                    'position': 1,
+                }],
+                'subtopics': [chapter_name],
+            })
+        normalized['chapters'].append(normalized_chapter)
+    canonical = json.dumps(normalized, sort_keys=True, separators=(',', ':'))
+    normalized['structure_hash'] = hashlib.sha256(canonical.encode('utf-8')).hexdigest()
+    return normalized
 
-    return [c for c in chunks if len(c.strip()) > 30]
+
+def _structured_topic_records(structured: dict) -> list[dict]:
+    normalized = normalize_syllabus_structure(structured)
+    records = []
+    title = normalized['syllabus_title']
+    for chapter in normalized['chapters']:
+        for unit in chapter['units']:
+            for topic in unit['topics']:
+                records.append({
+                    'text': f"Syllabus: {title}\nChapter: {chapter['chapter_name']}\nUnit: {unit['unit_name']}\nTopic: {topic['topic_title']}",
+                    'chapter_id': chapter['chapter_id'],
+                    'chapter_title': chapter['chapter_name'],
+                    'unit_id': unit['unit_id'],
+                    'unit_title': unit['unit_name'],
+                    'topic_id': topic['topic_id'],
+                    'topic_title': topic['topic_title'],
+                })
+    return records
+
+
+def _structured_to_chunks(structured: dict) -> list[str]:
+    return [record['text'] for record in _structured_topic_records(structured)]
 
 
 def embed_structured_syllabus(upload_id: int, user_id: int, filename: str, structured: dict):
@@ -849,8 +1120,10 @@ def embed_structured_syllabus(upload_id: int, user_id: int, filename: str, struc
     Each chapter becomes a chunk with chapter/unit/topic metadata.
     Uses the same Gemini embedding pipeline as document embedding.
     """
-    chunks = _structured_to_chunks(structured)
-    if not chunks:
+    normalized = normalize_syllabus_structure(structured)
+    records = _structured_topic_records(normalized)
+    chunks = [record['text'] for record in records]
+    if not records:
         logger.warning(f"No structured chunks for upload {upload_id}")
         return 0
 
@@ -862,8 +1135,16 @@ def embed_structured_syllabus(upload_id: int, user_id: int, filename: str, struc
     embeddings = embed_texts_batched(chunks)
     collection = _get_collection()
 
-    ids = [f"upload_{upload_id}_struct_{i}" for i in range(len(chunks))]
-    chapters_list = structured.get("chapters", []) if isinstance(structured, dict) else []
+    existing = collection.get(where={"upload_id": upload_id}, include=["metadatas"])
+    stale_ids = [
+        chunk_id for chunk_id, metadata in zip(existing.get('ids', []), existing.get('metadatas', []))
+        if (metadata or {}).get('doc_type') == 'syllabus_structure' or (metadata or {}).get('source_type') == 'structured_topic'
+    ]
+    if stale_ids:
+        collection.delete(ids=stale_ids)
+
+    version = int(upload.syllabus_version or 1) if upload else 1
+    ids = [f"upload_{upload_id}_topic_{record['topic_id'].split(':')[-1]}" for record in records]
     metadatas = [
         {
             "upload_id": upload_id,
@@ -871,9 +1152,11 @@ def embed_structured_syllabus(upload_id: int, user_id: int, filename: str, struc
             "filename": filename,
             "chunk_index": i,
             "subject_id": subject_id,
-            "doc_type": "syllabus_structure",
+            "doc_type": "syllabus",
+            "source_type": "structured_topic",
+            "syllabus_version": version,
             "validation_status": "approved",
-            "chapter_name": chapters_list[i].get("chapter_name", "") if i < len(chapters_list) else "",
+            **{key: value for key, value in records[i].items() if key != 'text'},
         }
         for i in range(len(chunks))
     ]

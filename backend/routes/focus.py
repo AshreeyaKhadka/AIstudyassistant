@@ -7,9 +7,11 @@ focus_bp = Blueprint('focus', __name__)
 @focus_bp.route('/sessions', methods=['POST'])
 @login_required
 def log_session(user):
-    data = request.json
-    result = focus_service.log_session(user.id, data)
-    return jsonify(result), 201
+    try:
+        result = focus_service.log_session(user.id, request.get_json(silent=True) or {})
+        return jsonify(result), 201
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
 
 @focus_bp.route('/sessions', methods=['GET'])
 @login_required
@@ -40,3 +42,22 @@ def get_ai_coach(user):
         return jsonify({'error': str(exc)}), 400
     except RuntimeError as exc:
         return jsonify({'error': str(exc)}), 502
+
+
+@focus_bp.route('/sessions/<int:session_id>/recall-question', methods=['POST'])
+@login_required
+def recall_question(user, session_id):
+    try:
+        return jsonify(focus_service.create_recall_question(user.id, session_id)), 200
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+
+
+@focus_bp.route('/sessions/<int:session_id>/recall-answer', methods=['POST'])
+@login_required
+def recall_answer(user, session_id):
+    try:
+        data = request.get_json(silent=True) or {}
+        return jsonify(focus_service.evaluate_recall_answer(user.id, session_id, data.get('answer'))), 200
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400

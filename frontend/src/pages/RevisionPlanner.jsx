@@ -1,19 +1,27 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   Bell,
+  BookOpen,
   CalendarCheck,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
   Edit3,
+  FileText,
   GraduationCap,
+  CheckCircle2,
   Plus,
+  Save,
+  Search,
+  SkipForward,
   Sparkles,
   RefreshCw,
   Trash2,
   X
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const EVENT_TYPES = ['Exam', 'Study Session', 'Assignment', 'Reminder', 'Personal'];
 const TYPE_STYLES = {
@@ -76,7 +84,13 @@ const normalizePlan = (plan) => ({
   subject: plan.subject || '',
   notes: plan.description || '',
   reminder: Boolean(plan.reminder),
-  status: plan.status
+  status: plan.status,
+  sourceType: plan.source_type || 'manual',
+  reason: plan.scheduling_reason || '',
+  topicTitle: plan.topic_title || '',
+  uploadId: plan.upload_id || null,
+  durationMinutes: plan.duration_minutes || 25,
+  rescheduleCount: plan.reschedule_count || 0
 });
 
 const normalizeExam = (exam) => ({
@@ -95,11 +109,13 @@ const normalizeExam = (exam) => ({
 });
 
 const RevisionPlanner = () => {
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState('month');
   const [plans, setPlans] = useState([]);
   const [exams, setExams] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -109,6 +125,14 @@ const RevisionPlanner = () => {
   const [editingEvent, setEditingEvent] = useState(null);
   const [form, setForm] = useState(emptyForm());
   const [formErrors, setFormErrors] = useState({});
+  const [preferences, setPreferences] = useState({ daily_minutes: 60, session_minutes: 25, start_time: '18:00', study_days: [0, 1, 2, 3, 4, 5, 6] });
+  const [plannerSaving, setPlannerSaving] = useState(false);
+  const [plannerGenerating, setPlannerGenerating] = useState(false);
+  const [selectedUploadIds, setSelectedUploadIds] = useState([]);
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false);
+  const [sourceSearch, setSourceSearch] = useState('');
+  const [generationPreview, setGenerationPreview] = useState(null);
+  const [generationMode, setGenerationMode] = useState('replace');
 
   const events = useMemo(() => [...plans.map(normalizePlan), ...exams.map(normalizeExam)], [plans, exams]);
   const subjectOptions = useMemo(() => {
@@ -116,20 +140,41 @@ const RevisionPlanner = () => {
     events.forEach((event) => event.subject && names.push(event.subject));
     return [...new Set(names)].sort();
   }, [subjects, events]);
+  const eligibleMaterials = useMemo(() => materials.filter((material) => (
+    material.doc_type === 'material'
+    && material.admission_status === 'admitted'
+    && material.processing_status === 'ready'
+    && ['approved', 'needs_review'].includes(material.validation_status)
+  )), [materials]);
+  const selectedMaterials = useMemo(() => eligibleMaterials.filter((material) => (
+    selectedUploadIds.includes(material.id)
+  )), [eligibleMaterials, selectedUploadIds]);
+  const filteredMaterials = useMemo(() => {
+    const query = sourceSearch.trim().toLowerCase();
+    if (!query) return eligibleMaterials;
+    return eligibleMaterials.filter((material) => (
+      material.filename.toLowerCase().includes(query)
+      || (material.subject || '').toLowerCase().includes(query)
+    ));
+  }, [eligibleMaterials, sourceSearch]);
 
   const loadData = async () => {
     setLoading(true);
     setError('');
     try {
-      const [plansRes, examsRes, subjectsRes] = await Promise.all([
+      const [plansRes, examsRes, subjectsRes, preferencesRes, materialsRes] = await Promise.all([
         fetch('/api/revision-plans', { credentials: 'include' }),
         fetch('/api/exams', { credentials: 'include' }),
-        fetch('/api/syllabus/subjects', { credentials: 'include' })
+        fetch('/api/syllabus/subjects', { credentials: 'include' }),
+        fetch('/api/revision-plans/preferences', { credentials: 'include' }),
+        fetch('/api/upload/', { credentials: 'include' })
       ]);
       if (!plansRes.ok || !examsRes.ok) throw new Error('Failed to load calendar data');
       setPlans(await plansRes.json());
       setExams(await examsRes.json());
       if (subjectsRes.ok) setSubjects(await subjectsRes.json());
+      if (preferencesRes.ok) setPreferences(await preferencesRes.json());
+      if (materialsRes.ok) setMaterials(await materialsRes.json());
     } catch (err) {
       setError(err.message || 'Failed to load calendar');
     } finally {
@@ -137,11 +182,128 @@ const RevisionPlanner = () => {
     }
   };
 
+  const savePreferences = async () => {
+    setPlannerSaving(true);
+    setError('');
+    try {
+      const res = await fetch('/api/revision-plans/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(preferences)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save planner settings');
+      setPreferences(data);
+      setStatus('Planner settings saved.');
+    } catch (err) {
+      setError(err.message || 'Failed to save planner settings');
+    } finally {
+      setPlannerSaving(false);
+    }
+  };
+
+  const toggleSource = (uploadId) => {
+    setSelectedUploadIds((current) => {
+      if (current.includes(uploadId)) return current.filter((id) => id !== uploadId);
+      if (current.length >= 20) {
+        setError('Choose no more than 20 documents for one week.');
+        return current;
+      }
+      return [...current, uploadId];
+    });
+  };
+
+  const generateAdaptiveWeek = async () => {
+    if (!selectedUploadIds.length) {
+      setError('Choose at least one study document before building your week.');
+      return;
+    }
+    setPlannerGenerating(true);
+    setError('');
+    try {
+      const preferencesRes = await fetch('/api/revision-plans/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(preferences)
+      });
+      const savedPreferences = await preferencesRes.json();
+      if (!preferencesRes.ok) throw new Error(savedPreferences.error || 'Check your planner settings');
+      setPreferences(savedPreferences);
+
+      const res = await fetch('/api/revision-plans/generate/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ horizon_days: 7, upload_ids: selectedUploadIds })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to preview study week');
+      setGenerationMode('replace');
+      setGenerationPreview(data);
+    } catch (err) {
+      setError(err.message || 'Failed to preview study week');
+    } finally {
+      setPlannerGenerating(false);
+    }
+  };
+
+  const confirmAdaptiveWeek = async () => {
+    setPlannerGenerating(true);
+    setError('');
+    try {
+      const res = await fetch('/api/revision-plans/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          horizon_days: 7,
+          upload_ids: selectedUploadIds,
+          replace: generationMode === 'replace'
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to build study week');
+      const messages = {
+        scheduled: `${data.count} study session${data.count === 1 ? '' : 's'} added to your week.`,
+        already_scheduled: 'All available topics already have upcoming sessions.',
+        no_available_days: 'Choose at least one available study day.',
+        no_topics: 'No eligible study material or syllabus topics were found.',
+      };
+      setStatus(messages[data.status] || 'Study week updated.');
+      setGenerationPreview(null);
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Failed to build study week');
+    } finally {
+      setPlannerGenerating(false);
+    }
+  };
+
+  const actOnPlan = async (event, action) => {
+    setError('');
+    try {
+      const res = await fetch(`/api/revision-plans/${event.rawId}/action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update session');
+      setStatus(action === 'complete' ? 'Study session completed.' : `Session moved to ${data.revision_date}.`);
+      await loadData();
+    } catch (err) {
+      setError(err.message || 'Failed to update session');
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
 
-  const validate = (nextForm) => {
+  const validate = useCallback((nextForm) => {
     const errors = {};
     if (!nextForm.title.trim()) errors.title = 'Title is required.';
     if (!nextForm.date) errors.date = 'Date is required.';
@@ -159,16 +321,16 @@ const RevisionPlanner = () => {
       errors.conflict = 'You already have the same plan at this time. Tick the box if you still want to save it.';
     }
     return errors;
-  };
+  }, [editingEvent, events]);
 
   useEffect(() => {
     if (formOpen) setFormErrors(validate(form));
-  }, [form, formOpen]);
+  }, [form, formOpen, validate]);
 
   const openCreate = (date = selectedDay, type = 'Study Session') => {
     setEditingEvent(null);
     setForm(emptyForm(date));
-    setForm((current) => ({ ...current, type, subject: subjectOptions[0] || '' }));
+    setForm((current) => ({ ...current, type, subject: '' }));
     setFormOpen(true);
   };
 
@@ -307,6 +469,7 @@ const RevisionPlanner = () => {
     ? Math.max(0, Math.ceil((new Date(`${examForBanner.date}T00:00:00`) - new Date(`${todayKey}T00:00:00`)) / 86400000))
     : null;
   const progress = yearProgress();
+  const generationSummary = generationPreview?.modes?.[generationMode] || null;
 
   const move = (direction) => {
     const next = new Date(currentDate);
@@ -320,15 +483,15 @@ const RevisionPlanner = () => {
       <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-1">Plan your days</div>
-          <h1 className="text-2xl font-bold text-[#111111] tracking-tight flex items-center gap-2"><CalendarCheck size={20} /> Calendar</h1>
-          <p className="text-xs text-[#666666] mt-1">Add exams, study time, assignments, reminders, and personal plans.</p>
+          <h1 className="text-2xl font-bold text-[#111111] tracking-tight flex items-center gap-2"><CalendarCheck size={20} /> Study Planner</h1>
+          <p className="text-xs text-[#666666] mt-1">Your revision schedule, exams, and daily study sessions.</p>
         </div>
         <button onClick={() => openCreate()} className="px-4 py-2 bg-[#102326] text-white rounded-[4px] text-xs font-mono font-semibold uppercase inline-flex items-center gap-2">
           <Plus size={14} /> Add Plan
         </button>
       </div>
 
-      <div className="bg-white border border-[#D7D3CF] rounded-[10px] p-4 shadow-sm">
+      <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-4 shadow-sm">
         {examForBanner ? (
           <div className="space-y-2.5">
             <div className="flex items-start justify-between gap-4">
@@ -379,6 +542,151 @@ const RevisionPlanner = () => {
           <button onClick={() => { setError(''); setStatus(''); }} className="underline">Dismiss</button>
         </div>
       )}
+
+      <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-4 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#D7D3CF] pb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-[#ECEAE7] text-[#102326] rounded-[4px] flex items-center justify-center"><Sparkles size={15} /></div>
+            <div>
+              <h2 className="text-sm font-bold text-[#111111]">Adaptive Week</h2>
+              <p className="text-[10px] font-mono text-[#666666]">{plans.filter((plan) => plan.source_type === 'adaptive' && plan.status === 'pending').length} upcoming adaptive sessions</p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono text-[#666666]">Changes save when your week is built</span>
+        </div>
+        <div className="border-b border-[#D7D3CF] pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+            <div className="relative flex-1 max-w-2xl">
+              <span className="block text-[10px] font-mono uppercase text-[#666666] font-semibold mb-1">Study documents</span>
+              <button
+                type="button"
+                onClick={() => setSourcePickerOpen((open) => !open)}
+                className="w-full min-h-10 bg-white border border-[#D7D3CF] hover:border-[#102326] rounded-[4px] px-3 py-2 text-left flex items-center justify-between gap-3"
+                aria-expanded={sourcePickerOpen}
+              >
+                <span className="min-w-0 flex items-center gap-2 text-xs text-[#111111]">
+                  <FileText size={14} className="shrink-0" />
+                  <span className="truncate">{selectedUploadIds.length ? `${selectedUploadIds.length} document${selectedUploadIds.length === 1 ? '' : 's'} selected` : 'Choose documents for this week'}</span>
+                </span>
+                <ChevronDown size={14} className={`shrink-0 transition-transform ${sourcePickerOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {sourcePickerOpen && (
+                <div className="absolute z-30 mt-1 w-full bg-white border border-[#BDB8B2] rounded-[4px] shadow-lg overflow-hidden">
+                  <div className="p-2 border-b border-[#D7D3CF]">
+                    <label className="flex items-center gap-2 border border-[#D7D3CF] rounded-[4px] px-2.5 bg-[#FAF9F7]">
+                      <Search size={13} className="text-[#666666]" />
+                      <input
+                        value={sourceSearch}
+                        onChange={(event) => setSourceSearch(event.target.value)}
+                        placeholder="Search by document or subject"
+                        className="w-full bg-transparent py-2 text-xs outline-none"
+                        autoFocus
+                      />
+                    </label>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-1">
+                    {filteredMaterials.length ? filteredMaterials.map((material) => {
+                      const selected = selectedUploadIds.includes(material.id);
+                      return (
+                        <label key={material.id} className="flex items-start gap-2.5 p-2.5 rounded-[3px] hover:bg-[#F3F1ED] cursor-pointer">
+                          <input type="checkbox" checked={selected} onChange={() => toggleSource(material.id)} className="mt-0.5" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-xs font-semibold text-[#111111] break-words">{material.filename}</span>
+                            <span className="block mt-0.5 text-[10px] font-mono text-[#666666]">
+                              {material.subject || 'Unassigned'}{material.page_count ? ` - ${material.page_count} pages` : ''}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    }) : (
+                      <div className="p-4 text-center text-xs text-[#666666]">
+                        {eligibleMaterials.length ? 'No documents match your search.' : 'No study documents are ready yet.'}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-2 border-t border-[#D7D3CF] flex items-center justify-between gap-2">
+                    <button type="button" onClick={() => setSelectedUploadIds([])} disabled={!selectedUploadIds.length} className="px-2 py-1.5 text-[10px] font-mono uppercase text-[#666666] disabled:opacity-40">Clear</button>
+                    <button type="button" onClick={() => setSourcePickerOpen(false)} className="px-3 py-1.5 bg-[#102326] text-white rounded-[3px] text-[10px] font-mono uppercase">Done</button>
+                  </div>
+                </div>
+              )}
+            </div>
+            {!eligibleMaterials.length && (
+              <button type="button" onClick={() => navigate('/dashboard/upload')} className="px-3 py-2 border border-[#102326] rounded-[4px] text-xs font-mono font-semibold uppercase inline-flex items-center justify-center gap-1.5">
+                <Plus size={13} /> Upload material
+              </button>
+            )}
+          </div>
+          {selectedMaterials.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedMaterials.map((material) => (
+                <span key={material.id} className="max-w-full inline-flex items-center gap-2 border border-[#D7D3CF] bg-[#FAF9F7] rounded-[3px] py-1.5 pl-2.5 pr-1.5 text-[10px] font-mono">
+                  <span className="max-w-[260px] truncate">{material.subject || 'General'} - {material.filename}</span>
+                  <button type="button" onClick={() => toggleSource(material.id)} title={`Remove ${material.filename}`} className="p-0.5 hover:bg-[#E6E3DF] rounded-[2px]"><X size={11} /></button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1 max-w-2xl">
+            <Field label="Daily minutes">
+              <input
+                type="number"
+                min="15"
+                max="480"
+                value={preferences.daily_minutes}
+                onChange={(event) => setPreferences((current) => ({ ...current, daily_minutes: Number(event.target.value) }))}
+                className={FIELD_CLASS}
+              />
+            </Field>
+            <Field label="Session length">
+              <select
+                value={preferences.session_minutes}
+                onChange={(event) => setPreferences((current) => ({ ...current, session_minutes: Number(event.target.value) }))}
+                className={FIELD_CLASS}
+              >
+                {[15, 20, 25, 30, 45, 60, 90].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}
+              </select>
+            </Field>
+            <Field label="Start time">
+              <input
+                type="time"
+                value={preferences.start_time}
+                onChange={(event) => setPreferences((current) => ({ ...current, start_time: event.target.value }))}
+                className={FIELD_CLASS}
+              />
+            </Field>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={savePreferences} disabled={plannerSaving} className="px-3 py-2 border border-[#102326] text-[#102326] rounded-[4px] text-xs font-mono font-semibold uppercase inline-flex items-center gap-1.5 disabled:opacity-50">
+              {plannerSaving ? <RefreshCw size={13} className="animate-spin" /> : <Save size={13} />} Save
+            </button>
+            <button onClick={generateAdaptiveWeek} disabled={plannerGenerating || !selectedUploadIds.length} className="px-3 py-2 bg-[#102326] text-white rounded-[4px] text-xs font-mono font-semibold uppercase inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+              {plannerGenerating ? <RefreshCw size={13} className="animate-spin" /> : <Sparkles size={13} />} Build My Week
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-1.5 border-t border-[#D7D3CF] pt-3">
+          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+            const active = preferences.study_days.includes(index);
+            return (
+              <button
+                key={day}
+                type="button"
+                onClick={() => setPreferences((current) => ({
+                  ...current,
+                  study_days: active ? current.study_days.filter((value) => value !== index) : [...current.study_days, index].sort()
+                }))}
+                className={`w-10 h-8 rounded-[4px] border text-[10px] font-mono font-semibold ${active ? 'bg-[#102326] text-white border-[#102326]' : 'bg-white text-[#666666] border-[#D7D3CF]'}`}
+                aria-pressed={active}
+              >
+                {day}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -459,6 +767,26 @@ const RevisionPlanner = () => {
                       <p className="text-xs font-bold truncate">{event.title}</p>
                       <p className="text-[10px] font-mono mt-1 flex items-center gap-1"><Clock size={11} /> {event.start_time}{event.end_time ? ` - ${event.end_time}` : ''}</p>
                       <p className="text-[10px] font-mono mt-1">{event.type} - {event.subject || 'General'}</p>
+                      {event.sourceType === 'adaptive' && (
+                        <p className="text-[10px] mt-1 leading-relaxed">{event.reason}</p>
+                      )}
+                      {event.uploadId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const params = new URLSearchParams({
+                              study_mode: 'document',
+                              upload_id: String(event.uploadId),
+                              subject: event.subject || '',
+                            });
+                            navigate(`/dashboard/chat?${params.toString()}`);
+                          }}
+                          className="text-[10px] font-mono mt-1 underline inline-flex items-center gap-1"
+                        >
+                          <BookOpen size={11} /> Open source
+                        </button>
+                      )}
+                      {event.durationMinutes ? <p className="text-[10px] font-mono mt-1">{event.durationMinutes} min{event.rescheduleCount ? ` - moved ${event.rescheduleCount}x` : ''}</p> : null}
                       {event.reminder && <p className="text-[10px] font-mono mt-1 flex items-center gap-1"><Bell size={11} /> 1 day before</p>}
                     </div>
                     <div className="flex gap-1">
@@ -467,6 +795,16 @@ const RevisionPlanner = () => {
                     </div>
                   </div>
                   {event.notes && <p className="text-[10px] mt-2 leading-relaxed">{event.notes}</p>}
+                  {event.source === 'plan' && event.status === 'pending' && (
+                    <div className="grid grid-cols-2 gap-2 mt-3 pt-2 border-t border-current/20">
+                      <button onClick={() => actOnPlan(event, 'complete')} className="py-1.5 bg-white/80 rounded-[3px] text-[10px] font-mono font-semibold uppercase inline-flex items-center justify-center gap-1">
+                        <CheckCircle2 size={12} /> Complete
+                      </button>
+                      <button onClick={() => actOnPlan(event, 'skip')} className="py-1.5 bg-white/80 rounded-[3px] text-[10px] font-mono font-semibold uppercase inline-flex items-center justify-center gap-1">
+                        <SkipForward size={12} /> Move
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -479,6 +817,95 @@ const RevisionPlanner = () => {
         </aside>
       </div>
 
+      {generationPreview && (
+        <div className="fixed inset-0 z-50 bg-black/30 p-4 flex items-center justify-center">
+          <div className="bg-white border border-[#BDB8B2] rounded-[4px] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white flex items-center justify-between border-b border-[#D7D3CF] px-5 py-4">
+              <div>
+                <h3 className="text-sm font-bold text-[#111111]">Review Your Study Week</h3>
+                <p className="text-[10px] font-mono text-[#666666] mt-0.5">Confirm the sources and how existing adaptive sessions should be handled.</p>
+              </div>
+              <button type="button" onClick={() => setGenerationPreview(null)} title="Close preview" className="p-1.5 rounded-[3px] hover:bg-[#F3F1ED]"><X size={16} /></button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              <div>
+                <div className="text-[10px] font-mono uppercase text-[#666666] font-semibold mb-2">Selected sources</div>
+                <div className="border-y border-[#D7D3CF] divide-y divide-[#E6E3DF]">
+                  {generationPreview.selected_sources.map((source) => (
+                    <div key={source.id} className="py-2.5 flex items-start justify-between gap-4">
+                      <div className="min-w-0 flex items-start gap-2">
+                        <FileText size={14} className="mt-0.5 shrink-0 text-[#24485B]" />
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold break-words">{source.filename}</p>
+                          <p className="text-[10px] font-mono text-[#666666] mt-0.5">{source.subject || 'General'}{source.page_count ? ` - ${source.page_count} pages` : ''}</p>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-mono text-[#666666]">{source.candidate_count} topics</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] font-mono uppercase text-[#666666] font-semibold mb-2">Build behavior</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    { value: 'replace', title: 'Replace adaptive week', text: 'Remove pending generated sessions in this week. Manual plans and exams stay.' },
+                    { value: 'merge', title: 'Merge into week', text: 'Keep current sessions and fill only available times.' }
+                  ].map((mode) => (
+                    <label key={mode.value} className={`border rounded-[4px] p-3 cursor-pointer ${generationMode === mode.value ? 'border-[#102326] bg-[#F3F7F5]' : 'border-[#D7D3CF] bg-white'}`}>
+                      <span className="flex items-center gap-2 text-xs font-semibold">
+                        <input type="radio" name="generation-mode" value={mode.value} checked={generationMode === mode.value} onChange={() => setGenerationMode(mode.value)} />
+                        {mode.title}
+                      </span>
+                      <span className="block text-[10px] leading-relaxed text-[#666666] mt-1 ml-5">{mode.text}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 border border-[#D7D3CF] rounded-[4px] divide-x divide-[#D7D3CF]">
+                <div className="p-3 min-w-0">
+                  <p className="text-lg font-bold font-mono">{generationPreview.candidate_count}</p>
+                  <p className="text-[9px] font-mono uppercase text-[#666666] break-words">Relevant topics</p>
+                </div>
+                <div className="p-3 min-w-0">
+                  <p className="text-lg font-bold font-mono">{generationSummary?.available_slots ?? 0}</p>
+                  <p className="text-[9px] font-mono uppercase text-[#666666] break-words">Available slots</p>
+                </div>
+                <div className="p-3 min-w-0">
+                  <p className="text-lg font-bold font-mono">{generationSummary?.session_count ?? 0}</p>
+                  <p className="text-[9px] font-mono uppercase text-[#666666] break-words">Sessions to add</p>
+                </div>
+              </div>
+
+              {generationPreview.existing_adaptive_count > 0 && (
+                <div className="flex items-start gap-2 border border-[#D7D3CF] rounded-[4px] p-3 text-xs text-[#5C554E]">
+                  <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                  <span>{generationPreview.existing_adaptive_count} existing adaptive session{generationPreview.existing_adaptive_count === 1 ? '' : 's'} will {generationMode === 'replace' ? 'be replaced' : 'remain in the calendar'}.</span>
+                </div>
+              )}
+
+              {generationSummary?.session_count === 0 && (
+                <div className="border border-[#D7D3CF] rounded-[4px] p-3 text-xs text-[#C96A32]">
+                  {generationPreview.candidate_count === 0
+                    ? 'No relevant topics were found in the selected documents.'
+                    : 'No unused topics fit the available study times for this mode.'}
+                </div>
+              )}
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t border-[#D7D3CF] px-5 py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+              <button type="button" onClick={() => setGenerationPreview(null)} className="px-4 py-2 border border-[#D7D3CF] rounded-[4px] text-xs font-mono uppercase">Cancel</button>
+              <button type="button" onClick={confirmAdaptiveWeek} disabled={plannerGenerating || !generationSummary?.session_count} className="px-4 py-2 bg-[#102326] text-white rounded-[4px] text-xs font-mono font-semibold uppercase inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                {plannerGenerating ? <RefreshCw size={13} className="animate-spin" /> : <Sparkles size={13} />} Confirm and Build
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {formOpen && (
         <div className="fixed inset-0 z-50 bg-black/30 p-4 flex items-center justify-center">
           <div className="bg-white border border-[#D7D3CF] rounded-[4px] w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
@@ -489,7 +916,12 @@ const RevisionPlanner = () => {
             <form onSubmit={saveEvent} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="Title" error={formErrors.title}>
-                  <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={FIELD_CLASS} />
+                  <input
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    className={FIELD_CLASS}
+                    placeholder={form.type === 'Exam' ? 'e.g. Artificial Intelligence final exam' : 'e.g. Revise predicate logic'}
+                  />
                 </Field>
                 <Field label="Type">
                   <select
@@ -505,7 +937,7 @@ const RevisionPlanner = () => {
                   <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className={FIELD_CLASS} />
                 </Field>
                 <Field label="Subject/Course">
-                  <input list="calendar-subjects" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className={FIELD_CLASS} placeholder="General" />
+                  <input list="calendar-subjects" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className={FIELD_CLASS} placeholder="e.g. Artificial Intelligence" />
                   <datalist id="calendar-subjects">{subjectOptions.map((subject) => <option key={subject} value={subject} />)}</datalist>
                 </Field>
                 <Field label={form.type === 'Exam' ? 'Starts at' : 'Start Time'} error={formErrors.start_time}>
@@ -516,7 +948,13 @@ const RevisionPlanner = () => {
                 </Field>
               </div>
               <Field label="Notes">
-                <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={4} className={`${FIELD_CLASS} resize-none`} />
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  rows={4}
+                  className={`${FIELD_CLASS} resize-none`}
+                  placeholder="e.g. Review Chapter 3 and solve five practice questions"
+                />
               </Field>
               <label className="flex items-center gap-2 text-xs font-mono text-[#111111]">
                 <input type="checkbox" checked={form.reminder} onChange={(e) => setForm({ ...form, reminder: e.target.checked })} />
