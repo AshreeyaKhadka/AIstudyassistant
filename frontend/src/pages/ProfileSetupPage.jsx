@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Library, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ChevronDown, Library, CheckCircle2, AlertCircle, LogOut } from 'lucide-react';
 import { useUser } from '@clerk/react';
 import { syncClerkSession } from '../utils/syncClerkSession';
 
@@ -16,6 +16,20 @@ const semesterOptions = [
   { value: '6', label: '6th Semester' },
   { value: '7', label: '7th Semester' },
   { value: '8', label: '8th Semester' },
+];
+
+const collegeOptions = [
+  'Nepal Engineering College (NEC), Changunarayan, Bhaktapur',
+  'Pokhara Engineering College (PEC), Pokhara, Kaski',
+  'Gandaki College of Engineering and Science (GCES), Pokhara, Kaski',
+  'Universal Engineering & Science College (UESC), Chakupat, Lalitpur',
+  'Everest Engineering College (EEC), Sanepa, Lalitpur',
+  'Nepal College of Information Technology (NCIT), Balkumari, Lalitpur',
+  'Lumbini Engineering, Management and Science College (LEMSC), Tilottama, Rupandehi',
+  'Oxford College of Engineering and Management, Gaindakot, Nawalparasi',
+  'Rapti Engineering College, Ghorahi, Dang',
+  'College of Engineering & Management (COEM), Nepalgunj, Banke',
+  'Ritz College of Engineering & Management, Balkumari, Lalitpur',
 ];
 
 const splitName = (fullName) => {
@@ -36,6 +50,8 @@ const ProfileSetupPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [collegeSelection, setCollegeSelection] = useState('');
+  const [customCollege, setCustomCollege] = useState('');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -45,6 +61,23 @@ const ProfileSetupPage = () => {
     externalId: '',
     avatarUrl: '',
   });
+
+  const syncCollegeFields = (college) => {
+    if (collegeOptions.includes(college)) {
+      setCollegeSelection(college);
+      setCustomCollege('');
+      return;
+    }
+
+    if (college) {
+      setCollegeSelection('other');
+      setCustomCollege(college);
+      return;
+    }
+
+    setCollegeSelection('');
+    setCustomCollege('');
+  };
 
   const initials = useMemo(() => {
     const firstInitial = formData.firstName?.trim()?.charAt(0) || clerkUser?.firstName?.charAt(0) || 'U';
@@ -111,6 +144,7 @@ const ProfileSetupPage = () => {
           avatarUrl: profile.avatar_url || current.avatarUrl,
           externalId: profile.id ? String(profile.id) : current.externalId,
         }));
+        syncCollegeFields(profile.college || '');
       })
       .catch(() => { })
       .finally(() => {
@@ -122,6 +156,26 @@ const ProfileSetupPage = () => {
 
   const handleChange = (field) => (event) => {
     setFormData((current) => ({ ...current, [field]: event.target.value }));
+  };
+
+  const handleCollegeChoiceChange = (event) => {
+    const value = event.target.value;
+    setCollegeSelection(value);
+
+    if (value === 'other') {
+      setCustomCollege('');
+      setFormData((current) => ({ ...current, college: '' }));
+      return;
+    }
+
+    setCustomCollege('');
+    setFormData((current) => ({ ...current, college: value }));
+  };
+
+  const handleCustomCollegeChange = (event) => {
+    const value = event.target.value;
+    setCustomCollege(value);
+    setFormData((current) => ({ ...current, college: value }));
   };
 
   const validate = () => {
@@ -250,13 +304,29 @@ const ProfileSetupPage = () => {
             <label className="block text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">
               College Name
             </label>
-            <input
-              required
-              value={formData.college}
-              onChange={handleChange('college')}
-              placeholder="Enter your college name"
-              className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none transition-colors"
-            />
+            <div className="space-y-3">
+              <select
+                value={collegeSelection}
+                onChange={handleCollegeChoiceChange}
+                className="w-full appearance-none bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none transition-colors cursor-pointer"
+              >
+                <option value="" disabled>Select your college</option>
+                {collegeOptions.map((college) => (
+                  <option key={college} value={college}>{college}</option>
+                ))}
+                <option value="other">Others</option>
+              </select>
+
+              {collegeSelection === 'other' && (
+                <input
+                  required
+                  value={customCollege}
+                  onChange={handleCustomCollegeChange}
+                  placeholder="Enter your college name"
+                  className="w-full bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3 py-2 text-xs font-mono text-[#111111] outline-none transition-colors"
+                />
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -312,13 +382,24 @@ const ProfileSetupPage = () => {
           )}
 
           <div className="pt-6 border-t border-[#D7D3CF] flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#666666]">
-              <CheckCircle2 size={14} />
-              <span className="text-[10px] font-mono uppercase tracking-wider font-semibold">Data securely processed</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-[#666666]">
+                <CheckCircle2 size={14} />
+                <span className="text-[10px] font-mono uppercase tracking-wider font-semibold">Data securely processed</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigate('/logout')}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-[#D7D3CF] text-[#666666] hover:text-[#111111] hover:border-[#102326] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors"
+              >
+                <LogOut size={14} />
+                Logout
+              </button>
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={saving}
               className="px-6 py-2 bg-[#102326] text-white hover:bg-[#0b191c] rounded-[4px] text-xs font-mono font-semibold uppercase tracking-wider transition-colors disabled:opacity-50"
             >

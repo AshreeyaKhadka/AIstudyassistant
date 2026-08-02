@@ -458,20 +458,20 @@ const ProgressTracker = () => {
 
                 {recommendations.coaching?.study_techniques?.length > 0 && (
                   <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-5">
-                    <h6 className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-3 flex items-center gap-1.5">
-                      <Sparkles size={12} className="text-[#C96A32]" />
+                    <h6 className="text-xs font-mono uppercase tracking-[0.18em] text-[#666666] font-semibold mb-3 flex items-center gap-1.5">
+                      <Sparkles size={13} className="text-[#C96A32]" />
                       STUDY TECHNIQUES
                     </h6>
                     <div className="space-y-2">
                       {recommendations.coaching.study_techniques.map((tech, i) => (
-                        <div key={i} className="p-2.5 bg-[#FAF9F7] rounded-[4px] border border-[#D7D3CF]">
+                        <div key={i} className="p-3 bg-[#FAF9F7] rounded-[4px] border border-[#D7D3CF]">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-mono font-bold text-[#102326]">{tech.name}</span>
+                            <span className="text-sm font-semibold text-[#102326] leading-tight">{tech.name}</span>
                             {tech.best_for && (
-                              <span className="text-[8px] font-mono px-1.5 py-0.5 bg-[#ECEAE7] text-[#666666] rounded-[2px]">{tech.best_for}</span>
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#ECEAE7] text-[#666666] rounded-[2px] leading-none">{tech.best_for}</span>
                             )}
                           </div>
-                          <p className="text-[10px] text-[#666666] leading-relaxed">{tech.description}</p>
+                          <p className="text-xs text-[#444444] leading-relaxed">{tech.description}</p>
                         </div>
                       ))}
                     </div>
@@ -482,8 +482,8 @@ const ProgressTracker = () => {
               {/* Focus Areas */}
               {recommendations.coaching?.focus_areas?.length > 0 && (
                 <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-5">
-                  <h6 className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-3 flex items-center gap-1.5">
-                    <Target size={12} className="text-[#C96A32]" />
+                  <h6 className="text-xs font-mono uppercase tracking-[0.18em] text-[#666666] font-semibold mb-3 flex items-center gap-1.5">
+                    <Target size={13} className="text-[#C96A32]" />
                     PRIORITY FOCUS AREAS
                   </h6>
                   <div className="space-y-2">
@@ -494,8 +494,8 @@ const ProgressTracker = () => {
                         'bg-white border-[#D7D3CF]'
                       }`}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-bold text-[#111111]">{area.topic}</span>
-                          <span className={`text-[8px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-[2px] ${
+                          <span className="text-sm font-semibold text-[#111111] leading-tight">{area.topic}</span>
+                          <span className={`text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-[2px] ${
                             area.priority === 'high' ? 'bg-[#C96A32] text-white' :
                             area.priority === 'medium' ? 'bg-[#ECEAE7] text-[#102326]' :
                             'bg-[#F7F5F2] text-[#666666]'
@@ -503,9 +503,9 @@ const ProgressTracker = () => {
                             {area.priority}
                           </span>
                         </div>
-                        <p className="text-[10px] text-[#666666] mb-1">{area.reason}</p>
+                        <p className="text-xs text-[#555555] leading-relaxed mb-1">{area.reason}</p>
                         {area.suggested_action && (
-                          <p className="text-[10px] font-mono text-[#102326] font-semibold">{area.suggested_action}</p>
+                          <p className="text-xs font-mono text-[#102326] font-semibold leading-relaxed">{area.suggested_action}</p>
                         )}
                       </div>
                     ))}
