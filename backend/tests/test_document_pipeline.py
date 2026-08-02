@@ -11,10 +11,11 @@ from flask import Flask
 from config import db
 from models import User, Subject, StudentUpload
 from models.ai_usage import AiUsageLog  # noqa: F401 - register model metadata
+from routes.auth import auth_bp
 from routes.upload import _file_sha256, _legacy_processing_status, upload_bp
 from services.auth_service import generate_token
 from services.document_parser import extract_material_from_path
-from services.rag_service import chunk_document, chunk_text_by_page
+from services.rag_service import _limit_document_chunks, chunk_document, chunk_text_by_page
 
 
 class DocumentExtractionTests(unittest.TestCase):
@@ -117,6 +118,19 @@ class SemanticChunkingTests(unittest.TestCase):
         self.assertEqual(_legacy_processing_status(SimpleNamespace(embedding_status='embedded')), 'ready')
         self.assertEqual(_legacy_processing_status(SimpleNamespace(embedding_status='failed')), 'failed')
 
+    def test_large_material_chunks_are_capped_with_warning(self):
+        chunks = [
+            {'text': f'Heading {index}\n' + ('study material ' * 80), 'page_number': index + 1, 'locator_type': 'page', 'heading': f'Heading {index}'}
+            for index in range(160)
+        ]
+
+        with patch('services.rag_service.Config.RAG_MAX_MATERIAL_CHUNKS', 40):
+            limited, warnings = _limit_document_chunks(chunks, 'material')
+
+        self.assertEqual(len(limited), 40)
+        self.assertTrue(warnings)
+        self.assertIn('indexed 40 of 160', warnings[0])
+
 
 class UploadRouteTests(unittest.TestCase):
     def setUp(self):
@@ -196,6 +210,56 @@ class UploadRouteTests(unittest.TestCase):
             stored_path = db.session.get(StudentUpload, upload_id).file_url
         if os.path.isfile(stored_path):
             os.remove(stored_path)
+
+
+class BannedAuthTests(unittest.TestCase):
+    def setUp(self):
+        self.app = Flask(__name__)
+        self.app.config.update(
+            TESTING=True,
+            SECRET_KEY='banned-auth-test-key',
+            SQLALCHEMY_DATABASE_URI='sqlite:///:memory:',
+            SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        )
+        db.init_app(self.app)
+        self.app.register_blueprint(auth_bp, url_prefix='/auth')
+        with self.app.app_context():
+            db.create_all()
+            user = User(
+                google_id='banned-user',
+                email='banned@example.com',
+                name='Banned User',
+                is_banned=True,
+                ban_reason='Policy violation',
+            )
+            db.session.add(user)
+            db.session.commit()
+            self.user_id = user.id
+        self.client = self.app.test_client()
+
+    def tearDown(self):
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+
+    def test_auth_me_rejects_banned_user_and_clears_cookie(self):
+        self.client.set_cookie('session_token', generate_token(self.user_id))
+
+        response = self.client.get('/auth/me')
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.get_json()['code'], 'account_banned')
+        self.assertIn('session_token=;', response.headers.get('Set-Cookie', ''))
+
+    def test_sync_clerk_rejects_banned_existing_user(self):
+        response = self.client.post('/auth/sync-clerk', json={
+            'clerk_id': 'banned-user',
+            'email': 'banned@example.com',
+            'name': 'Banned User',
+        })
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.get_json()['code'], 'account_banned')
 
 
 if __name__ == '__main__':

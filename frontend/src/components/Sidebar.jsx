@@ -2,7 +2,6 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useClerk } from '@clerk/react';
 import {
-  GraduationCap,
   LogOut,
   LayoutDashboard,
   BrainCircuit,
@@ -64,9 +63,6 @@ const Sidebar = ({ user, isOpen, onClose }) => {
           title={user?.role === 'admin' ? "Secret: Triple click for Admin" : ""}
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-[#102326] rounded-[4px] flex items-center justify-center text-white shrink-0">
-              <GraduationCap size={18} strokeWidth={2.2} />
-            </div>
             <span className="text-base font-bold text-[#111111] tracking-tight">
               AiStudy
             </span>
@@ -144,7 +140,7 @@ const Sidebar = ({ user, isOpen, onClose }) => {
                 {user?.username || 'Student'}
               </p>
               <p className="text-[11px] text-[#666666] truncate">
-                {user?.college || user?.department || 'Computer Engineering'}
+                {user?.semester ? `Sem ${user.semester} · ` : ''}{user?.college || user?.department || 'Computer Engineering'}
               </p>
             </div>
           </div>

@@ -10,7 +10,7 @@ export async function syncClerkSession(clerkUser) {
     if (refreshedUser) {
       resolvedUser = refreshedUser;
     }
-  } catch (_) {
+  } catch {
     // If reload fails, fall back to the already loaded user object.
   }
 
@@ -33,7 +33,9 @@ export async function syncClerkSession(clerkUser) {
 
   if (!response.ok) {
     const errorPayload = await response.json().catch(() => ({}));
-    throw new Error(errorPayload.error || 'Failed to sync backend session');
+    const error = new Error(errorPayload.error || 'Failed to sync backend session');
+    error.code = errorPayload.code;
+    throw error;
   }
 
   return response.json();

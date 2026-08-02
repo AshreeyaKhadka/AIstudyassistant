@@ -10,13 +10,13 @@ const WelcomeSection = ({ data, user }) => {
 
   const userName = user?.username || user?.first_name || data?.name?.split(' ')[0] || 'Ayush';
   const department = user?.department || data?.department || 'Computer Engineering';
+  const semester = user?.semester || data?.semester || null;
   const streak = data?.streak ?? 0;
 
   return (
     <div className="border border-[#D7D3CF] bg-white rounded-[4px] overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-[#D7D3CF]">
-        {/* Welcome message box - 6 columns */}
-        <div className="md:col-span-6 p-5 md:p-6 flex flex-col justify-between">
+        <div className="md:col-span-5 p-5 md:p-6 flex flex-col justify-between">
           <div className="text-[10px] font-mono tracking-wider uppercase text-[#666666] font-semibold mb-2">
             WELCOME BACK
           </div>
@@ -25,7 +25,6 @@ const WelcomeSection = ({ data, user }) => {
           </h1>
         </div>
 
-        {/* Program info box - 2 columns */}
         <div className="md:col-span-2 p-5 md:p-6 flex flex-col justify-between">
           <div className="text-[10px] font-mono tracking-wider uppercase text-[#666666] font-semibold mb-2">
             PROGRAM
@@ -35,7 +34,15 @@ const WelcomeSection = ({ data, user }) => {
           </div>
         </div>
 
-        {/* Date box - 2 columns */}
+        <div className="md:col-span-2 p-5 md:p-6 flex flex-col justify-between">
+          <div className="text-[10px] font-mono tracking-wider uppercase text-[#666666] font-semibold mb-2">
+            CURRENT SEM
+          </div>
+          <div className="text-sm font-bold text-[#102326] font-mono">
+            {semester ? `Sem ${semester}` : 'Not set'}
+          </div>
+        </div>
+
         <div className="md:col-span-2 p-5 md:p-6 flex flex-col justify-between">
           <div className="text-[10px] font-mono tracking-wider uppercase text-[#666666] font-semibold mb-2">
             DATE
@@ -45,8 +52,7 @@ const WelcomeSection = ({ data, user }) => {
           </div>
         </div>
 
-        {/* Streak box - 2 columns */}
-        <div className="md:col-span-2 p-5 md:p-6 flex flex-col justify-between">
+        <div className="md:col-span-1 p-5 md:p-6 flex flex-col justify-between">
           <div className="text-[10px] font-mono tracking-wider uppercase text-[#666666] font-semibold mb-2">
             STREAK
           </div>

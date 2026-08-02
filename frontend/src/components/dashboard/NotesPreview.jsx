@@ -33,7 +33,7 @@ const NotesPreview = ({ notes = [] }) => {
               className="p-3 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#FAF9F7] transition-colors cursor-pointer"
             >
               <div className="flex justify-between items-start mb-1">
-                <h4 className="text-xs font-bold text-[#111111] truncate">{note.title}</h4>
+                <h4 className="text-xs font-bold text-[#111111] leading-snug line-clamp-2">{note.title}</h4>
                 <span className="text-[10px] font-mono text-[#666666] shrink-0 ml-2">{note.date}</span>
               </div>
               <p className="text-xs text-[#666666] line-clamp-2 mb-2 leading-relaxed">

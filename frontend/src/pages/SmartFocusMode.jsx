@@ -96,6 +96,13 @@ const SmartFocusMode = () => {
   const citationText = useMemo(() => (state.recall?.citations || []).map((citation) => (
     [citation.filename, citation.page_number ? `page ${citation.page_number}` : '', citation.heading].filter(Boolean).join(' · ')
   )), [state.recall]);
+  const recallFeedbackText = useMemo(() => {
+    const feedback = String(state.feedback?.feedback || '');
+    if (/\b(saved|stored)\b/i.test(feedback)) {
+      return 'Automated scoring is unavailable. Compare your answer with your notes and identify one important point you missed.';
+    }
+    return feedback;
+  }, [state.feedback]);
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5 pb-12">
@@ -151,7 +158,7 @@ const SmartFocusMode = () => {
               <p className="mb-2 font-mono text-[10px] font-semibold uppercase text-[#666666]">Active recall</p>
               <h2 className="text-lg font-bold leading-7 text-[#111111]">{state.recall?.question || 'Preparing your recall question...'}</h2>
               {state.recall && !state.feedback && <form onSubmit={handleRecall} className="mt-5 space-y-3"><textarea value={answer} onChange={(event) => setAnswer(event.target.value)} rows={5} placeholder="Explain it in your own words..." className="w-full resize-y rounded-[4px] border border-[#D7D3CF] p-3 text-sm leading-6 outline-none focus:border-[#102326]" /><button disabled={submitting || answer.trim().length < 3} className="rounded-[4px] bg-[#102326] px-4 py-2.5 font-mono text-xs font-semibold uppercase text-white disabled:opacity-50">{submitting ? 'Checking' : 'Check recall'}</button></form>}
-              {state.feedback && <div className="mt-5 border-l-2 border-[#102326] pl-4"><div className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#185C28]" /><p className="text-sm font-bold">{state.feedback.score == null ? 'Answer saved' : `${Math.round(state.feedback.score)}% recall`}</p></div><p className="mt-2 text-sm leading-6 text-[#333333]">{state.feedback.feedback}</p><p className="mt-2 text-xs text-[#666666]"><strong>Next:</strong> {state.feedback.next_step}</p></div>}
+              {state.feedback && <div className="mt-5 border-l-2 border-[#102326] pl-4"><div className="flex items-center gap-2"><CheckCircle2 size={16} className="text-[#185C28]" /><p className="text-sm font-bold">{state.feedback.score == null ? 'Recall checked' : `${Math.round(state.feedback.score)}% recall`}</p></div><p className="mt-2 text-sm leading-6 text-[#333333]">{recallFeedbackText}</p><p className="mt-2 text-xs text-[#666666]"><strong>Next:</strong> {state.feedback.next_step}</p></div>}
               {citationText.length > 0 && <div className="mt-5 border-t border-[#D7D3CF] pt-3"><p className="font-mono text-[9px] font-semibold uppercase text-[#666666]">Based on</p>{citationText.map((text) => <p key={text} className="mt-1 text-[10px] text-[#666666]">{text}</p>)}</div>}
               {state.feedback && <button type="button" onClick={() => { setAnswer(''); reset(); }} className="mt-6 inline-flex items-center gap-2 rounded-[4px] border border-[#D7D3CF] px-4 py-2 text-xs font-semibold"><RotateCcw size={14} /> New session</button>}
             </div>

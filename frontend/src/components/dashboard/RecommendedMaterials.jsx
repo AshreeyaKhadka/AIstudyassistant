@@ -35,8 +35,8 @@ const RecommendedMaterials = ({ recommendations = [] }) => {
               className="flex items-center gap-3 p-3 border border-[#D7D3CF] rounded-[4px] bg-white hover:bg-[#FAF9F7] transition-colors cursor-pointer justify-between"
             >
               <div className="min-w-0 flex-1">
-                <h4 className="text-xs font-bold text-[#111111] truncate">{rec.title}</h4>
-                <p className="text-[9px] font-mono uppercase text-[#666666] mt-0.5">{rec.subject}</p>
+                <h4 className="text-xs font-bold text-[#111111] leading-snug line-clamp-2">{rec.title}</h4>
+                <p className="text-[9px] font-mono uppercase text-[#666666] mt-1 break-words">{rec.subject}</p>
               </div>
               <ArrowUpRight size={14} className="text-[#102326] shrink-0" />
             </div>
