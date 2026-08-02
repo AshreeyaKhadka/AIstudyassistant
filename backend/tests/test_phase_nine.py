@@ -86,6 +86,38 @@ class FocusAndSemesterTests(unittest.TestCase):
         with self.app.app_context():
             self.assertIsNotNone(db.session.get(StudySession, session_id).recall_question)
 
+    def test_focus_history_includes_saved_recall_answer(self):
+        created = self.client.post('/focus/sessions', json={
+            'subject_id': self.current_id, 'topic': 'Paging',
+            'duration_minutes': 25, 'completed': True,
+        })
+        self.assertEqual(created.status_code, 201)
+        session_id = created.get_json()['id']
+
+        self.assertEqual(self.client.post(f'/focus/sessions/{session_id}/recall-question').status_code, 200)
+        answer = self.client.post(f'/focus/sessions/{session_id}/recall-answer', json={
+            'answer': 'Paging divides virtual memory into fixed-size pages mapped to frames.',
+        })
+        self.assertEqual(answer.status_code, 200)
+
+        history = self.client.get('/focus/sessions')
+        self.assertEqual(history.status_code, 200)
+        saved = history.get_json()[0]
+        self.assertEqual(saved['id'], session_id)
+        self.assertIn('Paging divides virtual memory', saved['recall_answer'])
+        self.assertIsNotNone(saved['recall_question'])
+        self.assertIsNotNone(saved['recall_feedback'])
+        self.assertNotIn('saved', saved['recall_feedback'].lower())
+        self.assertEqual(
+            saved['recall_feedback'],
+            'Automated scoring is unavailable. Compare your answer with your notes and identify one important point you missed.',
+        )
+        self.assertEqual(saved['recall_citations'], [])
+        self.assertEqual(
+            saved['recall_next_step'],
+            'Review the relevant section once, then explain it again without looking.',
+        )
+
 
 if __name__ == '__main__':
     unittest.main()

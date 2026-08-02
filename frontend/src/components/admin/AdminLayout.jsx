@@ -59,9 +59,6 @@ const AdminLayout = () => {
         {/* Header */}
         <div className="h-14 flex items-center justify-between px-4 border-b border-white/10">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-[#C96A32] rounded-[4px] flex items-center justify-center">
-              <ShieldCheck size={16} strokeWidth={2.5} />
-            </div>
             <span className="text-sm font-bold tracking-tight">Admin Panel</span>
           </div>
           <button

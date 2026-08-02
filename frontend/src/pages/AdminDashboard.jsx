@@ -37,7 +37,7 @@ const MiniBar = ({ value, max, color = '#102326' }) => {
 };
 
 const KPICard = ({ icon, label, value, sub, color = '#102326' }) => (
-  <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-4">
+  <div className="bg-white border border-[#D7D3CF] rounded-[4px] p-4 min-h-[112px]">
     <div className="flex items-center gap-2 mb-2">
       <div className="w-7 h-7 rounded-[4px] flex items-center justify-center" style={{ backgroundColor: color + '12' }}>
         {icon}
@@ -45,7 +45,7 @@ const KPICard = ({ icon, label, value, sub, color = '#102326' }) => (
       <span className="text-[11px] font-mono text-[#888888] uppercase tracking-wider">{label}</span>
     </div>
     <div className="text-2xl font-bold text-[#111111] font-heading">{value}</div>
-    {sub && <div className="text-[11px] text-[#888888] mt-0.5">{sub}</div>}
+    {sub && <div className="text-[11px] text-[#666666] mt-1 leading-relaxed">{sub}</div>}
   </div>
 );
 
@@ -134,17 +134,20 @@ const OverviewPage = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold font-heading">System Overview</h2>
+        <div>
+          <h2 className="text-lg font-bold font-heading">System Overview</h2>
+          <p className="mt-1 text-xs text-[#666666]">A compact view of account access, study content, and AI usage across the app.</p>
+        </div>
         <button onClick={load} className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-mono text-[#666666] hover:text-[#111111] border border-[#D7D3CF] rounded-[4px] hover:bg-white transition-colors">
           <RefreshCw size={12} /> Refresh
         </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KPICard icon={<Users size={14} color="#102326" />} label="Total Users" value={stats.total_users} sub={`${stats.active_users} active, ${stats.banned_users} banned`} />
-        <KPICard icon={<Zap size={14} color="#C96A32" />} label="Total Tokens" value={formatNumber(stats.total_tokens)} sub={`${formatNumber(stats.today_tokens)} today`} color="#C96A32" />
-        <KPICard icon={<FileUp size={14} color="#102326" />} label="Uploads" value={stats.total_uploads} sub={`${stats.material_uploads} materials, ${stats.syllabus_uploads} syllabi`} />
-        <KPICard icon={<MessageSquare size={14} color="#102326" />} label="Chat Sessions" value={stats.total_chats} sub={`${formatNumber(stats.total_messages)} messages`} />
+        <KPICard icon={<Users size={14} color="#102326" />} label="Accounts" value={stats.total_users} sub={`${stats.active_users} can sign in. ${stats.banned_users} blocked.`} />
+        <KPICard icon={<Zap size={14} color="#C96A32" />} label="AI Tokens" value={formatNumber(stats.total_tokens)} sub={`${formatNumber(stats.today_tokens)} used today`} color="#C96A32" />
+        <KPICard icon={<FileUp size={14} color="#102326" />} label="Documents" value={stats.total_uploads} sub={`${stats.material_uploads} study materials, ${stats.syllabus_uploads} syllabi`} />
+        <KPICard icon={<MessageSquare size={14} color="#102326" />} label="Conversations" value={stats.total_chats} sub={`${formatNumber(stats.total_messages)} total messages`} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -239,9 +242,24 @@ const UsersPage = () => {
   useEffect(() => { load(); }, [load]);
 
   const handleBan = async (userId) => {
+    const target = users.find((u) => u.id === userId);
+    let reason = '';
+    if (!target?.is_banned) {
+      reason = window.prompt('Reason for banning this user?') || '';
+      if (!reason.trim()) return;
+    }
     setActionLoading(userId);
     try {
-      await fetch(`${API}/users/${userId}/ban`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+      const res = await fetch(`${API}/users/${userId}/ban`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Could not update user status.');
+      }
       load();
     } catch (e) { console.error(e); }
     setActionLoading(null);
@@ -250,12 +268,16 @@ const UsersPage = () => {
   const handleRoleToggle = async (userId, currentRole) => {
     setActionLoading(userId);
     try {
-      await fetch(`${API}/users/${userId}/role`, {
+      const res = await fetch(`${API}/users/${userId}/role`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: currentRole === 'admin' ? 'student' : 'admin' }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Could not update role.');
+      }
       load();
     } catch (e) { console.error(e); }
     setActionLoading(null);
@@ -268,7 +290,10 @@ const UsersPage = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold font-heading">User Management</h2>
+        <div>
+          <h2 className="text-lg font-bold font-heading">User Management</h2>
+          <p className="mt-1 text-xs text-[#666666]">Review account status, semester details, and access controls.</p>
+        </div>
         <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-mono text-white bg-[#102326] rounded-[4px] hover:bg-[#0b191c] transition-colors">
           <Download size={12} /> Export CSV
         </button>
@@ -303,6 +328,7 @@ const UsersPage = () => {
             <thead>
               <tr className="border-b border-[#D7D3CF] bg-[#F7F5F2]">
                 <th className="text-left px-3 py-2 font-mono font-semibold text-[10px] uppercase tracking-wider text-[#888888]">User</th>
+                <th className="text-left px-3 py-2 font-mono font-semibold text-[10px] uppercase tracking-wider text-[#888888]">Academic</th>
                 <th className="text-left px-3 py-2 font-mono font-semibold text-[10px] uppercase tracking-wider text-[#888888]">Role</th>
                 <th className="text-left px-3 py-2 font-mono font-semibold text-[10px] uppercase tracking-wider text-[#888888]">Status</th>
                 <th className="text-left px-3 py-2 font-mono font-semibold text-[10px] uppercase tracking-wider text-[#888888]">Joined</th>
@@ -311,9 +337,9 @@ const UsersPage = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={5} className="text-center py-8 text-[#888888]">Loading...</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-[#888888]">Loading...</td></tr>
               ) : users.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-8 text-[#888888]">No users found</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-[#888888]">No users found</td></tr>
               ) : users.map((u) => (
                 <tr key={u.id} className="border-b border-[#ECEAE7] last:border-0 hover:bg-[#FAFAF9]">
                   <td className="px-3 py-2">
@@ -328,13 +354,22 @@ const UsersPage = () => {
                     </div>
                   </td>
                   <td className="px-3 py-2">
+                    <div className="text-[10px] font-mono text-[#111111]">{u.semester ? `Sem ${u.semester}` : 'Semester not set'}</div>
+                    <div className="mt-0.5 max-w-[180px] truncate text-[10px] text-[#888888]" title={u.college || ''}>{u.college || 'College not set'}</div>
+                  </td>
+                  <td className="px-3 py-2">
                     <span className={`inline-flex items-center px-1.5 py-0.5 rounded-[4px] text-[10px] font-mono font-semibold uppercase tracking-wider border ${
                       u.role === 'admin' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-gray-50 text-gray-600 border-gray-200'
                     }`}>
                       {u.role}
                     </span>
                   </td>
-                  <td className="px-3 py-2"><StatusBadge status={u.is_banned ? 'banned' : 'active'} /></td>
+                  <td className="px-3 py-2">
+                    <StatusBadge status={u.is_banned ? 'banned' : 'active'} />
+                    {u.is_banned && u.ban_reason && (
+                      <div className="mt-1 max-w-[220px] text-[10px] leading-4 text-[#9A5B24]" title={u.ban_reason}>{u.ban_reason}</div>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-[#888888] font-mono">{formatDate(u.created_at)}</td>
                   <td className="px-3 py-2">
                     <div className="flex items-center justify-end gap-1">

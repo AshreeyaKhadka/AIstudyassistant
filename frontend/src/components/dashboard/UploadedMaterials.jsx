@@ -56,7 +56,7 @@ const UploadedMaterials = ({ materials = [] }) => {
                       title={`Go to ${file.filename} in Study Vault`}
                     >
                       <FileText size={15} className="text-[#102326] shrink-0 group-hover:scale-110 transition-transform" />
-                      <span className="font-semibold text-[#111111] group-hover:text-[#C96A32] group-hover:underline transition-colors truncate max-w-[180px] sm:max-w-[240px]">
+                      <span className="font-semibold text-[#111111] group-hover:text-[#C96A32] group-hover:underline transition-colors line-clamp-2 max-w-[240px] sm:max-w-[320px] leading-snug">
                         {file.filename}
                       </span>
                     </div>

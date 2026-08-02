@@ -11,8 +11,12 @@ const AdminGuard = ({ children }) => {
   useEffect(() => {
     if (!isLoaded || !isUserLoaded || !isSignedIn) return;
     // fire-and-forget background sync — never blocks rendering
-    syncClerkSession(user).catch(() => {});
-  }, [isLoaded, isUserLoaded, isSignedIn, user?.id]);
+    syncClerkSession(user).catch((error) => {
+      if (error.code === 'account_banned') {
+        window.location.href = '/signin';
+      }
+    });
+  }, [isLoaded, isUserLoaded, isSignedIn, user]);
 
   if (!isLoaded || !isUserLoaded) {
     return (

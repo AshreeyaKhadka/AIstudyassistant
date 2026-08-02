@@ -17,6 +17,7 @@ const DashboardLayout = () => {
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [blockedAccount, setBlockedAccount] = useState(null);
 
   const handleSignIn = useCallback(() => {
     sessionStorage.removeItem('onboarded_session');
@@ -40,6 +41,11 @@ const DashboardLayout = () => {
       try {
         await syncClerkSession(clerkUser);
       } catch (syncError) {
+        if (syncError.code === 'account_banned') {
+          setBlockedAccount(syncError.message);
+          setLoading(false);
+          return;
+        }
         console.error(syncError);
       }
 
@@ -99,6 +105,13 @@ const DashboardLayout = () => {
             first_name: dbFirst,
             last_name: dbLast,
           });
+        } else if (res.status === 403) {
+          const errorPayload = await res.json().catch(() => ({}));
+          if (errorPayload.code === 'account_banned') {
+            setBlockedAccount(errorPayload.error || 'Your account has been banned.');
+          } else {
+            navigate('/profile-setup', { replace: true });
+          }
         } else {
           navigate('/profile-setup', { replace: true });
         }
@@ -133,6 +146,18 @@ const DashboardLayout = () => {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-[#F7F5F2]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#102326] border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (blockedAccount) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-[#F7F5F2] p-6">
+        <div className="w-full max-w-sm border border-[#D7D3CF] bg-white p-6 text-center">
+          <h1 className="text-base font-bold text-[#111111]">Account unavailable</h1>
+          <p className="mt-2 text-xs leading-5 text-[#666666]">{blockedAccount}</p>
+          <button type="button" onClick={handleSignIn} className="mt-5 rounded-[4px] bg-[#102326] px-4 py-2 font-mono text-xs font-semibold uppercase text-white">Return to sign in</button>
+        </div>
       </div>
     );
   }

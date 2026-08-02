@@ -95,10 +95,13 @@ def ban_user(admin_user, user_id):
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
+    if user.id == admin_user.id:
+        return jsonify({"error": "You cannot ban your own admin account."}), 400
 
     data = request.json or {}
     user.is_banned = not user.is_banned
-    user.ban_reason = data.get('reason', '') if user.is_banned else None
+    reason = (data.get('reason') or '').strip()
+    user.ban_reason = reason[:1000] if user.is_banned else None
 
     try:
         db.session.commit()
@@ -122,6 +125,8 @@ def update_user_role(admin_user, user_id):
     new_role = data.get('role', '')
     if new_role not in ('student', 'admin'):
         return jsonify({"error": "Invalid role"}), 400
+    if user.id == admin_user.id and new_role != 'admin':
+        return jsonify({"error": "You cannot remove admin access from your own account."}), 400
 
     user.role = new_role
     try:

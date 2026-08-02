@@ -38,15 +38,25 @@ def log_session(user_id, data):
 
 def get_history(user_id):
     sessions = StudySession.query.filter_by(user_id=user_id).order_by(StudySession.created_at.desc()).all()
-    return [{
-        "id": s.id,
-        "subject_id": s.subject_id,
-        "subject": s.subject,
-        "topic": s.topic,
-        "duration_minutes": s.duration_minutes,
-        "completed": s.completed,
-        "created_at": s.created_at.isoformat()
-    } for s in sessions]
+    history = []
+    for session in sessions:
+        metadata = session.recall_metadata or {}
+        history.append({
+            "id": session.id,
+            "subject_id": session.subject_id,
+            "subject": session.subject,
+            "topic": session.topic,
+            "duration_minutes": session.duration_minutes,
+            "completed": session.completed,
+            "created_at": session.created_at.isoformat(),
+            "recall_question": session.recall_question,
+            "recall_answer": session.recall_answer,
+            "recall_feedback": session.recall_feedback,
+            "recall_score": session.recall_score,
+            "recall_next_step": metadata.get('next_step'),
+            "recall_citations": metadata.get('citations', []),
+        })
+    return history
 
 
 def _recall_context(user_id, subject_id, topic):
@@ -141,7 +151,8 @@ Student answer: {clean_answer}
 Source context: {context}
 
 Return JSON only with:
-{{"score": 0-100, "feedback": "two concise sentences", "next_step": "one concrete revision action"}}"""
+{{"score": 0-100, "feedback": "two concise sentences", "next_step": "one concrete revision action"}}
+Describe only the answer quality and useful review guidance. Do not say the answer was saved or stored."""
         try:
             parsed = _parse_json_response(_call_gemini(prompt, temperature=0.2, max_tokens=260))
             if isinstance(parsed, dict):
@@ -152,7 +163,7 @@ Return JSON only with:
     if not result:
         result = {
             'score': None,
-            'feedback': 'Your answer has been saved. Compare it with your notes and identify one point you missed.',
+            'feedback': 'Automated scoring is unavailable. Compare your answer with your notes and identify one important point you missed.',
             'next_step': 'Review the relevant section once, then explain it again without looking.',
         }
     score = result.get('score')

@@ -171,8 +171,8 @@ def chunk_text_by_page(text: str) -> list[tuple[str, int]]:
 # ---------------------------------------------------------------------------
 # 2. Provider-neutral embeddings
 # ---------------------------------------------------------------------------
-_BATCH_SIZE = 25  # Conservative batch size to avoid 429s
-_BATCH_DELAY = 1  # seconds between batches
+_BATCH_SIZE = Config.RAG_EMBEDDING_BATCH_SIZE
+_BATCH_DELAY = Config.RAG_EMBEDDING_BATCH_DELAY_SECONDS
 
 
 _EMBED_MAX_RETRIES = 4
@@ -234,7 +234,13 @@ def _request_embeddings(url, headers, payload, provider_name):
             time.sleep(wait)
             continue
         if response.status_code >= 400:
-            raise RuntimeError(f'{provider_name} embedding API error {response.status_code}')
+            detail = ''
+            try:
+                detail = response.json().get('error', {}).get('message', '')
+            except Exception:
+                detail = response.text[:200]
+            suffix = f': {detail}' if detail else ''
+            raise RuntimeError(f'{provider_name} embedding API error {response.status_code}{suffix}')
         try:
             return response.json()
         except ValueError as exc:
@@ -243,8 +249,8 @@ def _request_embeddings(url, headers, payload, provider_name):
     if last_error:
         raise RuntimeError(f'Unable to reach {provider_name} embedding API: {last_error}')
     raise RuntimeError(
-        f'{provider_name} embedding API rate limit exceeded after '
-        f'{_EMBED_MAX_RETRIES} retries. Try again later.'
+        f'{provider_name} embedding rate limit was reached while indexing this document. '
+        'The document may be too large for the current quota; try again later or upload a smaller split of the material.'
     )
 
 
@@ -327,6 +333,39 @@ def embed_texts_batched(texts: list[str]) -> list[list[float]]:
     return all_embeddings
 
 
+def _chunk_score(chunk: dict, index: int) -> tuple[int, int, int]:
+    text = chunk.get('text') or ''
+    heading = chunk.get('heading') or ''
+    has_heading = 1 if heading else 0
+    length_score = min(len(text), 1200)
+    early_bonus = max(0, 500 - index)
+    return (has_heading, length_score, early_bonus)
+
+
+def _limit_document_chunks(document_chunks: list[dict], doc_type: str) -> tuple[list[dict], list[str]]:
+    """Keep indexing bounded for large documents while preserving useful coverage."""
+    limit = Config.RAG_MAX_SYLLABUS_CHUNKS if doc_type == 'syllabus' else Config.RAG_MAX_MATERIAL_CHUNKS
+    if not limit or len(document_chunks) <= limit:
+        return document_chunks, []
+
+    # Preserve the front matter, then fill the remaining budget with longer or headed chunks.
+    front_count = min(max(10, limit // 5), limit)
+    selected_indexes = set(range(front_count))
+    ranked = sorted(
+        range(front_count, len(document_chunks)),
+        key=lambda idx: _chunk_score(document_chunks[idx], idx),
+        reverse=True,
+    )
+    selected_indexes.update(ranked[: max(0, limit - front_count)])
+    limited = [chunk for idx, chunk in enumerate(document_chunks) if idx in selected_indexes]
+    warning = (
+        f'Large document indexing limit applied: indexed {len(limited)} of '
+        f'{len(document_chunks)} extracted sections. Split the document by unit or chapter '
+        'if you need every page searchable.'
+    )
+    return limited, [warning]
+
+
 # ---------------------------------------------------------------------------
 # 3. Full embed-and-store pipeline for a document
 # ---------------------------------------------------------------------------
@@ -356,6 +395,13 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
                 db.session.commit()
             return 0
 
+        doc_type = upload.doc_type if upload else 'material'
+        document_chunks, limit_warnings = _limit_document_chunks(document_chunks, doc_type)
+        if upload and limit_warnings:
+            current_warnings = upload.processing_warnings or []
+            upload.processing_warnings = list(dict.fromkeys([*current_warnings, *limit_warnings]))
+            db.session.commit()
+
         chunks = [chunk['text'] for chunk in document_chunks]
 
         logger.info(f"Embedding {len(chunks)} chunks for upload {upload_id} ({filename})")
@@ -367,7 +413,6 @@ def embed_document(upload_id: int, user_id: int, filename: str, parsed_text: str
         collection = _get_collection()
 
         subject_id = upload.subject_id if upload else None
-        doc_type = upload.doc_type if upload else 'material'
         validation_status = (upload.validation_status if upload else None) or 'pending'
 
         ids = [f"upload_{upload_id}_chunk_{i}" for i in range(len(chunks))]

@@ -480,9 +480,9 @@ const UploadedMaterials = () => {
   });
 
   return (
-    <div className="flex flex-col gap-6 pb-12">
+    <div className="flex w-full min-w-0 flex-col gap-6 overflow-visible pb-12">
       {/* 1. Header Card */}
-      <div className="bg-white p-6 border border-[#D7D3CF] rounded-[4px] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex w-full min-w-0 flex-col items-start justify-between gap-4 rounded-[4px] border border-[#D7D3CF] bg-white p-6 md:flex-row md:items-center">
         <div>
           <div className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold mb-1 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#102326]"></span>
@@ -504,7 +504,7 @@ const UploadedMaterials = () => {
       </div>
 
       {/* 2. Stats Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 border border-[#D7D3CF] bg-white rounded-[4px] divide-y sm:divide-y-0 sm:divide-x divide-[#D7D3CF] overflow-hidden">
+      <div className="grid w-full min-w-0 grid-cols-1 overflow-hidden rounded-[4px] border border-[#D7D3CF] bg-white divide-y divide-[#D7D3CF] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
         <div className="p-4 flex flex-col justify-between">
           <span className="text-[10px] font-mono uppercase tracking-wider text-[#666666] font-semibold">TOTAL MATERIALS</span>
           <span className="text-xl font-bold font-mono text-[#111111] mt-1">{materials.length} Files</span>
@@ -538,9 +538,9 @@ const UploadedMaterials = () => {
       )}
 
       {/* 3. Finder Toolbar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 border border-[#D7D3CF] rounded-[4px]">
+      <div className="grid w-full min-w-0 grid-cols-1 gap-3 rounded-[4px] border border-[#D7D3CF] bg-white p-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,620px)]">
         {/* Breadcrumb Navigation */}
-        <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-[#111111] overflow-x-auto py-1">
+        <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto py-1 text-xs font-mono font-medium text-[#111111]">
           <button
             onClick={() => { setCurrentSemester(null); setCurrentSubject(null); setSearchQuery(''); }}
             className={`hover:text-[#C96A32] transition-colors flex items-center gap-1 ${
@@ -582,12 +582,12 @@ const UploadedMaterials = () => {
           )}
         </div>
 
-        <div className="flex w-full sm:w-auto flex-col sm:flex-row gap-2">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,150px)_minmax(0,130px)_minmax(220px,1fr)]">
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
             aria-label="Filter documents by status"
-            className="min-w-32 bg-[#F7F5F2] text-xs font-mono"
+            className="h-10 w-full min-w-0 bg-[#F7F5F2] text-xs font-mono"
           >
             <option value="all">All statuses</option>
             <option value="processing">Processing</option>
@@ -599,7 +599,7 @@ const UploadedMaterials = () => {
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value)}
             aria-label="Filter documents by file type"
-            className="min-w-28 bg-[#F7F5F2] text-xs font-mono"
+            className="h-10 w-full min-w-0 bg-[#F7F5F2] text-xs font-mono"
           >
             <option value="all">All types</option>
             <option value="pdf">PDF</option>
@@ -610,15 +610,15 @@ const UploadedMaterials = () => {
             <option value="jpeg">JPEG</option>
             <option value="webp">WEBP</option>
           </select>
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#666666]" size={14} />
             <input
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search files or subjects..."
+              placeholder="Search files or subjects"
               aria-label="Search files and subjects"
-              className="w-full pl-9 pr-8 py-1.5 bg-[#F7F5F2] border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] text-xs font-mono text-[#111111] outline-none"
+              className="h-10 w-full min-w-0 rounded-[4px] border border-[#D7D3CF] bg-[#F7F5F2] py-2 pl-9 pr-9 text-xs font-mono text-[#111111] outline-none focus:border-[#102326]"
             />
             {searchQuery && (
               <button
@@ -1157,7 +1157,7 @@ const FileCard = ({
   };
 
   return (
-    <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-5 flex flex-col justify-between hover:bg-[#FAF9F7] transition-colors shadow-2xs">
+    <div className="bg-white rounded-[4px] border border-[#D7D3CF] p-5 min-h-[360px] flex flex-col justify-between hover:bg-[#FAF9F7] transition-colors shadow-2xs">
       <div>
         <div className="flex items-start justify-between mb-3">
           <div className="w-8 h-8 bg-[#ECEAE7] text-[#102326] rounded-[4px] flex items-center justify-center shrink-0">
@@ -1214,7 +1214,7 @@ const FileCard = ({
           </div>
         ) : (
           <h4
-            className={`text-xs font-bold truncate ${file.admission_status === 'rejected' ? 'text-[#666666]' : 'text-[#111111] cursor-pointer hover:text-[#102326]'}`}
+            className={`text-sm font-bold leading-snug break-words ${file.admission_status === 'rejected' ? 'text-[#666666]' : 'text-[#111111] cursor-pointer hover:text-[#102326]'}`}
             onClick={file.admission_status === 'rejected' ? undefined : onView}
             title={file.filename}
           >
@@ -1222,7 +1222,7 @@ const FileCard = ({
           </h4>
         )}
 
-        <div className="flex items-center gap-2 mt-1.5 font-mono text-[10px] text-[#666666]">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 font-mono text-[10px] text-[#666666]">
           <span>{formatSize(file.size_bytes)}</span>
           <span>•</span>
           <span>{file.created_at ? new Date(file.created_at).toLocaleDateString() : 'Recent'}</span>
@@ -1234,7 +1234,7 @@ const FileCard = ({
             onChange={(event) => onReassign(file.id, event.target.value)}
             disabled={isBusy || reassigning || file.admission_status === 'rejected'}
             aria-label={`Subject for ${file.filename}`}
-            className="max-w-[150px] px-2 py-0.5 bg-[#ECEAE7] text-[#111111] border-0 font-mono text-[9px] uppercase font-semibold"
+            className="max-w-full min-w-[170px] px-2 py-1 bg-[#ECEAE7] text-[#111111] border-0 font-mono text-[9px] uppercase font-semibold"
           >
             {!file.subject_id && <option value="">General</option>}
             {subjects.map((subject) => (
@@ -1266,17 +1266,17 @@ const FileCard = ({
           <p className="mt-1 text-[10px] font-mono text-[#666666]">{file.character_count.toLocaleString()} extracted characters</p>
         ) : null}
         {file.processing_warnings?.length > 0 && (
-          <p className="mt-2 text-[10px] font-mono text-[#9A5B24] line-clamp-2" title={file.processing_warnings.join(' ')}>
+          <p className="mt-2 text-[10px] leading-4 font-mono text-[#9A5B24]" title={file.processing_warnings.join(' ')}>
             {file.processing_warnings.length} extraction warning{file.processing_warnings.length === 1 ? '' : 's'}: {file.processing_warnings[0]}
           </p>
         )}
         {file.processing_status === 'failed' && file.processing_error && (
-          <p className="mt-2 text-[10px] font-mono text-[#C96A32] line-clamp-3" title={file.processing_error}>
+          <p className="mt-2 text-[10px] leading-4 font-mono text-[#C96A32]" title={file.processing_error}>
             {file.processing_error}
           </p>
         )}
         {['rejected', 'needs_review', 'pending'].includes(file.validation_status) && file.validation_error && (
-          <p className="mt-2 text-[10px] font-mono text-[#C96A32] line-clamp-2">
+          <p className="mt-2 text-[10px] leading-4 font-mono text-[#C96A32]">
             {file.validation_error}
           </p>
         )}

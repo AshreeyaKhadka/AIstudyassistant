@@ -34,6 +34,15 @@ def _profile_redirect_for_user(user):
 
 
 def _issue_session_response(user, include_user=False):
+    if user.is_banned:
+        response = make_response(jsonify({
+            "error": "Your account has been banned.",
+            "code": "account_banned",
+            "ban_reason": user.ban_reason,
+        }), 403)
+        response.set_cookie('session_token', '', expires=0)
+        return response
+
     jwt_token = generate_token(user.id)
     payload = {"message": "Session created"}
     if include_user:
@@ -80,6 +89,14 @@ def login():
                 db.session.rollback()
                 logger.error(f"Failed to create dev user: {e}")
                 return jsonify({"error": "Failed to create dev user account"}), 500
+        elif user.is_banned:
+            response = make_response(jsonify({
+                "error": "Your account has been banned.",
+                "code": "account_banned",
+                "ban_reason": user.ban_reason,
+            }), 403)
+            response.set_cookie('session_token', '', expires=0)
+            return response
         
         # Generate JWT
         jwt_token = generate_token(user.id)
@@ -148,7 +165,13 @@ def auth_callback():
             logger.error(f"Failed to create user: {e}")
             return jsonify({"error": "Failed to create user account"}), 500
     elif user.is_banned:
-        return jsonify({"error": "Your account is banned"}), 403
+        response = make_response(jsonify({
+            "error": "Your account has been banned.",
+            "code": "account_banned",
+            "ban_reason": user.ban_reason,
+        }), 403)
+        response.set_cookie('session_token', '', expires=0)
+        return response
 
     # Generate JWT
     jwt_token = generate_token(user.id)
@@ -175,6 +198,14 @@ def get_current_user():
     user = User.query.get(payload['user_id'])
     if not user:
         return jsonify({"error": "User not found"}), 404
+    if user.is_banned:
+        response = make_response(jsonify({
+            "error": "Your account has been banned.",
+            "code": "account_banned",
+            "ban_reason": user.ban_reason,
+        }), 403)
+        response.set_cookie('session_token', '', expires=0)
+        return response
         
     user_data = user.to_dict()
     # Use the DB-derived profile_complete (from to_dict) instead of the JWT onboarded flag.
@@ -220,6 +251,14 @@ def sync_clerk_session():
         )
         db.session.add(user)
     else:
+        if user.is_banned:
+            response = make_response(jsonify({
+                "error": "Your account has been banned.",
+                "code": "account_banned",
+                "ban_reason": user.ban_reason,
+            }), 403)
+            response.set_cookie('session_token', '', expires=0)
+            return response
         user.google_id = clerk_id or user.google_id or email
         user.email = email
         # Clerk initializes identity, but the profile form is authoritative once
@@ -291,6 +330,14 @@ def onboard():
         )
         db.session.add(user)
     else:
+        if user.is_banned:
+            response = make_response(jsonify({
+                "error": "Your account has been banned.",
+                "code": "account_banned",
+                "ban_reason": user.ban_reason,
+            }), 403)
+            response.set_cookie('session_token', '', expires=0)
+            return response
         user.name = f'{first_name} {last_name}'.strip()
         user.first_name = first_name
         user.last_name = last_name
