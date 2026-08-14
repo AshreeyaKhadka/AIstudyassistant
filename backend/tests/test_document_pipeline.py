@@ -41,7 +41,7 @@ class DocumentExtractionTests(unittest.TestCase):
             document.save(filepath)
             document.close()
 
-            with patch('services.document_parser.Config.GEMINI_API_KEY', None):
+            with patch('services.document_parser.is_llm_configured', return_value=False):
                 text, metadata = extract_material_from_path(filepath, 'empty.pdf')
 
         self.assertEqual(text, '')
@@ -57,7 +57,7 @@ class DocumentExtractionTests(unittest.TestCase):
             document.save(filepath)
             document.close()
 
-            with patch('services.document_parser.Config.GEMINI_API_KEY', 'configured'), patch(
+            with patch('services.document_parser.is_llm_configured', return_value=True), patch(
                 'services.document_parser._ocr_image_bytes',
                 return_value='Course Content Unit One Introduction to computer systems',
             ):
@@ -75,7 +75,7 @@ class DocumentExtractionTests(unittest.TestCase):
             document.save(filepath)
             document.close()
 
-            with patch('services.document_parser.Config.GEMINI_API_KEY', 'configured'), patch(
+            with patch('services.document_parser.is_llm_configured', return_value=True), patch(
                 'services.document_parser._ocr_image_bytes',
             ) as ocr:
                 text, metadata = extract_material_from_path(

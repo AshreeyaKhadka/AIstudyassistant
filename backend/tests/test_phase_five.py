@@ -30,7 +30,7 @@ class SelectiveOcrTests(unittest.TestCase):
             document.save(path)
             document.close()
 
-            with patch('services.document_parser.Config.GEMINI_API_KEY', 'configured'), \
+            with patch('services.document_parser.is_llm_configured', return_value=True), \
                     patch('services.document_parser._ocr_image_bytes') as ocr:
                 text, metadata = extract_material_from_path(path, 'short.pdf')
 

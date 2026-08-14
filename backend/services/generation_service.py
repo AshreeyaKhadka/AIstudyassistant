@@ -12,7 +12,7 @@ All generation is grounded strictly in the provided context.
 import json
 import logging
 import re
-from services.llm_service import LLMServiceError, call_prompt, configured_model_name, get_last_call_metadata
+from services.llm_service import LLMServiceError, call_prompt, get_last_call_metadata, last_call_model_name
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +28,21 @@ def _log_ai_usage(user_id, action_type, usage_metadata, model_used=None, subject
         log = AiUsageLog(
             user_id=user_id,
             action_type=action_type,
-            prompt_tokens=usage_metadata.get('promptTokenCount', 0) or usage_metadata.get('prompt_token_count', 0),
-            completion_tokens=usage_metadata.get('candidatesTokenCount', 0) or usage_metadata.get('completion_token_count', 0),
-            total_tokens=usage_metadata.get('totalTokenCount', 0) or usage_metadata.get('total_token_count', 0),
+            prompt_tokens=(
+                usage_metadata.get('promptTokenCount', 0)
+                or usage_metadata.get('prompt_token_count', 0)
+                or usage_metadata.get('prompt_tokens', 0)
+            ),
+            completion_tokens=(
+                usage_metadata.get('candidatesTokenCount', 0)
+                or usage_metadata.get('completion_token_count', 0)
+                or usage_metadata.get('completion_tokens', 0)
+            ),
+            total_tokens=(
+                usage_metadata.get('totalTokenCount', 0)
+                or usage_metadata.get('total_token_count', 0)
+                or usage_metadata.get('total_tokens', 0)
+            ),
             model_used=model_used,
             subject=subject,
         )
@@ -62,7 +74,7 @@ def _log_usage(action_type, subject=None):
         user_id = getattr(g, 'user_id', None)
         usage = get_last_call_metadata()
         if user_id and usage:
-            _log_ai_usage(user_id, action_type, usage, model_used=configured_model_name(), subject=subject)
+            _log_ai_usage(user_id, action_type, usage, model_used=last_call_model_name(), subject=subject)
     except Exception:
         pass
 

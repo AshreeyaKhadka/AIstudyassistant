@@ -11,10 +11,9 @@ from config import _resolve_sqlite_database_url
 
 
 class FakeResponse:
-    status_code = 200
-
-    def __init__(self, payload):
+    def __init__(self, payload, status_code=200):
         self._payload = payload
+        self.status_code = status_code
         self.text = ''
         self.reason = 'OK'
 
@@ -54,6 +53,40 @@ class LLMServiceTests(unittest.TestCase):
             with self.assertRaises(llm_service.LLMServiceError):
                 llm_service.configured_provider_name()
 
+    def test_retryable_gemini_error_falls_back_to_openrouter(self):
+        gemini_error = FakeResponse({'error': {'message': 'busy'}}, status_code=503)
+        openrouter_success = FakeResponse({
+            'choices': [{'message': {'content': 'Fallback answer'}}],
+            'usage': {'total_tokens': 9},
+        })
+        with patch.object(llm_service.Config, 'LLM_PROVIDER', 'gemini'), \
+                patch.object(llm_service.Config, 'LLM_FALLBACK_PROVIDER', 'openrouter'), \
+                patch.object(llm_service.Config, 'GEMINI_API_KEY', 'gemini-key'), \
+                patch.object(llm_service.Config, 'OPENROUTER_API_KEY', 'openrouter-key'), \
+                patch.object(
+                    llm_service.requests,
+                    'post',
+                    side_effect=[gemini_error, openrouter_success],
+                ) as post:
+            result = llm_service.call_prompt('Explain paging')
+
+        self.assertEqual(result, 'Fallback answer')
+        self.assertEqual(post.call_count, 2)
+        self.assertEqual(llm_service.last_call_provider_name(), 'OpenRouter')
+        self.assertEqual(llm_service.last_call_model_name(), llm_service.Config.OPENROUTER_MODEL)
+
+    def test_authentication_error_does_not_fall_back(self):
+        auth_error = FakeResponse({'error': {'message': 'invalid key'}}, status_code=401)
+        with patch.object(llm_service.Config, 'LLM_PROVIDER', 'gemini'), \
+                patch.object(llm_service.Config, 'LLM_FALLBACK_PROVIDER', 'openrouter'), \
+                patch.object(llm_service.Config, 'GEMINI_API_KEY', 'gemini-key'), \
+                patch.object(llm_service.Config, 'OPENROUTER_API_KEY', 'openrouter-key'), \
+                patch.object(llm_service.requests, 'post', return_value=auth_error) as post:
+            with self.assertRaises(llm_service.LLMServiceError):
+                llm_service.call_prompt('Explain paging')
+
+        self.assertEqual(post.call_count, 1)
+
 
 class EmbeddingProviderTests(unittest.TestCase):
     def test_openrouter_embedding_provider_is_used(self):
@@ -91,6 +124,27 @@ class EmbeddingProviderTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 rag_service._embed_texts(['topic'])
 
+    def test_retryable_gemini_embedding_error_falls_back_to_openrouter(self):
+        gemini_error = FakeResponse({'error': {'message': 'busy'}}, status_code=503)
+        openrouter_success = FakeResponse({
+            'data': [{'index': 0, 'embedding': [0.1, 0.2]}],
+        })
+        with patch.object(rag_service.Config, 'EMBEDDING_PROVIDER', 'gemini'), \
+                patch.object(rag_service.Config, 'EMBEDDING_FALLBACK_PROVIDER', 'openrouter'), \
+                patch.object(rag_service.Config, 'GEMINI_API_KEY', 'gemini-key'), \
+                patch.object(rag_service.Config, 'OPENROUTER_API_KEY', 'openrouter-key'), \
+                patch.object(rag_service.Config, 'GEMINI_EMBEDDING_DIMENSIONS', 2), \
+                patch.object(rag_service.Config, 'OPENROUTER_EMBEDDING_DIMENSIONS', 2), \
+                patch.object(
+                    rag_service.requests,
+                    'post',
+                    side_effect=[gemini_error, openrouter_success],
+                ) as post:
+            result = rag_service._embed_texts(['topic'])
+
+        self.assertEqual(result, [[0.1, 0.2]])
+        self.assertEqual(post.call_count, 2)
+
 
 class BackendConfigTests(unittest.TestCase):
     def test_sqlite_path_resolves_from_backend_directory(self):
@@ -116,6 +170,18 @@ class ChatFoundationTests(unittest.TestCase):
         self.assertIn('Source 1 context', messages[0]['content'])
         self.assertEqual(messages[-1], {'role': 'user', 'content': 'Follow-up question'})
         self.assertNotIn('parts', messages[-1])
+
+    def test_chat_messages_request_nepali_output_but_accept_both_input_languages(self):
+        messages = _build_chat_messages(
+            [],
+            'Explain paging',
+            'Source 1 context',
+            response_language='nepali',
+        )
+
+        system_prompt = messages[0]['content']
+        self.assertIn('either English or Nepali', system_prompt)
+        self.assertIn('Respond in natural Nepali using Devanagari script', system_prompt)
 
     @patch('routes.generate.is_document_embedded', return_value=True)
     def test_pending_material_cannot_generate(self, _embedded):

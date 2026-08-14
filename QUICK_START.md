@@ -81,9 +81,16 @@ Student fills form → Backend saves → AI analyzes → Results display
 Make sure `.env` has:
 ```
 GEMINI_API_KEY=your-key-here
-GEMINI_MODEL=gemini-2.5-flash
+GEMINI_MODEL=gemini-3.6-flash
 GEMINI_API_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+LLM_PROVIDER=gemini
+LLM_FALLBACK_PROVIDER=openrouter
+EMBEDDING_PROVIDER=gemini
+EMBEDDING_FALLBACK_PROVIDER=openrouter
 ```
+
+Set `OPENROUTER_API_KEY` as well when automatic fallback is enabled. Keep both
+keys in `backend/.env`; never commit or paste them into logs or chat.
 
 ---
 

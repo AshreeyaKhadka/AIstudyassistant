@@ -119,7 +119,8 @@ class ChatContinuityRouteTests(unittest.TestCase):
 
     @patch('routes.chat.record_chat_topics')
     @patch('routes.chat.get_last_call_metadata', return_value={})
-    @patch('routes.chat.configured_model_name', return_value='test-model')
+    @patch('routes.chat.last_call_model_name', return_value='test-model')
+    @patch('routes.chat.last_call_provider_name', return_value='TestProvider')
     @patch('routes.chat.configured_provider_name', return_value='TestProvider')
     @patch('routes.chat.is_llm_configured', return_value=True)
     @patch('routes.chat.call_chat', return_value='## Paging\n\n## Direct Answer\nPaging translates addresses [Source 1].')

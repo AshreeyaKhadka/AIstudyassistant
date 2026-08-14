@@ -1,13 +1,10 @@
-import base64
 import logging
 import mimetypes
 import os
 import re
 
 import fitz
-import requests
-
-from config import Config
+from services.llm_service import call_vision_prompt, is_llm_configured
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +162,7 @@ def _parse_pdf(filepath: str, enable_ocr: bool = True) -> tuple[str, dict]:
             if enable_ocr and _should_ocr_pdf_page(page, extracted):
                 if ocr_attempts >= MAX_OCR_PAGES:
                     warnings.append(f'OCR limit reached; page {page_number} was not OCR processed.')
-                elif not Config.GEMINI_API_KEY:
+                elif not is_llm_configured():
                     warnings.append(f'Page {page_number} has little selectable text and OCR is not configured.')
                 else:
                     ocr_attempts += 1
@@ -190,7 +187,7 @@ def _parse_pdf(filepath: str, enable_ocr: bool = True) -> tuple[str, dict]:
         # Some scanned PDFs contain full-page vector or mask content that image
         # coverage detection cannot identify. Only force OCR when the complete
         # native/selective pass produced no usable text.
-        if enable_ocr and not sections and page_count and Config.GEMINI_API_KEY:
+        if enable_ocr and not sections and page_count and is_llm_configured():
             forced_ocr = True
             warnings.append('No selectable text was found; full-page OCR was attempted.')
             for index, page in enumerate(document):
@@ -207,7 +204,7 @@ def _parse_pdf(filepath: str, enable_ocr: bool = True) -> tuple[str, dict]:
                 except Exception as exc:
                     logger.warning('Forced OCR failed for PDF page %s: %s', index + 1, exc)
                     warnings.append(f'OCR failed for page {index + 1}.')
-        elif enable_ocr and not sections and page_count and not Config.GEMINI_API_KEY:
+        elif enable_ocr and not sections and page_count and not is_llm_configured():
             warnings.append('This PDF appears scanned, but OCR is not configured on the server.')
         elif not enable_ocr and not sections and page_count:
             if image_pages:
@@ -271,50 +268,17 @@ def _ocr_image_file(filepath: str) -> str:
 
 
 def _ocr_image_bytes(image_bytes: bytes, mime_type: str) -> str:
-    if not Config.GEMINI_API_KEY:
-        raise RuntimeError('GEMINI_API_KEY is required for OCR of handwritten or scanned notes.')
+    if not is_llm_configured():
+        raise RuntimeError('An AI provider is required for OCR of handwritten or scanned notes.')
 
-    payload = {
-        'contents': [{
-            'role': 'user',
-            'parts': [
-                {
-                    'text': (
-                        'Extract all readable study-note text from this image. Preserve headings, '
-                        'bullet points, formulas, table rows, code, and slide structure. Return plain '
-                        'text only. Mark unclear fragments as [unclear] instead of inventing text.'
-                    )
-                },
-                {
-                    'inline_data': {
-                        'mime_type': mime_type,
-                        'data': base64.b64encode(image_bytes).decode('ascii'),
-                    }
-                },
-            ],
-        }],
-        'generationConfig': {'temperature': 0.0, 'maxOutputTokens': 4096},
-    }
-
-    try:
-        response = requests.post(
-            f"{Config.GEMINI_API_BASE_URL.rstrip('/')}/models/{Config.GEMINI_MODEL}:generateContent",
-            headers={'x-goog-api-key': Config.GEMINI_API_KEY},
-            json=payload,
-            timeout=90,
-        )
-        response.raise_for_status()
-    except requests.RequestException as exc:
-        logger.error('Gemini OCR request failed: %s', exc)
-        raise RuntimeError(f'OCR failed: {exc}') from exc
-
-    try:
-        data = response.json()
-    except ValueError as exc:
-        raise RuntimeError('OCR service returned an invalid response.') from exc
-    candidates = data.get('candidates') or []
-    if not candidates:
-        return ''
-    content = (candidates[0] or {}).get('content') or {}
-    parts = content.get('parts') or []
-    return '\n'.join(part.get('text', '') for part in parts if isinstance(part, dict)).strip()
+    return call_vision_prompt(
+        (
+            'Extract all readable study-note text from this image. Preserve headings, '
+            'bullet points, formulas, table rows, code, and slide structure. Return plain '
+            'text only. Mark unclear fragments as [unclear] instead of inventing text.'
+        ),
+        image_bytes,
+        mime_type=mime_type,
+        temperature=0.0,
+        max_tokens=4096,
+    )
