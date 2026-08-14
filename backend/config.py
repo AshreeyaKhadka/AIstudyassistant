@@ -45,9 +45,11 @@ class Config:
 
     # Providers
     LLM_PROVIDER = os.environ.get('LLM_PROVIDER', 'gemini').strip().lower()
+    LLM_FALLBACK_PROVIDER = os.environ.get('LLM_FALLBACK_PROVIDER', '').strip().lower()
     EMBEDDING_PROVIDER = os.environ.get('EMBEDDING_PROVIDER', 'gemini').strip().lower()
+    EMBEDDING_FALLBACK_PROVIDER = os.environ.get('EMBEDDING_FALLBACK_PROVIDER', '').strip().lower()
     GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY') or os.environ.get('Gemini_API_KEY')
-    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+    GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-3.6-flash')
     GEMINI_API_BASE_URL = os.environ.get('GEMINI_API_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta')
     OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY')
     OPENROUTER_MODEL = os.environ.get('OPENROUTER_MODEL', 'google/gemini-2.5-flash')
@@ -69,3 +71,12 @@ class Config:
     RAG_EMBEDDING_BATCH_DELAY_SECONDS = _positive_int_env('RAG_EMBEDDING_BATCH_DELAY_SECONDS', 2)
     RAG_MAX_MATERIAL_CHUNKS = _positive_int_env('RAG_MAX_MATERIAL_CHUNKS', 120)
     RAG_MAX_SYLLABUS_CHUNKS = _positive_int_env('RAG_MAX_SYLLABUS_CHUNKS', 180)
+
+    # Local speech-to-text
+    WHISPER_MODEL = os.environ.get('WHISPER_MODEL', 'small').strip()
+    WHISPER_DEVICE = os.environ.get('WHISPER_DEVICE', 'cpu').strip().lower()
+    WHISPER_COMPUTE_TYPE = os.environ.get('WHISPER_COMPUTE_TYPE', 'int8').strip().lower()
+    WHISPER_CPU_THREADS = _positive_int_env('WHISPER_CPU_THREADS', 8)
+    WHISPER_DOWNLOAD_ROOT = os.environ.get('WHISPER_DOWNLOAD_ROOT', '').strip()
+    VOICE_MAX_SECONDS = _positive_int_env('VOICE_MAX_SECONDS', 45)
+    VOICE_MAX_BYTES = _positive_int_env('VOICE_MAX_BYTES', 5 * 1024 * 1024)

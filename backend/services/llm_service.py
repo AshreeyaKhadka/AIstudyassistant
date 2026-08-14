@@ -6,24 +6,45 @@ from config import Config
 logger = logging.getLogger(__name__)
 SUPPORTED_PROVIDERS = {'gemini', 'openrouter'}
 _last_call_metadata = {}
+_last_call_provider = None
+_last_call_model = None
 
 
 class LLMServiceError(RuntimeError):
-    def __init__(self, message, status_code=None, details=None, retry_delay=None):
+    def __init__(self, message, status_code=None, details=None, retry_delay=None, retryable=False):
         super().__init__(message)
         self.status_code = status_code
         self.details = details
         self.retry_delay = retry_delay
+        self.retryable = retryable
 
 
-def _provider():
-    provider = (Config.LLM_PROVIDER or 'gemini').strip().lower()
+def _validate_provider(provider, setting_name, allow_empty=False):
+    provider = (provider or '').strip().lower()
+    if allow_empty and not provider:
+        return None
     if provider not in SUPPORTED_PROVIDERS:
         raise LLMServiceError(
             f'Unsupported LLM provider: {provider}',
-            details={'supported_providers': sorted(SUPPORTED_PROVIDERS)},
+            details={
+                'setting': setting_name,
+                'supported_providers': sorted(SUPPORTED_PROVIDERS),
+            },
         )
     return provider
+
+
+def _provider():
+    return _validate_provider(Config.LLM_PROVIDER or 'gemini', 'LLM_PROVIDER')
+
+
+def _fallback_provider():
+    provider = _validate_provider(
+        Config.LLM_FALLBACK_PROVIDER,
+        'LLM_FALLBACK_PROVIDER',
+        allow_empty=True,
+    )
+    return provider if provider != _provider() else None
 
 
 def configured_provider_name():
@@ -34,6 +55,15 @@ def configured_model_name():
     if _provider() == 'openrouter':
         return Config.OPENROUTER_MODEL
     return Config.GEMINI_MODEL
+
+
+def last_call_provider_name():
+    provider = _last_call_provider or _provider()
+    return 'OpenRouter' if provider == 'openrouter' else 'Gemini'
+
+
+def last_call_model_name():
+    return _last_call_model or configured_model_name()
 
 
 def get_last_call_metadata():
@@ -47,10 +77,16 @@ def _has_real_value(value):
     return bool(normalized) and not normalized.startswith('replace_with_')
 
 
-def is_llm_configured():
-    if _provider() == 'openrouter':
+def _is_provider_configured(provider):
+    if provider == 'openrouter':
         return _has_real_value(Config.OPENROUTER_API_KEY)
     return _has_real_value(Config.GEMINI_API_KEY)
+
+
+def is_llm_configured():
+    return _is_provider_configured(_provider()) or (
+        bool(_fallback_provider()) and _is_provider_configured(_fallback_provider())
+    )
 
 
 def _extract_openrouter_retry_delay(error_body):
@@ -87,6 +123,7 @@ def _parse_error_response(response, provider_name):
         status_code=response.status_code,
         details=details,
         retry_delay=retry_delay,
+        retryable=response.status_code == 429 or response.status_code >= 500,
     )
 
 
@@ -104,7 +141,7 @@ def openrouter_headers():
 
 
 def _call_openrouter(messages, temperature=0.4, max_tokens=2000, json_mode=False):
-    global _last_call_metadata
+    global _last_call_metadata, _last_call_provider, _last_call_model
     if not _has_real_value(Config.OPENROUTER_API_KEY):
         raise LLMServiceError('OPENROUTER_API_KEY is not configured')
 
@@ -126,7 +163,7 @@ def _call_openrouter(messages, temperature=0.4, max_tokens=2000, json_mode=False
         )
     except requests.RequestException as exc:
         logger.error(f'OpenRouter request failed: {exc}')
-        raise LLMServiceError(f'Unable to reach OpenRouter: {exc}') from exc
+        raise LLMServiceError(f'Unable to reach OpenRouter: {exc}', retryable=True) from exc
 
     if response.status_code >= 400:
         raise _parse_error_response(response, 'OpenRouter')
@@ -154,6 +191,8 @@ def _call_openrouter(messages, temperature=0.4, max_tokens=2000, json_mode=False
     if not text:
         raise LLMServiceError('OpenRouter returned an empty response')
     _last_call_metadata = data.get('usage') or {}
+    _last_call_provider = 'openrouter'
+    _last_call_model = payload['model']
     return text
 
 
@@ -221,7 +260,7 @@ def _gemini_contents_from_messages(messages):
 
 
 def _call_gemini(messages, temperature=0.4, max_tokens=2000, json_mode=False):
-    global _last_call_metadata
+    global _last_call_metadata, _last_call_provider, _last_call_model
     if not _has_real_value(Config.GEMINI_API_KEY):
         raise LLMServiceError('GEMINI_API_KEY is not configured')
 
@@ -244,7 +283,7 @@ def _call_gemini(messages, temperature=0.4, max_tokens=2000, json_mode=False):
         )
     except requests.RequestException as exc:
         logger.error(f'Gemini request failed: {exc}')
-        raise LLMServiceError(f'Unable to reach Gemini: {exc}') from exc
+        raise LLMServiceError(f'Unable to reach Gemini: {exc}', retryable=True) from exc
 
     if response.status_code >= 400:
         raise _parse_error_response(response, 'Gemini')
@@ -269,11 +308,29 @@ def _call_gemini(messages, temperature=0.4, max_tokens=2000, json_mode=False):
     if not text:
         raise LLMServiceError('Gemini returned an empty response')
     _last_call_metadata = data.get('usageMetadata') or {}
+    _last_call_provider = 'gemini'
+    _last_call_model = Config.GEMINI_MODEL
     return text
 
 
 def call_chat(messages, temperature=0.4, max_tokens=2000, json_mode=False):
-    if _provider() == 'openrouter':
+    primary = _provider()
+    try:
+        return _call_provider(primary, messages, temperature, max_tokens, json_mode)
+    except LLMServiceError as primary_error:
+        fallback = _fallback_provider()
+        if not primary_error.retryable or not fallback or not _is_provider_configured(fallback):
+            raise
+        logger.warning(
+            '%s request failed transiently; falling back to %s',
+            primary,
+            fallback,
+        )
+        return _call_provider(fallback, messages, temperature, max_tokens, json_mode)
+
+
+def _call_provider(provider, messages, temperature, max_tokens, json_mode):
+    if provider == 'openrouter':
         return _call_openrouter(messages, temperature, max_tokens, json_mode)
     return _call_gemini(messages, temperature, max_tokens, json_mode)
 

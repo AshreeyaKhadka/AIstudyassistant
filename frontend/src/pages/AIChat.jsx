@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bot, Loader2, MessageSquare, SendHorizontal, UserRound, ArrowLeft, Plus, Trash2, History, X, AlertTriangle, ExternalLink, FileText, BookOpenCheck, PanelLeft, PanelRight, Files } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, BookOpenCheck, Bot, Check, Copy, ExternalLink, FileText, Files, History, Languages, Loader2, MessageSquare, Mic, PanelLeft, PanelRight, Plus, RefreshCw, SendHorizontal, Square, Trash2, UserRound, Volume2, X } from 'lucide-react';
 import { useSearchParams, useNavigate, useOutletContext } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -26,6 +26,43 @@ const canChatWithDocument = (document) => (
   && document?.embedding_status === 'embedded'
   && document?.processing_status === 'ready'
 );
+
+const speechTextFromMarkdown = (markdown = '') => markdown
+  .replace(/```[\s\S]*?```/g, ' ')
+  .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
+  .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+  .replace(/\$+([^$]+)\$+/g, '$1')
+  .replace(/[#>*_`~|]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const microphoneErrorMessage = (errorName) => {
+  if (errorName === 'NotAllowedError' || errorName === 'SecurityError') {
+    return 'Microphone access was blocked. Allow microphone access in your browser and try again.';
+  }
+  if (errorName === 'NotFoundError') return 'No working microphone was found.';
+  if (errorName === 'NotReadableError') return 'The microphone is already in use by another application.';
+  return 'The microphone could not start. Use HTTPS or localhost and check browser permissions.';
+};
+
+const welcomeContent = ({ language, studyMode, documentName, subject, unit, syllabusFocus }) => {
+  if (language === 'nepali') {
+    if (studyMode === 'document') {
+      return `नमस्ते! म **${documentName || 'तपाईंले छान्नुभएको कागजात'}** बाट उत्तर दिन तयार छु। मेरा उत्तर यही फाइलमा आधारित हुनेछन्।`;
+    }
+    if (subject || syllabusFocus) {
+      return `नमस्ते! म तपाईंलाई **${unit || syllabusFocus?.label || subject}** अध्ययन गर्न सहयोग गर्न तयार छु। अवधारणा बुझ्न, प्रश्नोत्तरी गर्न वा पुनरावृत्ति नोट बनाउन सोध्नुहोस्।`;
+    }
+    return 'नमस्ते! म अवधारणा, पुनरावृत्ति र तपाईंले अपलोड गरेका अध्ययन सामग्रीका प्रश्नहरूमा सहयोग गर्न तयार छु।';
+  }
+  if (studyMode === 'document') {
+    return `Hi! I am ready to answer from **${documentName || 'your selected document'}**. My answer will stay grounded in this file.`;
+  }
+  if (subject || syllabusFocus) {
+    return `Hi! I am ready to help you study **${unit || syllabusFocus?.label || subject}**.${syllabusFocus?.note ? ` ${syllabusFocus.note}` : ''} Ask me to explain concepts, quiz you, or generate revision notes.`;
+  }
+  return 'Hi, I am ready to help with concepts, revision, and questions from your uploaded materials.';
+};
 
 const AIChat = () => {
   const [searchParams] = useSearchParams();
@@ -84,13 +121,9 @@ const AIChat = () => {
 
   const [messages, setMessages] = useState([
     {
-      id: 1,
+      id: 'welcome',
       role: 'assistant',
-      content: studyMode === 'document'
-        ? `Hi! I am ready to answer from **${documentName || 'your selected document'}**. My answer will stay grounded in this file.`
-        : subject
-        ? `Hi! I am ready to help you study **${unit || syllabusFocus?.label || subject}**.${syllabusFocus?.note ? ` ${syllabusFocus.note}` : ''} Ask me to explain concepts, quiz you, or generate revision notes.`
-        : 'Hi, I am ready to help with concepts, revision, and questions from your uploaded materials.',
+      content: welcomeContent({ language: 'english', studyMode, documentName, subject, unit, syllabusFocus }),
     },
   ]);
   const [input, setInput] = useState('');
@@ -99,7 +132,22 @@ const AIChat = () => {
   const [error, setError] = useState('');
   const [scopeSuggestion, setScopeSuggestion] = useState(null);
   const [sessionId, setSessionId] = useState(null);
+  const [responseLanguage, setResponseLanguage] = useState('english');
+  const [isListening, setIsListening] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState('');
+  const [speakingMessageId, setSpeakingMessageId] = useState(null);
+  const [regeneratingMessageId, setRegeneratingMessageId] = useState(null);
+  const [translatingMessageId, setTranslatingMessageId] = useState(null);
   const scrollRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const mediaStreamRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimeoutRef = useRef(null);
+  const discardRecordingRef = useRef(false);
+  const voiceRequestRef = useRef(null);
+  const translationRequestRef = useRef(null);
+  const activeUtteranceRef = useRef(null);
 
   const [sessions, setSessions] = useState([]);
   const [showSessions, setShowSessions] = useState(false);
@@ -112,6 +160,8 @@ const AIChat = () => {
   const [documentsPanelOpen, setDocumentsPanelOpen] = useState(true);
   const skipPanelPersistRef = useRef(true);
 
+  const speechSynthesisSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+
   useEffect(() => {
     if (!user?.id) return;
     skipPanelPersistRef.current = true;
@@ -123,6 +173,29 @@ const AIChat = () => {
       setDocumentsPanelOpen(true);
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const savedLanguage = localStorage.getItem(`aistudy-chat-language:${user.id}`);
+    const language = savedLanguage === 'nepali' ? 'nepali' : 'english';
+    setResponseLanguage(language);
+    setMessages((current) => current.map((message) => (
+      message.id === 'welcome'
+        ? { ...message, content: welcomeContent({ language, studyMode, documentName, subject, unit, syllabusFocus }) }
+        : message
+    )));
+  }, [documentName, studyMode, subject, syllabusFocus, unit, user?.id]);
+
+  useEffect(() => () => {
+    discardRecordingRef.current = true;
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    if (recordingTimeoutRef.current) window.clearTimeout(recordingTimeoutRef.current);
+    voiceRequestRef.current?.abort();
+    translationRequestRef.current?.abort();
+    activeUtteranceRef.current = null;
+    if (speechSynthesisSupported) window.speechSynthesis.cancel();
+  }, [speechSynthesisSupported]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -217,18 +290,18 @@ const AIChat = () => {
       if (!res.ok) throw new Error(data?.error || 'Could not open this conversation.');
       if (data) {
         const loadedMessages = (data.messages || []).map((m) => ({
-          id: m.id,
+          id: `message-${m.id}`,
+          persistedId: m.id,
           role: m.role,
           content: m.content,
+          displayContent: m.display_content || m.content,
           metadata: m.metadata || {},
         }));
         if (loadedMessages.length > 0 && loadedMessages[0].role !== 'assistant') {
           loadedMessages.unshift({
-            id: 0,
+            id: 'welcome',
             role: 'assistant',
-            content: subject
-              ? `Hi! I am ready to help you study **${unit || subject}**.`
-              : 'Hi, I am ready to help with concepts, revision, and questions.',
+            content: welcomeContent({ language: responseLanguage, studyMode, documentName, subject, unit, syllabusFocus }),
           });
         }
         setMessages(loadedMessages);
@@ -238,7 +311,7 @@ const AIChat = () => {
     } catch (err) {
       setError(err.message || 'Could not open this conversation.');
     }
-  }, [subject, unit]);
+  }, [documentName, responseLanguage, studyMode, subject, syllabusFocus, unit]);
 
   useEffect(() => {
     if (requestedSessionId) loadSession(requestedSessionId);
@@ -267,33 +340,267 @@ const AIChat = () => {
   };
 
   const startNewChat = () => {
+    discardRecordingRef.current = true;
+    if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+    mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+    voiceRequestRef.current?.abort();
+    translationRequestRef.current?.abort();
+    activeUtteranceRef.current = null;
+    if (speechSynthesisSupported) window.speechSynthesis.cancel();
+    setIsListening(false);
+    setTranscribing(false);
+    setVoiceStatus('');
+    setSpeakingMessageId(null);
     setMessages([
       {
-        id: 1,
+        id: 'welcome',
         role: 'assistant',
-        content: studyMode === 'document'
-          ? `Hi! I am ready to answer from **${documentName || 'your selected document'}**. My answer will stay grounded in this file.`
-          : subject
-          ? `Hi! I am ready to help you study **${unit || syllabusFocus?.label || subject}**.${syllabusFocus?.note ? ` ${syllabusFocus.note}` : ''} Ask me to explain concepts, quiz you, or create notes.`
-          : 'Hi, I am ready to help with concepts, revision, and questions from your uploaded materials.',
+        content: welcomeContent({ language: responseLanguage, studyMode, documentName, subject, unit, syllabusFocus }),
       },
     ]);
     setSessionId(null);
     setShowSessions(false);
   };
 
+  const selectResponseLanguage = async (language) => {
+    if (isListening || transcribing || translatingMessageId) return;
+    const latestAssistant = [...messages].reverse().find((message) => message.role === 'assistant' && message.persistedId);
+    const latestDisplayLanguage = latestAssistant?.metadata?.display_language || latestAssistant?.metadata?.response_language;
+    if (language === responseLanguage && (!latestAssistant || latestDisplayLanguage === language)) return;
+    translationRequestRef.current?.abort();
+    activeUtteranceRef.current = null;
+    if (speechSynthesisSupported) window.speechSynthesis.cancel();
+    setSpeakingMessageId(null);
+    setResponseLanguage(language);
+    if (user?.id) localStorage.setItem(`aistudy-chat-language:${user.id}`, language);
+
+    if (!latestAssistant) {
+      setMessages((current) => current.map((message) => (
+        message.id === 'welcome'
+          ? { ...message, content: welcomeContent({ language, studyMode, documentName, subject, unit, syllabusFocus }) }
+          : message
+      )));
+      return;
+    }
+    if (latestDisplayLanguage === language) return;
+
+    const controller = new AbortController();
+    translationRequestRef.current = controller;
+    setTranslatingMessageId(latestAssistant.id);
+    setError('');
+    try {
+      const response = await fetch(`/api/chat/messages/${latestAssistant.persistedId}/translate`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_language: language }),
+        signal: controller.signal,
+      });
+      const data = await parseJsonResponse(response);
+      if (!response.ok) throw new Error(data?.error || data?.message || 'The latest answer could not be translated.');
+      setMessages((current) => current.map((message) => (
+        message.id === latestAssistant.id
+          ? {
+              ...message,
+              displayContent: data.content,
+              metadata: { ...message.metadata, display_language: data.language },
+            }
+          : message
+      )));
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setError(`${err.message || 'The latest answer could not be translated.'} New answers will still use the selected language.`);
+      }
+    } finally {
+      if (translationRequestRef.current === controller) {
+        translationRequestRef.current = null;
+        setTranslatingMessageId(null);
+      }
+    }
+  };
+
+  const transcribeRecording = async (blob, mediaType) => {
+    if (!blob.size) {
+      setError('The voice recording was empty. Try again.');
+      return;
+    }
+    const controller = new AbortController();
+    voiceRequestRef.current = controller;
+    setTranscribing(true);
+    setVoiceStatus('Transcribing voice...');
+    setError('');
+    try {
+      const extension = mediaType.includes('ogg') ? 'ogg' : mediaType.includes('mp4') ? 'm4a' : mediaType.includes('wav') ? 'wav' : 'webm';
+      const formData = new FormData();
+      formData.append('audio', blob, `voice-question.${extension}`);
+      const response = await fetch('/api/chat/transcribe', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+        signal: controller.signal,
+      });
+      const data = await parseJsonResponse(response);
+      if (!response.ok) throw new Error(data?.error || data?.message || 'Voice transcription failed.');
+      setInput((current) => `${current.trim()}${current.trim() ? ' ' : ''}${data.transcript}`);
+      const detected = data.detected_language === 'nepali' ? 'Nepali' : data.detected_language === 'english' ? 'English' : data.detected_language;
+      setVoiceStatus(`${detected || 'Voice'} transcription ready.`);
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setError(err.message || 'Voice transcription failed. Try again or type your question.');
+        setVoiceStatus('');
+      }
+    } finally {
+      if (voiceRequestRef.current === controller) {
+        voiceRequestRef.current = null;
+        setTranscribing(false);
+      }
+    }
+  };
+
+  const toggleDictation = async () => {
+    if (isListening) {
+      if (mediaRecorderRef.current?.state === 'recording') mediaRecorderRef.current.stop();
+      return;
+    }
+    if (transcribing) return;
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      setError('Microphone recording requires HTTPS or localhost in a supported browser.');
+      return;
+    }
+    if (!window.MediaRecorder) {
+      setError('Audio recording is not supported by this browser.');
+      return;
+    }
+
+    setError('');
+    setVoiceStatus('');
+    discardRecordingRef.current = false;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+      });
+      mediaStreamRef.current = stream;
+      const mediaTypes = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'];
+      const selectedType = mediaTypes.find((type) => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(
+        stream,
+        selectedType ? { mimeType: selectedType, audioBitsPerSecond: 64000 } : { audioBitsPerSecond: 64000 },
+      );
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size) audioChunksRef.current.push(event.data);
+      };
+      recorder.onerror = () => {
+        discardRecordingRef.current = true;
+        setError('The browser stopped recording unexpectedly. Try again.');
+      };
+      recorder.onstop = () => {
+        if (recordingTimeoutRef.current) window.clearTimeout(recordingTimeoutRef.current);
+        recordingTimeoutRef.current = null;
+        stream.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+        mediaRecorderRef.current = null;
+        setIsListening(false);
+        const mediaType = recorder.mimeType || selectedType || 'audio/webm';
+        const blob = new Blob(audioChunksRef.current, { type: mediaType });
+        audioChunksRef.current = [];
+        if (!discardRecordingRef.current) transcribeRecording(blob, mediaType);
+        discardRecordingRef.current = false;
+      };
+      recorder.start(250);
+      setIsListening(true);
+      setVoiceStatus('Listening...');
+      recordingTimeoutRef.current = window.setTimeout(() => {
+        if (recorder.state === 'recording') recorder.stop();
+      }, 45000);
+    } catch (err) {
+      mediaStreamRef.current?.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+      mediaRecorderRef.current = null;
+      setIsListening(false);
+      setVoiceStatus('');
+      setError(microphoneErrorMessage(err.name));
+    }
+  };
+
+  const toggleReadAloud = (message) => {
+    if (!speechSynthesisSupported) {
+      setError('Read aloud is not supported by this browser.');
+      return;
+    }
+    if (speakingMessageId === message.id) {
+      activeUtteranceRef.current = null;
+      window.speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+      return;
+    }
+
+    const spokenText = speechTextFromMarkdown(message.displayContent || message.content);
+    if (!spokenText) return;
+    activeUtteranceRef.current = null;
+    window.speechSynthesis.cancel();
+    setError('');
+    const utterance = new SpeechSynthesisUtterance(spokenText);
+    const spokenLanguage = message.metadata?.display_language || message.metadata?.response_language || responseLanguage;
+    const languageCode = spokenLanguage === 'nepali' ? 'ne-NP' : 'en-US';
+    utterance.lang = languageCode;
+    const languagePrefix = languageCode.split('-')[0].toLowerCase();
+    const matchingVoice = window.speechSynthesis.getVoices().find(
+      (voice) => voice.lang.toLowerCase().startsWith(languagePrefix)
+    );
+    if (matchingVoice) utterance.voice = matchingVoice;
+    activeUtteranceRef.current = utterance;
+    utterance.onstart = () => {
+      if (activeUtteranceRef.current === utterance) setSpeakingMessageId(message.id);
+    };
+    utterance.onend = () => {
+      if (activeUtteranceRef.current !== utterance) return;
+      activeUtteranceRef.current = null;
+      setSpeakingMessageId(null);
+    };
+    utterance.onerror = (event) => {
+      if (activeUtteranceRef.current !== utterance) return;
+      activeUtteranceRef.current = null;
+      setSpeakingMessageId(null);
+      if (!['canceled', 'interrupted'].includes(event.error)) {
+        setError('This answer could not be read aloud with the available system voices.');
+      }
+    };
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const requestContext = {
+    subject: syllabusFocus?.subject || subject || undefined,
+    unit: unit || undefined,
+    unitLabel: unitLabel || undefined,
+    subject_id: subject_id ? parseInt(subject_id) : undefined,
+    doc_type: doc_type || undefined,
+    syllabus_context: syllabusFocus?.contextText || undefined,
+    learning_mode: learningMode,
+    response_language: responseLanguage,
+    study_context: studyMode ? {
+      mode: studyMode,
+      subject_key: catalogSubjectKey || undefined,
+      unit_key: catalogUnitKey || undefined,
+      semester: semester ? parseInt(semester) : undefined,
+      upload_id: uploadId ? parseInt(uploadId) : undefined,
+    } : undefined,
+  };
+
   const handleSend = async (presetMessage) => {
     const text = (presetMessage ?? input).trim();
-    if (!text || loading) return;
+    if (!text || loading || isListening || transcribing) return;
 
     setError('');
     setScopeSuggestion(null);
+    setVoiceStatus('');
     setInput('');
 
     const nextMessages = [
       ...messages,
       {
-        id: Date.now(),
+        id: `local-user-${Date.now()}`,
         role: 'user',
         content: text,
       },
@@ -312,21 +619,8 @@ const AIChat = () => {
         body: JSON.stringify({
           message: text,
           history: history,
-          subject: syllabusFocus?.subject || subject || undefined,
-          unit: unit || undefined,
-          unitLabel: unitLabel || undefined,
           session_id: sessionId || undefined,
-          subject_id: subject_id ? parseInt(subject_id) : undefined,
-          doc_type: doc_type || undefined,
-          syllabus_context: syllabusFocus?.contextText || undefined,
-          learning_mode: learningMode,
-          study_context: studyMode ? {
-            mode: studyMode,
-            subject_key: catalogSubjectKey || undefined,
-            unit_key: catalogUnitKey || undefined,
-            semester: semester ? parseInt(semester) : undefined,
-            upload_id: uploadId ? parseInt(uploadId) : undefined,
-          } : undefined,
+          ...requestContext,
         }),
       });
 
@@ -339,15 +633,24 @@ const AIChat = () => {
         throw new Error(data?.error || data?.message || `Request failed with status ${response.status}`);
       }
 
-      setMessages((current) => [
-        ...current,
-        {
-          id: Date.now() + 1,
-          role: 'assistant',
-          content: data?.reply || 'The assistant returned an empty response.',
-          metadata: data?.metadata || { citations: data?.citations || [] },
-        },
-      ]);
+      setMessages((current) => {
+        const withPersistedUserId = current.map((message) => (
+          message.id === nextMessages[nextMessages.length - 1].id && data?.user_message_id
+            ? { ...message, persistedId: data.user_message_id }
+            : message
+        ));
+        return [
+          ...withPersistedUserId,
+          {
+            id: data?.assistant_message_id ? `message-${data.assistant_message_id}` : `local-assistant-${Date.now()}`,
+            persistedId: data?.assistant_message_id || null,
+            role: 'assistant',
+            content: data?.reply || 'The assistant returned an empty response.',
+            displayContent: data?.reply || 'The assistant returned an empty response.',
+            metadata: data?.metadata || { citations: data?.citations || [] },
+          },
+        ];
+      });
 
       if (data?.session_id && !sessionId) {
         setSessionId(data.session_id);
@@ -360,6 +663,61 @@ const AIChat = () => {
       setInput(text);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRegenerate = async (assistantMessageKey) => {
+    if (loading || !sessionId) return;
+    const assistantIndex = messages.findIndex((message) => message.id === assistantMessageKey);
+    let userIndex = assistantIndex - 1;
+    while (userIndex >= 0 && messages[userIndex].role !== 'user') userIndex -= 1;
+    const persistedAssistantId = messages[assistantIndex]?.persistedId;
+    if (assistantIndex < 0 || userIndex < 0 || !persistedAssistantId) return;
+
+    setError('');
+    setScopeSuggestion(null);
+    setLoading(true);
+    setRegeneratingMessageId(assistantMessageKey);
+    if (speakingMessageId === assistantMessageKey && speechSynthesisSupported) {
+      activeUtteranceRef.current = null;
+      window.speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+    }
+
+    try {
+      const response = await fetch('/api/chat/message', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: messages[userIndex].content,
+          history: messages.slice(0, userIndex).map(({ role, content }) => ({ role, content })),
+          session_id: sessionId,
+          regenerate: true,
+          assistant_message_id: persistedAssistantId,
+          ...requestContext,
+        }),
+      });
+      const data = await parseJsonResponse(response);
+      if (!response.ok) throw new Error(data?.error || data?.message || `Request failed with status ${response.status}`);
+
+      setMessages((current) => current.map((message) => (
+        message.id === assistantMessageKey
+          ? {
+              ...message,
+              persistedId: data?.assistant_message_id || message.persistedId,
+              content: data?.reply || 'The assistant returned an empty response.',
+              displayContent: data?.reply || 'The assistant returned an empty response.',
+              metadata: data?.metadata || { citations: data?.citations || [] },
+            }
+          : message
+      )));
+      if (data?.persistence_warning) setError(data.persistence_warning);
+    } catch (err) {
+      setError(err.message || 'The answer could not be regenerated.');
+    } finally {
+      setLoading(false);
+      setRegeneratingMessageId(null);
     }
   };
 
@@ -489,8 +847,17 @@ const AIChat = () => {
             {syllabusFocus?.note && <span className="text-[#666666]">- {syllabusFocus.note}</span>}
           </div>
         )}
-        {messages.map((message) => (
-          <ChatBubble key={message.id} role={message.role} content={message.content} metadata={message.metadata} />
+        {messages.map((message, index) => (
+          <ChatBubble
+            key={message.id}
+            message={message}
+            canRegenerate={Boolean(sessionId && message.persistedId && messages.slice(0, index).some((item) => item.role === 'user'))}
+            isSpeaking={speakingMessageId === message.id}
+            isRegenerating={regeneratingMessageId === message.id}
+            isTranslating={translatingMessageId === message.id}
+            onReadAloud={() => toggleReadAloud(message)}
+            onRegenerate={() => handleRegenerate(message.id)}
+          />
         ))}
         {loading && (
           <div className="flex items-center gap-3 text-xs font-mono text-[#666666]">
@@ -499,7 +866,7 @@ const AIChat = () => {
             </div>
             <div className="flex items-center gap-2 bg-white border border-[#D7D3CF] rounded-[4px] px-3.5 py-2.5">
               <Loader2 size={14} className="animate-spin text-[#102326]" />
-              Processing academic request...
+              {regeneratingMessageId ? 'Regenerating answer...' : 'Processing academic request...'}
             </div>
           </div>
         )}
@@ -528,6 +895,31 @@ const AIChat = () => {
               {mode.label}
             </button>
           ))}
+          <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-mono uppercase text-[#666666] font-semibold">
+            <Languages size={12} /> Answer
+          </span>
+          {[
+            { id: 'english', label: 'English' },
+            { id: 'nepali', label: 'नेपाली' },
+          ].map((language) => (
+            <button
+              key={language.id}
+              type="button"
+              onClick={() => selectResponseLanguage(language.id)}
+              disabled={loading || isListening || transcribing || Boolean(translatingMessageId)}
+              aria-pressed={responseLanguage === language.id}
+              className={`px-2.5 py-1 rounded-[4px] border text-[10px] font-mono font-semibold ${
+                responseLanguage === language.id
+                  ? 'bg-[#C96A32] text-white border-[#C96A32]'
+                  : 'bg-[#F7F5F2] text-[#111111] border-[#D7D3CF] hover:bg-[#ECEAE7]'
+              } disabled:opacity-50`}
+            >
+              <span className="inline-flex items-center gap-1">
+                {translatingMessageId && responseLanguage === language.id && <Loader2 size={10} className="animate-spin" />}
+                {language.label}
+              </span>
+            </button>
+          ))}
         </div>
         <div className="flex flex-wrap gap-1.5 md:gap-2 mb-3 max-h-24 overflow-y-auto custom-scrollbar">
           {quickPrompts.map((prompt) => (
@@ -535,7 +927,7 @@ const AIChat = () => {
               key={prompt}
               type="button"
               onClick={() => handleSend(prompt)}
-              disabled={loading}
+              disabled={loading || isListening || transcribing}
               className="text-[11px] font-mono text-[#111111] bg-[#F7F5F2] hover:bg-[#102326] hover:text-white border border-[#D7D3CF] rounded-[4px] px-2.5 py-1 transition-colors disabled:opacity-50 text-left truncate max-w-full"
             >
               {prompt}
@@ -569,6 +961,21 @@ const AIChat = () => {
         ) : null}
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleDictation}
+            disabled={loading || transcribing}
+            aria-label={isListening ? 'Stop voice input' : transcribing ? 'Transcribing voice' : 'Start voice input'}
+            aria-pressed={isListening}
+            title={isListening ? 'Stop listening' : transcribing ? 'Transcribing voice' : 'Speak in English or Nepali'}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[4px] border transition-colors disabled:opacity-50 ${
+              isListening
+                ? 'border-[#C96A32] bg-[#C96A32] text-white'
+                : 'border-[#D7D3CF] bg-[#F7F5F2] text-[#102326] hover:border-[#102326] hover:bg-[#ECEAE7]'
+            }`}
+          >
+            {isListening ? <Square size={13} fill="currentColor" /> : transcribing ? <Loader2 size={15} className="animate-spin" /> : <Mic size={16} />}
+          </button>
           <input
             type="text"
             value={input}
@@ -579,14 +986,14 @@ const AIChat = () => {
                 handleSend();
               }
             }}
-            placeholder="Ask a question or request revision notes..."
+            placeholder={responseLanguage === 'nepali' ? 'नेपाली वा अंग्रेजीमा प्रश्न सोध्नुहोस्...' : 'Ask in English or Nepali...'}
             aria-label="Ask the study assistant"
             className="flex-1 bg-white border border-[#D7D3CF] focus:border-[#102326] rounded-[4px] px-3.5 py-2.5 text-xs text-[#111111] outline-none"
           />
           <button
             type="button"
             onClick={() => handleSend()}
-            disabled={loading || !input.trim()}
+            disabled={loading || isListening || transcribing || !input.trim()}
             aria-label={loading ? 'Generating answer' : 'Send message'}
             className="px-3.5 md:px-4 py-2.5 rounded-[4px] bg-[#102326] hover:bg-[#0b191c] text-white font-mono text-xs font-semibold uppercase tracking-wider disabled:opacity-50 transition-colors inline-flex items-center gap-1.5 shrink-0"
           >
@@ -594,6 +1001,9 @@ const AIChat = () => {
             <span className="hidden sm:inline">SEND</span>
           </button>
         </div>
+        {voiceStatus && !error && (
+          <p className="mt-1.5 font-mono text-[10px] text-[#666666]" aria-live="polite">{voiceStatus}</p>
+        )}
       </div>
       </div>
       <HistorySidebar
@@ -709,7 +1119,10 @@ const HistorySidebar = ({ open, sessions, loading, activeId, onSelect, onDelete,
   );
 };
 
-const ChatBubble = ({ role, content, metadata = {} }) => {
+const ChatBubble = ({ message, canRegenerate, isSpeaking, isRegenerating, isTranslating, onReadAloud, onRegenerate }) => {
+  const { role, content, metadata = {} } = message;
+  const displayContent = message.displayContent || content;
+  const [copied, setCopied] = useState(false);
   const isUser = role === 'user';
   const citations = Array.isArray(metadata.citations) ? metadata.citations : [];
   const resources = Array.isArray(metadata.resources) ? metadata.resources : [];
@@ -724,6 +1137,16 @@ const ChatBubble = ({ role, content, metadata = {} }) => {
   const sourceGroups = metadata.source_groups && typeof metadata.source_groups === 'object'
     ? metadata.source_groups
     : null;
+
+  const copyAnswer = async () => {
+    try {
+      await navigator.clipboard.writeText(displayContent);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   return (
     <div className={`flex items-start gap-2.5 md:gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -764,7 +1187,7 @@ const ChatBubble = ({ role, content, metadata = {} }) => {
               </div>
             )}
             <div className="academic-content prose prose-xs max-w-none text-[#111111] break-words">
-              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{content}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{displayContent}</ReactMarkdown>
             </div>
             {(prerequisites.length > 0 || nextTopics.length > 0) && (
               <div className="mt-3 grid gap-2 border-t border-[#D7D3CF] pt-3 sm:grid-cols-2">
@@ -822,6 +1245,42 @@ const ChatBubble = ({ role, content, metadata = {} }) => {
                 </div>
               </div>
             )}
+            <div className="mt-3 flex h-7 items-center gap-0.5 border-t border-[#ECEAE7] pt-2 text-[#666666]">
+              <button
+                type="button"
+                onClick={copyAnswer}
+                className="flex h-7 w-7 items-center justify-center rounded-[4px] hover:bg-[#ECEAE7] hover:text-[#102326]"
+                aria-label={copied ? 'Answer copied' : 'Copy answer'}
+                title={copied ? 'Copied' : 'Copy answer'}
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+              </button>
+              <button
+                type="button"
+                onClick={onReadAloud}
+                className={`flex h-7 w-7 items-center justify-center rounded-[4px] hover:bg-[#ECEAE7] hover:text-[#102326] ${isSpeaking ? 'bg-[#E9EFEE] text-[#102326]' : ''}`}
+                aria-label={isSpeaking ? 'Stop reading aloud' : 'Read answer aloud'}
+                title={isSpeaking ? 'Stop reading' : 'Read aloud'}
+              >
+                {isSpeaking ? <Square size={12} fill="currentColor" /> : <Volume2 size={15} />}
+              </button>
+              <button
+                type="button"
+                onClick={onRegenerate}
+                disabled={!canRegenerate || isRegenerating}
+                className="flex h-7 w-7 items-center justify-center rounded-[4px] hover:bg-[#ECEAE7] hover:text-[#102326] disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label="Regenerate answer"
+                title={canRegenerate ? 'Regenerate answer' : 'Send a message before regenerating'}
+              >
+                <RefreshCw size={14} className={isRegenerating ? 'animate-spin' : ''} />
+              </button>
+              {(metadata.display_language || metadata.response_language) && (
+                <span className="ml-1 inline-flex items-center gap-1 font-mono text-[9px] uppercase text-[#888888]">
+                  {isTranslating && <Loader2 size={10} className="animate-spin" />}
+                  {(metadata.display_language || metadata.response_language) === 'nepali' ? 'नेपाली' : 'English'}
+                </span>
+              )}
+            </div>
           </>
         )}
       </div>

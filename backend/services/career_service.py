@@ -7,58 +7,24 @@ using Gemini API for warm, mentoring-style guidance.
 
 import json
 import logging
-import requests
-from config import Config
+from services.llm_service import call_prompt
 
 logger = logging.getLogger(__name__)
 
 
-def _call_gemini(prompt: str, temperature: float = 0.7, max_tokens: int = 2000) -> str:
-    """
-    Send a prompt to Gemini and return the text response.
-    """
-    api_key = Config.GEMINI_API_KEY
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY not configured")
-
-    base_url = Config.GEMINI_API_BASE_URL.rstrip('/')
-    model = Config.GEMINI_MODEL or 'gemini-2.5-flash'
-
-    payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": prompt}],
-            }
-        ],
-        "generationConfig": {
-            "temperature": temperature,
-            "maxOutputTokens": max_tokens,
-            "responseMimeType": "application/json",
-        },
-    }
-
-    try:
-        response = requests.post(
-            f"{base_url}/models/{model}:generateContent",
-            headers={"x-goog-api-key": api_key},
-            json=payload,
-            timeout=120,
-        )
-        response.raise_for_status()
-
-        result = response.json()
-        if result and result.get("candidates"):
-            content = result["candidates"][0].get("content", {})
-            parts = content.get("parts", [])
-            if parts:
-                return parts[0].get("text", "")
-
-        raise RuntimeError("No content in Gemini response")
-
-    except Exception as e:
-        logger.error(f"Gemini API error: {str(e)}")
-        raise
+def _call_gemini(
+    prompt: str,
+    temperature: float = 0.7,
+    max_tokens: int = 2000,
+    json_mode: bool = True,
+) -> str:
+    """Compatibility wrapper around the shared provider/fallback service."""
+    return call_prompt(
+        prompt,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        json_mode=json_mode,
+    )
 
 
 def analyze_career_profile(user_name: str, interests: list, skills: list, career_goal: str, 
@@ -185,7 +151,7 @@ Write a message that:
 Keep it personal and mentor-like. Return as plain text, no JSON."""
 
     try:
-        message = _call_gemini(prompt, temperature=0.8, max_tokens=150)
+        message = _call_gemini(prompt, temperature=0.8, max_tokens=150, json_mode=False)
         return message.strip()
     except Exception as e:
         logger.error(f"Error generating motivational message: {str(e)}")

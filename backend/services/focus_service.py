@@ -4,11 +4,11 @@ from models.revision import RevisionPlan
 from models.exam import Exam
 from models.quiz import QuizSet
 from models.content import StudentUpload, Subject
-from config import Config, db
+from config import db
 from datetime import datetime, timedelta
 import logging
-import requests
 from services.generation_service import _call_gemini, _parse_json_response
+from services.llm_service import call_prompt
 from services.rag_service import retrieve_context
 
 logger = logging.getLogger(__name__)
@@ -285,31 +285,7 @@ def get_recommendations(user_id):
 
     return recommendations
 
-def _parse_ai_response(response):
-    try:
-        data = response.json()
-    except ValueError:
-        return ''
-
-    if not isinstance(data, dict):
-        return ''
-
-    candidates = data.get('candidates') or []
-    if not candidates:
-        return ''
-
-    content = (candidates[0] or {}).get('content') or {}
-    parts = content.get('parts') or []
-    return '\n'.join(
-        part.get('text', '')
-        for part in parts
-        if isinstance(part, dict) and part.get('text')
-    ).strip()
-
 def get_ai_coach_response(user_id, data):
-    if not Config.GEMINI_API_KEY:
-        raise RuntimeError('Gemini API key is not configured.')
-
     prompt = data.get('prompt', '')
     if not isinstance(prompt, str) or not prompt.strip():
         raise ValueError('Prompt is required.')
@@ -355,30 +331,15 @@ def get_ai_coach_response(user_id, data):
         f"Student request: {prompt.strip()}"
     )
 
-    payload = {
-        'contents': [{'role': 'user', 'parts': [{'text': user_prompt}]}],
-        'generationConfig': {
-            'temperature': 0.35,
-            'maxOutputTokens': 320,
-        },
-    }
-
     try:
-        response = requests.post(
-            f"{Config.GEMINI_API_BASE_URL.rstrip('/')}/models/{Config.GEMINI_MODEL}:generateContent",
-            headers={'x-goog-api-key': Config.GEMINI_API_KEY},
-            json=payload,
-            timeout=45,
+        reply = call_prompt(
+            user_prompt,
+            temperature=0.35,
+            max_tokens=320,
         )
-    except requests.RequestException as exc:
-        logger.error(f'Focus coach Gemini request failed: {exc}')
+    except Exception as exc:
+        logger.error('Focus coach AI request failed: %s', exc)
         raise RuntimeError('Unable to reach the AI service right now.') from exc
-
-    if response.status_code >= 400:
-        logger.error(f'Focus coach Gemini API error {response.status_code}: {response.text}')
-        raise RuntimeError('AI service returned an error.')
-
-    reply = _parse_ai_response(response)
     if not reply:
         raise RuntimeError('The AI service returned an empty response.')
 

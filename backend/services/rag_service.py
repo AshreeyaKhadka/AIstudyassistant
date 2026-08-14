@@ -179,24 +179,63 @@ _EMBED_MAX_RETRIES = 4
 _EMBED_BACKOFF_BASE = 3  # seconds
 
 
-def _embedding_provider():
-    provider = (Config.EMBEDDING_PROVIDER or 'gemini').strip().lower()
+class EmbeddingServiceError(RuntimeError):
+    def __init__(self, message, status_code=None, retryable=False):
+        super().__init__(message)
+        self.status_code = status_code
+        self.retryable = retryable
+
+
+def _validate_embedding_provider(provider, setting_name, allow_empty=False):
+    provider = (provider or '').strip().lower()
+    if allow_empty and not provider:
+        return None
     if provider not in {'gemini', 'openrouter'}:
-        raise RuntimeError(
+        raise EmbeddingServiceError(
             f'Unsupported embedding provider: {provider}. '
-            'Supported providers: gemini, openrouter'
+            f'Supported providers: gemini, openrouter (setting: {setting_name})'
         )
     return provider
 
 
+def _embedding_provider():
+    return _validate_embedding_provider(
+        Config.EMBEDDING_PROVIDER or 'gemini',
+        'EMBEDDING_PROVIDER',
+    )
+
+
+def _embedding_fallback_provider():
+    provider = _validate_embedding_provider(
+        Config.EMBEDDING_FALLBACK_PROVIDER,
+        'EMBEDDING_FALLBACK_PROVIDER',
+        allow_empty=True,
+    )
+    return provider if provider != _embedding_provider() else None
+
+
+def _embedding_dimensions(provider):
+    return (
+        Config.OPENROUTER_EMBEDDING_DIMENSIONS
+        if provider == 'openrouter'
+        else Config.GEMINI_EMBEDDING_DIMENSIONS
+    )
+
+
+def _embedding_provider_configured(provider):
+    if provider == 'openrouter':
+        return bool(Config.OPENROUTER_API_KEY)
+    return bool(Config.GEMINI_API_KEY)
+
+
 def _validate_embeddings(embeddings, expected_count, expected_dimensions):
     if len(embeddings) != expected_count:
-        raise RuntimeError(
+        raise EmbeddingServiceError(
             f'Embedding count mismatch: expected {expected_count}, got {len(embeddings)}'
         )
     invalid = [len(vector) for vector in embeddings if len(vector) != expected_dimensions]
     if invalid:
-        raise RuntimeError(
+        raise EmbeddingServiceError(
             f'Embedding dimension mismatch: expected {expected_dimensions}, got {invalid[0]}'
         )
     return embeddings
@@ -223,6 +262,8 @@ def _request_embeddings(url, headers, payload, provider_name):
             continue
 
         if response.status_code == 429:
+            if attempt == _EMBED_MAX_RETRIES - 1:
+                break
             wait = _EMBED_BACKOFF_BASE * (2 ** attempt)
             logger.warning(
                 '%s embeddings rate-limited, retrying in %ss (attempt %s/%s)',
@@ -240,23 +281,32 @@ def _request_embeddings(url, headers, payload, provider_name):
             except Exception:
                 detail = response.text[:200]
             suffix = f': {detail}' if detail else ''
-            raise RuntimeError(f'{provider_name} embedding API error {response.status_code}{suffix}')
+            raise EmbeddingServiceError(
+                f'{provider_name} embedding API error {response.status_code}{suffix}',
+                status_code=response.status_code,
+                retryable=response.status_code >= 500,
+            )
         try:
             return response.json()
         except ValueError as exc:
-            raise RuntimeError(f'{provider_name} returned invalid embedding JSON') from exc
+            raise EmbeddingServiceError(f'{provider_name} returned invalid embedding JSON') from exc
 
     if last_error:
-        raise RuntimeError(f'Unable to reach {provider_name} embedding API: {last_error}')
-    raise RuntimeError(
+        raise EmbeddingServiceError(
+            f'Unable to reach {provider_name} embedding API: {last_error}',
+            retryable=True,
+        )
+    raise EmbeddingServiceError(
         f'{provider_name} embedding rate limit was reached while indexing this document. '
-        'The document may be too large for the current quota; try again later or upload a smaller split of the material.'
+        'The document may be too large for the current quota; try again later or upload a smaller split of the material.',
+        status_code=429,
+        retryable=True,
     )
 
 
 def _embed_texts_gemini(texts: list[str]) -> list[list[float]]:
     if not Config.GEMINI_API_KEY:
-        raise RuntimeError('GEMINI_API_KEY is not configured')
+        raise EmbeddingServiceError('GEMINI_API_KEY is not configured')
 
     model = Config.GEMINI_EMBEDDING_MODEL
     requests_body = []
@@ -284,7 +334,7 @@ def _embed_texts_gemini(texts: list[str]) -> list[list[float]]:
 
 def _embed_texts_openrouter(texts: list[str]) -> list[list[float]]:
     if not Config.OPENROUTER_API_KEY:
-        raise RuntimeError('OPENROUTER_API_KEY is not configured')
+        raise EmbeddingServiceError('OPENROUTER_API_KEY is not configured')
 
     data = _request_embeddings(
         f"{Config.OPENROUTER_API_BASE_URL.rstrip('/')}/embeddings",
@@ -313,7 +363,33 @@ def _embed_texts(texts: list[str]) -> list[list[float]]:
     """Embed text using the provider selected by EMBEDDING_PROVIDER."""
     if not texts:
         return []
-    if _embedding_provider() == 'openrouter':
+    primary = _embedding_provider()
+    try:
+        return _embed_texts_with_provider(primary, texts)
+    except EmbeddingServiceError as primary_error:
+        fallback = _embedding_fallback_provider()
+        if (
+            not primary_error.retryable
+            or not fallback
+            or not _embedding_provider_configured(fallback)
+        ):
+            raise
+        if _embedding_dimensions(primary) != _embedding_dimensions(fallback):
+            raise EmbeddingServiceError(
+                'Embedding fallback is disabled because provider dimensions differ: '
+                f'{primary}={_embedding_dimensions(primary)}, '
+                f'{fallback}={_embedding_dimensions(fallback)}'
+            ) from primary_error
+        logger.warning(
+            '%s embeddings failed transiently; falling back to %s',
+            primary,
+            fallback,
+        )
+        return _embed_texts_with_provider(fallback, texts)
+
+
+def _embed_texts_with_provider(provider, texts):
+    if provider == 'openrouter':
         return _embed_texts_openrouter(texts)
     return _embed_texts_gemini(texts)
 
