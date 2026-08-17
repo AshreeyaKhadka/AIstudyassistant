@@ -122,17 +122,6 @@ const ProfileSetupPage = () => {
         return response.json();
       })
       .then((profile) => {
-        // If profile is already complete, skip this page entirely
-        if (profile.profile_complete) {
-          sessionStorage.setItem('onboarded_session', 'true');
-          if (profile.role === 'admin' || clerkRole === 'admin') {
-            navigate('/admin', { replace: true });
-          } else {
-            navigate('/dashboard', { replace: true });
-          }
-          return;
-        }
-
         const derivedNames = splitName(profile.display_name || profile.name || '');
         setFormData((current) => ({
           ...current,
